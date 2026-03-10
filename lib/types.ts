@@ -210,3 +210,16 @@ export function callHistoryToFrontendFormat(record: CallHistoryRecord): Frontend
     note: record.note,
   }
 }
+
+// Login response type
+export interface LoginResponse {
+  success: boolean
+  user?: {
+    id: string
+    username: string
+    display_name: string
+    role: string
+  }
+  token?: string
+  error?: string
+}
