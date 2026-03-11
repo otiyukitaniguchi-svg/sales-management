@@ -1,4 +1,4 @@
-import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse } from './types'
+import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginResponse } from './types'
 
 const API_BASE = '/api'
 
@@ -72,7 +72,7 @@ export class ApiClient {
   /**
    * Login
    */
-  static async login(username: string, password: string): Promise<ApiResponse> {
+  static async login(username: string, password: string): Promise<LoginResponse> {
     const response = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: {
