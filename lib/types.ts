@@ -221,5 +221,6 @@ export interface LoginResponse {
     role: string
   }
   token?: string
+  message?: string 
   error?: string
 }
