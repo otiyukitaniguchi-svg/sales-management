@@ -242,32 +242,43 @@ export default function CustomerDetail() {
           )}
 
           {/* 履歴テーブル */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className="bg-gray-200">
-                  {['担当者','対応日','開始','終了','対応者','性別','進捗','コール備歴'].map(h => (
-                    <th key={h} className="border border-gray-400 px-2 py-1 text-left whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {callHistory.length === 0 ? (
-                  <tr><td colSpan={8} className="border border-gray-400 px-2 py-3 text-center text-gray-400">履歴なし</td></tr>
-                ) : callHistory.map((entry, i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="border border-gray-400 px-2 py-1">{entry.operator}</td>
-                    <td className="border border-gray-400 px-2 py-1">{entry.date}</td>
-                    <td className="border border-gray-400 px-2 py-1">{entry.startTime}</td>
-                    <td className="border border-gray-400 px-2 py-1">{entry.endTime}</td>
-                    <td className="border border-gray-400 px-2 py-1">{entry.responder}</td>
-                    <td className="border border-gray-400 px-2 py-1">{entry.gender}</td>
-                    <td className="border border-gray-400 px-2 py-1">{entry.progress}</td>
-                    <td className="border border-gray-400 px-2 py-1">{entry.note}</td>
+          {/* 架電履歴テーブル - 最新5件表示 + スクロール対応 */}
+          <div className="flex flex-col h-64 border border-gray-300 rounded bg-white">
+            <div className="overflow-x-auto overflow-y-auto flex-1">
+              <table className="w-full text-xs border-collapse">
+                <thead className="sticky top-0 bg-gray-200">
+                  <tr>
+                    {['担当者','対応日','開始','終了','対応者','性別','進捗','コール備歴'].map(h => (
+                      <th key={h} className="border border-gray-400 px-2 py-1 text-left whitespace-nowrap">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {callHistory.length === 0 ? (
+                    <tr><td colSpan={8} className="border border-gray-400 px-2 py-3 text-center text-gray-400">履歴なし</td></tr>
+                  ) : (
+                    /* 最新順にソートして表示（新しい順） */
+                    [...callHistory].reverse().map((entry, i) => (
+                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="border border-gray-400 px-2 py-1">{entry.operator}</td>
+                        <td className="border border-gray-400 px-2 py-1">{entry.date}</td>
+                        <td className="border border-gray-400 px-2 py-1">{entry.startTime}</td>
+                        <td className="border border-gray-400 px-2 py-1">{entry.endTime}</td>
+                        <td className="border border-gray-400 px-2 py-1">{entry.responder}</td>
+                        <td className="border border-gray-400 px-2 py-1">{entry.gender}</td>
+                        <td className="border border-gray-400 px-2 py-1">{entry.progress}</td>
+                        <td className="border border-gray-400 px-2 py-1">{entry.note}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {callHistory.length > 5 && (
+              <div className="text-xs text-gray-500 px-2 py-1 border-t border-gray-300 bg-gray-50">
+                全 {callHistory.length} 件（スクロールで全て表示）
+              </div>
+            )}
           </div>
         </div>
       </div>
