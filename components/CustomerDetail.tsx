@@ -79,16 +79,30 @@ export default function CustomerDetail() {
   }
 
   const handleCallEnd = async () => {
-    if (!record) return
+    if (!record || !currentCall.date || !currentCall.startTime) return
     const now = new Date()
-    const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
-    const updatedCall = { ...currentCall, endTime: timeStr }
+    const endTimeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
+    
+    // 架電履歴エントリを作成
+    const callEntry: FrontendCallHistoryEntry = {
+      operator: currentCall.operator || user?.display_name || '',
+      date: currentCall.date,
+      startTime: currentCall.startTime,
+      endTime: endTimeStr,
+      responder: currentCall.responder || '',
+      gender: currentCall.gender || '',
+      progress: currentCall.progress || '',
+      note: currentCall.note || '',
+    }
+    
     try {
-      const result = await ApiClient.updateRecord(currentList, record.no, undefined, [updatedCall], user?.display_name)
+      const result = await ApiClient.updateRecord(currentList, record.no, undefined, [callEntry], user?.display_name)
       if (result.success) {
         setIsCallActive(false)
         resetCurrentCall()
         await loadCallHistory()
+      } else {
+        alert('架電保存エラー: ' + (result.message || '不明なエラー'))
       }
     } catch (e: any) {
       alert('架電保存エラー: ' + e.message)
