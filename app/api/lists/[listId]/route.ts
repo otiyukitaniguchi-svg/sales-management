@@ -19,10 +19,13 @@ export async function GET(
     const tableName = getTableName(listId)
 
     // Fetch all records from the list
+    // Note: Supabase has a default limit of 1000 rows, so we need to fetch in batches
+    // or use a large limit. We'll use a large limit to get all records.
     const { data: records, error: recordsError } = await supabaseAdmin
       .from(tableName)
       .select('*')
       .order('no', { ascending: true })
+      .limit(10000)
 
     if (recordsError) {
       throw recordsError
