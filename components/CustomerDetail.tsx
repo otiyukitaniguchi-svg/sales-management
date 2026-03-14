@@ -304,7 +304,7 @@ export default function CustomerDetail() {
                     <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">対応者</th>
                     <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">性別</th>
                     <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-24">進捗</th>
-                    <th className="border border-gray-400 px-4 py-2 text-left font-bold bg-gray-300 flex-1">コール備歴</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left font-bold bg-gray-300 flex-1">コール履歴</th>
                   </tr>
                 </thead>
                 <tbody>
