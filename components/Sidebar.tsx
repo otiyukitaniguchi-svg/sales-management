@@ -30,12 +30,12 @@ export default function Sidebar() {
             key={listId}
             onClick={() => handleListClick(listId as 'list1' | 'list2' | 'list3')}
             className={`
-              px-4 py-3 text-base cursor-pointer border-b border-gray-600
+              px-4 py-3 text-lg cursor-pointer border-b border-gray-600
               ${isActive ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
             `}
           >
             <div>{listName}</div>
-            <div className="text-xs text-gray-600 mt-1">{count}件</div>
+            <div className="text-sm text-gray-600 mt-1">{count}件</div>
           </div>
         )
       })}
@@ -44,14 +44,14 @@ export default function Sidebar() {
       <div className="mt-auto border-t border-gray-600">
         <button
           onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-          className="w-full px-4 py-3 text-sm font-bold text-gray-700 bg-[#c0c0c0] border-b border-gray-600 hover:bg-[#b0b0b0] cursor-pointer"
+          className="w-full px-4 py-3 text-lg font-bold text-gray-700 bg-[#c0c0c0] border-b border-gray-600 hover:bg-[#b0b0b0] cursor-pointer"
         >
           管理者 {isAdminMenuOpen ? '▼' : '▶'}
         </button>
         {isAdminMenuOpen && (
           <>
-            <button className="w-full px-4 py-2 text-xs text-left hover:bg-gray-400 border-b border-gray-600 bg-[#e0e0e0]">インポート</button>
-            <button className="w-full px-4 py-2 text-xs text-left hover:bg-gray-400 bg-[#e0e0e0]">エクスポート</button>
+            <button className="w-full px-4 py-2 text-sm text-left hover:bg-gray-400 border-b border-gray-600 bg-[#e0e0e0]">インポート</button>
+            <button className="w-full px-4 py-2 text-sm text-left hover:bg-gray-400 bg-[#e0e0e0]">エクスポート</button>
           </>
         )}
       </div>

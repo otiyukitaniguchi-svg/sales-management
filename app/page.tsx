@@ -61,7 +61,7 @@ export default function Home() {
             <div className="text-center text-gray-500 mt-20">
               <h2 className="text-2xl font-bold mb-4">営業管理システム</h2>
               <p>Supabase + Next.js 版</p>
-              <p className="mt-4 text-sm">左のサイドバーからリストを選択してください</p>
+              <p className="mt-4 text-lg">左のサイドバーからリストを選択してください</p>
             </div>
           )}
         </div>

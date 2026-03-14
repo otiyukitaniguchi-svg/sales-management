@@ -50,7 +50,7 @@ export default function LoginScreen() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-md text-base focus:outline-none focus:border-purple-600"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-md text-lg focus:outline-none focus:border-purple-600"
               required
               disabled={isLoading}
             />
@@ -64,7 +64,7 @@ export default function LoginScreen() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-md text-base focus:outline-none focus:border-purple-600"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-md text-lg focus:outline-none focus:border-purple-600"
               required
               disabled={isLoading}
             />
@@ -85,7 +85,7 @@ export default function LoginScreen() {
           )}
         </form>
 
-        <div className="mt-6 pt-5 border-t border-gray-200 text-gray-500 text-sm text-center">
+        <div className="mt-6 pt-5 border-t border-gray-200 text-gray-500 text-lg text-center">
           <p>初回ログイン時は管理者にお問い合わせください</p>
         </div>
       </div>

@@ -108,31 +108,31 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
         value={jumpNo}
         onChange={(e) => setJumpNo(e.target.value)}
         onKeyPress={(e) => e.key === 'Enter' && handleJumpToNo()}
-        className="px-3 py-2 border border-gray-600 rounded text-base ml-2 w-24"
+        className="px-3 py-2 border border-gray-600 rounded text-lg ml-2 w-24"
       />
 
       <button
         onClick={handleJumpToNo}
-        className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-base font-bold hover:from-gray-200 hover:to-gray-300"
+        className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
       >
         移動
       </button>
 
       <button
         onClick={() => {}}
-        className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-base font-bold hover:from-gray-200 hover:to-gray-300 ml-2"
+        className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300 ml-2"
       >
         💾 保存
       </button>
 
       <button
         onClick={onSearch}
-        className="px-5 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-base font-bold hover:from-gray-200 hover:to-gray-300"
+        className="px-5 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
       >
         検索
       </button>
 
-      <div className="ml-auto text-base">
+      <div className="ml-auto text-lg">
         ログイン中: <span className="font-bold">{user?.display_name}</span>
       </div>
     </div>
