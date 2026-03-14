@@ -265,13 +265,13 @@ export default function CustomerDetail() {
 
           {/* 履歴テーブル */}
           {/* 架電履歴テーブル - 最新5件表示 + スクロール対応 */}
-          <div className="flex flex-col h-64 border border-gray-300 rounded bg-white">
+          <div className="flex flex-col h-64 border border-gray-300 rounded bg-white w-full">
             <div className="overflow-x-auto overflow-y-auto flex-1">
-              <table className="w-full text-xs border-collapse">
+              <table className="w-full text-xs border-collapse min-w-max">
                 <thead className="sticky top-0 bg-gray-200">
                   <tr>
                     {['担当者','対応日','開始','終了','対応者','性別','進捗','コール備歴'].map(h => (
-                      <th key={h} className="border border-gray-400 px-2 py-1 text-left whitespace-nowrap">{h}</th>
+                      <th key={h} className="border border-gray-400 px-3 py-1 text-left whitespace-nowrap font-bold bg-gray-300">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -282,14 +282,14 @@ export default function CustomerDetail() {
                     /* 最新順にソートして表示（新しい順） */
                     [...callHistory].reverse().map((entry, i) => (
                       <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="border border-gray-400 px-2 py-1">{entry.operator}</td>
-                        <td className="border border-gray-400 px-2 py-1">{entry.date}</td>
-                        <td className="border border-gray-400 px-2 py-1">{entry.startTime}</td>
-                        <td className="border border-gray-400 px-2 py-1">{entry.endTime}</td>
-                        <td className="border border-gray-400 px-2 py-1">{entry.responder}</td>
-                        <td className="border border-gray-400 px-2 py-1">{entry.gender}</td>
-                        <td className="border border-gray-400 px-2 py-1">{entry.progress}</td>
-                        <td className="border border-gray-400 px-2 py-1">{entry.note}</td>
+                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.operator}</td>
+                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.date}</td>
+                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.startTime}</td>
+                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.endTime}</td>
+                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.responder}</td>
+                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.gender}</td>
+                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.progress}</td>
+                        <td className="border border-gray-400 px-3 py-1 min-w-32">{entry.note}</td>
                       </tr>
                     ))
                   )}
