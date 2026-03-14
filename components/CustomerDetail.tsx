@@ -343,7 +343,7 @@ export default function CustomerDetail() {
                     <tr><td colSpan={9} className="border border-gray-400 px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
                   ) : (
                     /* 最新順にソートして表示（新しい順） */
-                    [...callHistory].reverse().slice(0, 5).map((entry, displayIndex) => {
+                    callHistory.slice(0, 5).map((entry, displayIndex) => {
                       const isEditing = editingCallIndex === displayIndex
                       return (
                         <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
