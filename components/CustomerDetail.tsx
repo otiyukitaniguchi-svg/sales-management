@@ -237,10 +237,7 @@ export default function CustomerDetail() {
               <span className="font-bold text-yellow-700">🔴 架電中</span>
               <span>担当: {currentCall.operator}</span>
               <span>開始: {currentCall.startTime}</span>
-              <label className="flex items-center gap-1">対応日:
-                <input type="text" value={currentCall.date || ''} onChange={(e) => setCurrentCall({ ...currentCall, date: e.target.value })}
-                  className="border border-gray-300 px-1 py-0.5 w-20 text-xs" placeholder="M/D" />
-              </label>
+              <span>対応日: {currentCall.date}</span>
               <label className="flex items-center gap-1">対応者:
                 <input type="text" value={currentCall.responder || ''} onChange={(e) => setCurrentCall({ ...currentCall, responder: e.target.value })}
                   className="border border-gray-300 px-1 py-0.5 w-20 text-xs" />
