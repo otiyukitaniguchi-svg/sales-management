@@ -20,7 +20,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="w-[120px] bg-[#d0d0d0] border-r border-gray-600 overflow-y-auto flex flex-col">
+    <div className="w-[160px] bg-[#d0d0d0] border-r border-gray-600 overflow-y-auto flex flex-col">
       {Object.entries(LIST_NAMES).map(([listId, listName]) => {
         const isActive = currentList === listId
         const count = listData[listId as keyof typeof listData]?.length || 0
@@ -30,11 +30,11 @@ export default function Sidebar() {
             key={listId}
             onClick={() => handleListClick(listId as 'list1' | 'list2' | 'list3')}
             className={`
-              px-4 py-3 text-lg cursor-pointer border-b border-gray-600
+              px-4 py-3 text-lg cursor-pointer border-b border-gray-600 whitespace-nowrap
               ${isActive ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
             `}
           >
-            <div>{listName}</div>
+            <div className="whitespace-nowrap">{listName}</div>
             <div className="text-sm text-gray-600 mt-1">{count}件</div>
           </div>
         )
