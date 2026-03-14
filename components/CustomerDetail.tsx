@@ -246,7 +246,7 @@ export default function CustomerDetail() {
                 <select value={currentCall.gender || ''} onChange={(e) => setCurrentCall({ ...currentCall, gender: e.target.value })}
                   className="border border-gray-300 px-1 py-0.5 text-xs">
                   <option value="">選択</option>
-                  {['男','女'].map(v => <option key={v} value={v}>{v}</option>)}
+                  {['男性','女性'].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-1">進捗:
