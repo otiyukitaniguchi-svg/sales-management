@@ -36,12 +36,17 @@ export default function CustomerDetail() {
   const loadCallHistory = async () => {
     if (!record) return
     try {
+      console.log('📋 [DEBUG] Loading call history for:', currentList, record.no)
       const result = await ApiClient.getCallHistory(currentList, record.no)
+      console.log('📋 [DEBUG] API call history response:', result)
       if (result.success && result.data) {
+        console.log('📋 [DEBUG] Setting call history with', result.data.length, 'entries')
         setCallHistory(result.data)
+      } else {
+        console.warn('📋 [DEBUG] No data in response')
       }
     } catch (e) {
-      console.error('Failed to load call history:', e)
+      console.error('📋 [DEBUG] Failed to load call history:', e)
     }
   }
 
@@ -132,17 +137,28 @@ export default function CustomerDetail() {
       note: currentCall.note || '',
     }
     
+    console.log('📞 [DEBUG] Saving call entry:', callEntry)
+    console.log('📞 [DEBUG] Current list:', currentList, 'Record no:', record.no)
+    
     try {
       const result = await ApiClient.updateRecord(currentList, record.no, undefined, [callEntry], user?.display_name)
+      console.log('✅ [DEBUG] API Response:', result)
+      
       if (result.success) {
         setIsCallActive(false)
         resetCurrentCall()
+        
+        console.log('🔄 [DEBUG] Loading call history...')
         await loadCallHistory()
+        console.log('📋 [DEBUG] Updated call history length:', callHistory.length)
+        
         alert('架電情報を保存しました')
       } else {
+        console.error('❌ [DEBUG] API Error:', result.message)
         alert('架電保存エラー: ' + (result.message || '不明なエラー'))
       }
     } catch (e: any) {
+      console.error('❌ [DEBUG] Exception:', e)
       alert('架電保存エラー: ' + e.message)
     }
   }
