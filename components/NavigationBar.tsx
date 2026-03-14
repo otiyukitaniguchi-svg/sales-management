@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { ApiClient } from '@/lib/api-client'
 
@@ -20,10 +21,31 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
   const setIsLoading = useAppStore((state) => state.setIsLoading)
   const setListData = useAppStore((state) => state.setListData)
+  const [jumpNo, setJumpNo] = useState('')
 
   const currentData = isSearchMode ? searchResults : listData[currentList]
   const currentIndex = isSearchMode ? searchResultIndex : currentListIndex
   const totalCount = currentData?.length || 0
+
+  const handleJumpToNo = () => {
+    if (!jumpNo.trim()) return
+    const targetNo = parseInt(jumpNo, 10)
+    if (isNaN(targetNo)) {
+      alert('有効な番号を入力してください')
+      return
+    }
+    const foundIndex = currentData?.findIndex((record: any) => record.no === targetNo)
+    if (foundIndex !== undefined && foundIndex >= 0) {
+      if (isSearchMode) {
+        setSearchResultIndex(foundIndex)
+      } else {
+        setCurrentListIndex(foundIndex)
+      }
+      setJumpNo('')
+    } else {
+      alert(`No. ${targetNo} が見つかりません`)
+    }
+  }
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
@@ -83,6 +105,22 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
       <div className="px-3 text-lg font-bold">
         {totalCount > 0 ? `${currentIndex + 1} / ${totalCount}` : '0 / 0'}
       </div>
+
+      <input
+        type="text"
+        placeholder="No. を入力"
+        value={jumpNo}
+        onChange={(e) => setJumpNo(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleJumpToNo()}
+        className="px-3 py-2 border border-gray-600 rounded text-base ml-2 w-24"
+      />
+
+      <button
+        onClick={handleJumpToNo}
+        className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-base font-bold hover:from-gray-200 hover:to-gray-300"
+      >
+        移動
+      </button>
 
       <button
         onClick={() => {}}
