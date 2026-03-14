@@ -118,110 +118,128 @@ export default function CustomerDetail() {
       {/* ─── メインエリア ─── */}
       <div className="flex-1 flex flex-col gap-2 min-w-0">
 
-        {/* 顧客基本情報 */}
-        <div className="rounded-lg shadow-md border border-blue-200 p-4 bg-gradient-to-br from-blue-50 to-white">
-          {/* ヘッダー */}
-          <div className="flex justify-between items-center mb-4 pb-3 border-b-2 border-blue-300">
-            <span className="font-bold text-base bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1 rounded">顧客基本情報</span>
-            <span className="text-lg font-bold text-blue-700">No. {record.no}</span>
+        {/* 顧客基本情報 - Excel風表統 */}
+        <div className="border-2 border-gray-800 bg-white">
+          {/* タイトル行 */}
+          <div className="flex border-b-2 border-gray-800">
+            <div className="flex-1 px-6 py-3 font-bold text-lg text-gray-800">顧客管理</div>
+            <div className="w-32 px-6 py-3 font-bold text-lg text-gray-800 border-l-2 border-gray-800 text-right">No. {record.no}</div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            {/* セクション1: 会社名情報 */}
-            <div className="bg-white rounded p-4 border border-blue-100">
-              <h3 className="text-sm font-bold text-blue-700 mb-3 uppercase tracking-wide">会社情報</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">会社名</label>
+          {/* 事業情報セクションタイトル */}
+          <div className="border-b-2 border-gray-800">
+            <div className="px-6 py-2 font-bold text-sm bg-gray-100 text-gray-800">会社情報</div>
+          </div>
+
+          {/* 事業情報テーブル */}
+          <div className="flex border-b-2 border-gray-800">
+            {/* 左列 */}
+            <div className="flex-1 border-r-2 border-gray-800">
+              {/* 事業者名 */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">事業者名</div>
+                <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.companyName || ''} onChange={(e) => handleFieldChange('companyName', e.target.value)}
-                    className="w-full border-2 border-blue-300 px-4 py-3 text-base font-bold rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none" />
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
                 </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">仮名名</label>
+              </div>
+              {/* フリガナ */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">フリガナ</div>
+                <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.companyKana || ''} onChange={(e) => handleFieldChange('companyKana', e.target.value)}
-                    className="w-full border-2 border-blue-300 px-4 py-3 text-base rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none bg-blue-50" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">業種</label>
-                  <input type="text" value={editedRecord.industry || ''} onChange={(e) => handleFieldChange('industry', e.target.value)}
-                    className="w-full border-2 border-blue-300 px-4 py-3 text-base rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none" />
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
-            </div>
-
-            {/* セクション2: 連絡先情報 */}
-            <div className="bg-white rounded p-4 border border-green-100">
-              <h3 className="text-sm font-bold text-green-700 mb-3 uppercase tracking-wide">連絡先</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">固定番号</label>
-                  <input type="text" value={editedRecord.fixedNo || ''} onChange={(e) => handleFieldChange('fixedNo', e.target.value)}
-                    className="w-full border-2 border-green-300 px-4 py-3 text-base rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">その他番号</label>
-                  <input type="text" value={editedRecord.otherContact || ''} onChange={(e) => handleFieldChange('otherContact', e.target.value)}
-                    className="w-full border-2 border-green-300 px-4 py-3 text-base rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">メールアドレス</label>
-                  <input type="text" value={editedRecord.email || ''} onChange={(e) => handleFieldChange('email', e.target.value)}
-                    className="w-full border-2 border-green-300 px-4 py-3 text-base rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
+              {/* 住所 */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">住所</div>
+                <div className="flex-1 px-4 py-3">
+                  <input type="text" value={editedRecord.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)}
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
-            </div>
-
-            {/* セクション3: 住所情報 */}
-            <div className="bg-white rounded p-4 border border-purple-100">
-              <h3 className="text-sm font-bold text-purple-700 mb-3 uppercase tracking-wide">住所</h3>
-              <div className="grid grid-cols-2 gap-4 mb-3">
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">〒</label>
-                  <input type="text" value={editedRecord.zipCode || ''} onChange={(e) => handleFieldChange('zipCode', e.target.value)}
-                    className="w-full border-2 border-purple-300 px-4 py-3 text-base rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none" placeholder="000-0000" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">住所カナ</label>
+              {/* 住所フリガナ */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">フリガナ</div>
+                <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.addressKana || ''} onChange={(e) => handleFieldChange('addressKana', e.target.value)}
-                    className="w-full border-2 border-purple-300 px-4 py-3 text-base rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none bg-purple-50" />
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-2">住所</label>
-                <input type="text" value={editedRecord.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)}
-                  className="w-full border-2 border-purple-300 px-4 py-3 text-base rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none" />
+              {/* 固定番号 */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">固定番号</div>
+                <div className="flex-1 px-4 py-3">
+                  <input type="text" value={editedRecord.fixedNo || ''} onChange={(e) => handleFieldChange('fixedNo', e.target.value)}
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              {/* その他番号 */}
+              <div className="flex">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">その他番号</div>
+                <div className="flex-1 px-4 py-3">
+                  <input type="text" value={editedRecord.otherContact || ''} onChange={(e) => handleFieldChange('otherContact', e.target.value)}
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
+                </div>
               </div>
             </div>
 
-            {/* セクション4: 担当者情報 */}
-            <div className="bg-white rounded p-4 border border-orange-100">
-              <h3 className="text-sm font-bold text-orange-700 mb-3 uppercase tracking-wide">担当者</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">代表（カナ）</label>
-                  <input type="text" value={editedRecord.repKana || ''} onChange={(e) => handleFieldChange('repKana', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none bg-orange-50" />
+            {/* 右列 */}
+            <div className="flex-1">
+              {/* 代表者 */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">代表者</div>
+                <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.repName || ''} onChange={(e) => handleFieldChange('repName', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none mt-2" placeholder="代表" />
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" placeholder="代表" />
                 </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">担当（カナ）</label>
-                  <input type="text" value={editedRecord.staffKana || ''} onChange={(e) => handleFieldChange('staffKana', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none bg-orange-50" />
+              </div>
+              {/* 代表者フリガナ */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">フリガナ</div>
+                <div className="flex-1 px-4 py-3">
+                  <input type="text" value={editedRecord.repKana || ''} onChange={(e) => handleFieldChange('repKana', e.target.value)}
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              {/* 担当者 */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">担当者</div>
+                <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.staffName || ''} onChange={(e) => handleFieldChange('staffName', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none mt-2" placeholder="担当" />
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" placeholder="担当" />
                 </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-2">備考</label>
+              </div>
+              {/* 担当者フリガナ */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">フリガナ</div>
+                <div className="flex-1 px-4 py-3">
+                  <input type="text" value={editedRecord.staffKana || ''} onChange={(e) => handleFieldChange('staffKana', e.target.value)}
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              {/* 業種 */}
+              <div className="flex border-b border-gray-400">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">業種</div>
+                <div className="flex-1 px-4 py-3">
+                  <input type="text" value={editedRecord.industry || ''} onChange={(e) => handleFieldChange('industry', e.target.value)}
+                    className="w-full border border-gray-300 px-3 py-2 text-base focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              {/* 備考 */}
+              <div className="flex">
+                <div className="w-24 px-4 py-3 font-bold text-sm bg-gray-100 border-r border-gray-400">備考</div>
+                <div className="flex-1 px-4 py-3">
                   <textarea value={editedRecord.memo || ''} onChange={(e) => handleFieldChange('memo', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-4 py-3 text-base h-24 rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none resize-none" />
+                    className="w-full border border-gray-300 px-3 py-2 text-base h-20 focus:outline-none focus:border-blue-500 resize-none" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* 保存ボタン */}
-          <div className="mt-4 flex justify-end gap-3 items-center pt-3 border-t border-blue-200">
+          <div className="flex justify-end gap-3 items-center px-6 py-3 bg-gray-50">
             {saveMessage && <span className="text-green-600 text-sm font-bold animate-pulse">{saveMessage}</span>}
             <button onClick={handleSave} disabled={isSaving}
               className="px-6 py-2 bg-gradient-to-b from-green-400 to-green-600 text-white font-bold rounded-lg border border-green-700 hover:opacity-90 disabled:opacity-50 shadow-md transition-all">
