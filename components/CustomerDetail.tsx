@@ -253,7 +253,7 @@ export default function CustomerDetail() {
                 <select value={currentCall.progress || ''} onChange={(e) => setCurrentCall({ ...currentCall, progress: e.target.value })}
                   className="border border-gray-300 px-1 py-0.5 text-xs">
                   <option value="">選択</option>
-                  {['留守','不在','拒否','担当不在','折り返し','興味あり','アポ取得','成約'].map(v => <option key={v} value={v}>{v}</option>)}
+                  {['受注','見込みA','見込みC','担当不在','留守','いつの日か','現アナ','閉業','前回受注','前回NG','前回採択'].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-1 flex-1">コール備歴:
