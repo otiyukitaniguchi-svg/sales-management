@@ -297,9 +297,14 @@ export default function CustomerDetail() {
               <table className="w-full text-sm border-collapse min-w-max">
                 <thead className="sticky top-0 bg-gray-300">
                   <tr>
-                    {['担当者','対応日','開始','終了','対応者','性別','進捗','コール備歴'].map(h => (
-                      <th key={h} className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300">{h}</th>
-                    ))}
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">担当者</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">対応日</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">開始</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">終了</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">対応者</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">性別</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-24">進捗</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left font-bold bg-gray-300 flex-1">コール備歴</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -309,14 +314,14 @@ export default function CustomerDetail() {
                     /* 最新順にソートして表示（新しい順） */
                     [...callHistory].slice(0, 5).reverse().map((entry, i) => (
                       <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.operator}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.date}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.startTime}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.endTime}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.responder}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.gender}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.progress}</td>
-                        <td className="border border-gray-400 px-4 py-2 min-w-40">{entry.note}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.operator}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">{entry.date}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.startTime}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.endTime}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">{entry.responder}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.gender}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-24">{entry.progress}</td>
+                        <td className="border border-gray-400 px-4 py-2 flex-1 overflow-hidden">{entry.note}</td>
                       </tr>
                     ))
                   )}
