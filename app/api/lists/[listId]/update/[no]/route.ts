@@ -71,11 +71,15 @@ export async function POST(
     }
 
     // 3. Get updated history count
-    const { data: historyCount, error: countError } = await supabaseAdmin
+    const { count: historyCount, error: countError } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('id', { count: 'exact', head: true })
       .eq('list_type', listId)
       .eq('no', no)
+
+    if (countError) {
+      console.warn('History count error (non-critical):', countError)
+    }
 
     return NextResponse.json({
       success: true,
