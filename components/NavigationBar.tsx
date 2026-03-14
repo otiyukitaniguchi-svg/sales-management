@@ -81,7 +81,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
       </button>
 
       <div className="px-3 text-lg font-bold">
-        {totalCount > 0 ? `No. ${currentIndex + 1} / ${totalCount}` : '0 / 0'}
+        {totalCount > 0 ? `${currentIndex + 1} / ${totalCount}` : '0 / 0'}
       </div>
 
       <button
