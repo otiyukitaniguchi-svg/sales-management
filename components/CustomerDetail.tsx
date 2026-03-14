@@ -59,16 +59,13 @@ export default function CustomerDetail() {
   const handleSaveCallHistory = async (index: number) => {
     if (!editingCallData || !record) return
     try {
-      // 架電履歴を更新
-      const updatedHistory = [...callHistory]
-      updatedHistory[index] = editingCallData
-      setCallHistory(updatedHistory)
-      
       // サーバーに保存
       const result = await ApiClient.updateRecord(currentList, record.no, undefined, [editingCallData], user?.display_name)
       if (result.success) {
         setEditingCallIndex(null)
         setEditingCallData(null)
+        // 保存後に履歴を再読み込み
+        await loadCallHistory()
         alert('架電履歴を更新しました')
       } else {
         alert('更新エラー: ' + (result.message || '不明なエラー'))
@@ -346,11 +343,10 @@ export default function CustomerDetail() {
                     <tr><td colSpan={9} className="border border-gray-400 px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
                   ) : (
                     /* 最新順にソートして表示（新しい順） */
-                    [...callHistory].slice(0, 5).reverse().map((entry, originalIndex) => {
-                      const displayIndex = callHistory.length - 1 - originalIndex
+                    [...callHistory].reverse().slice(0, 5).map((entry, displayIndex) => {
                       const isEditing = editingCallIndex === displayIndex
                       return (
-                        <tr key={originalIndex} className={originalIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                           <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                             {isEditing ? (
                               <input type="text" value={editingCallData?.operator || ''} onChange={(e) => handleEditingCallFieldChange('operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
