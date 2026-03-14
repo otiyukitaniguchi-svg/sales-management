@@ -126,95 +126,95 @@ export default function CustomerDetail() {
             <span className="text-lg font-bold text-blue-700">No. {record.no}</span>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {/* セクション1: 会社名情報 */}
-            <div className="bg-white rounded p-3 border border-blue-100">
-              <h3 className="text-xs font-bold text-blue-700 mb-2 uppercase tracking-wide">会社情報</h3>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded p-4 border border-blue-100">
+              <h3 className="text-sm font-bold text-blue-700 mb-3 uppercase tracking-wide">会社情報</h3>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">会社名</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">会社名</label>
                   <input type="text" value={editedRecord.companyName || ''} onChange={(e) => handleFieldChange('companyName', e.target.value)}
-                    className="w-full border-2 border-blue-300 px-3 py-2 text-sm font-bold rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none" />
+                    className="w-full border-2 border-blue-300 px-4 py-3 text-base font-bold rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">仮名名</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">仮名名</label>
                   <input type="text" value={editedRecord.companyKana || ''} onChange={(e) => handleFieldChange('companyKana', e.target.value)}
-                    className="w-full border-2 border-blue-300 px-3 py-2 text-sm rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none bg-blue-50" />
+                    className="w-full border-2 border-blue-300 px-4 py-3 text-base rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none bg-blue-50" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">業種</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">業種</label>
                   <input type="text" value={editedRecord.industry || ''} onChange={(e) => handleFieldChange('industry', e.target.value)}
-                    className="w-full border-2 border-blue-300 px-3 py-2 text-sm rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none" />
+                    className="w-full border-2 border-blue-300 px-4 py-3 text-base rounded hover:border-blue-400 focus:border-blue-500 focus:outline-none" />
                 </div>
               </div>
             </div>
 
             {/* セクション2: 連絡先情報 */}
-            <div className="bg-white rounded p-3 border border-green-100">
-              <h3 className="text-xs font-bold text-green-700 mb-2 uppercase tracking-wide">連絡先</h3>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded p-4 border border-green-100">
+              <h3 className="text-sm font-bold text-green-700 mb-3 uppercase tracking-wide">連絡先</h3>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">固定番号</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">固定番号</label>
                   <input type="text" value={editedRecord.fixedNo || ''} onChange={(e) => handleFieldChange('fixedNo', e.target.value)}
-                    className="w-full border-2 border-green-300 px-3 py-2 text-sm rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
+                    className="w-full border-2 border-green-300 px-4 py-3 text-base rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">その他番号</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">その他番号</label>
                   <input type="text" value={editedRecord.otherContact || ''} onChange={(e) => handleFieldChange('otherContact', e.target.value)}
-                    className="w-full border-2 border-green-300 px-3 py-2 text-sm rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
+                    className="w-full border-2 border-green-300 px-4 py-3 text-base rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">メールアドレス</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">メールアドレス</label>
                   <input type="text" value={editedRecord.email || ''} onChange={(e) => handleFieldChange('email', e.target.value)}
-                    className="w-full border-2 border-green-300 px-3 py-2 text-sm rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
+                    className="w-full border-2 border-green-300 px-4 py-3 text-base rounded hover:border-green-400 focus:border-green-500 focus:outline-none" />
                 </div>
               </div>
             </div>
 
             {/* セクション3: 住所情報 */}
-            <div className="bg-white rounded p-3 border border-purple-100">
-              <h3 className="text-xs font-bold text-purple-700 mb-2 uppercase tracking-wide">住所</h3>
-              <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="bg-white rounded p-4 border border-purple-100">
+              <h3 className="text-sm font-bold text-purple-700 mb-3 uppercase tracking-wide">住所</h3>
+              <div className="grid grid-cols-2 gap-4 mb-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">〒</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">〒</label>
                   <input type="text" value={editedRecord.zipCode || ''} onChange={(e) => handleFieldChange('zipCode', e.target.value)}
-                    className="w-full border-2 border-purple-300 px-3 py-2 text-sm rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none" placeholder="000-0000" />
+                    className="w-full border-2 border-purple-300 px-4 py-3 text-base rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none" placeholder="000-0000" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">住所カナ</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">住所カナ</label>
                   <input type="text" value={editedRecord.addressKana || ''} onChange={(e) => handleFieldChange('addressKana', e.target.value)}
-                    className="w-full border-2 border-purple-300 px-3 py-2 text-sm rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none bg-purple-50" />
+                    className="w-full border-2 border-purple-300 px-4 py-3 text-base rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none bg-purple-50" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">住所</label>
+                <label className="text-sm font-semibold text-gray-700 block mb-2">住所</label>
                 <input type="text" value={editedRecord.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)}
-                  className="w-full border-2 border-purple-300 px-3 py-2 text-sm rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none" />
+                  className="w-full border-2 border-purple-300 px-4 py-3 text-base rounded hover:border-purple-400 focus:border-purple-500 focus:outline-none" />
               </div>
             </div>
 
             {/* セクション4: 担当者情報 */}
-            <div className="bg-white rounded p-3 border border-orange-100">
-              <h3 className="text-xs font-bold text-orange-700 mb-2 uppercase tracking-wide">担当者</h3>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded p-4 border border-orange-100">
+              <h3 className="text-sm font-bold text-orange-700 mb-3 uppercase tracking-wide">担当者</h3>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">代表（カナ）</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">代表（カナ）</label>
                   <input type="text" value={editedRecord.repKana || ''} onChange={(e) => handleFieldChange('repKana', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-3 py-2 text-sm rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none bg-orange-50" />
+                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none bg-orange-50" />
                   <input type="text" value={editedRecord.repName || ''} onChange={(e) => handleFieldChange('repName', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-3 py-2 text-sm rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none mt-2" placeholder="代表" />
+                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none mt-2" placeholder="代表" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">担当（カナ）</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">担当（カナ）</label>
                   <input type="text" value={editedRecord.staffKana || ''} onChange={(e) => handleFieldChange('staffKana', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-3 py-2 text-sm rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none bg-orange-50" />
+                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none bg-orange-50" />
                   <input type="text" value={editedRecord.staffName || ''} onChange={(e) => handleFieldChange('staffName', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-3 py-2 text-sm rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none mt-2" placeholder="担当" />
+                    className="w-full border-2 border-orange-300 px-4 py-3 text-base rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none mt-2" placeholder="担当" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">備考</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">備考</label>
                   <textarea value={editedRecord.memo || ''} onChange={(e) => handleFieldChange('memo', e.target.value)}
-                    className="w-full border-2 border-orange-300 px-3 py-2 text-sm h-20 rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none resize-none" />
+                    className="w-full border-2 border-orange-300 px-4 py-3 text-base h-24 rounded hover:border-orange-400 focus:border-orange-500 focus:outline-none resize-none" />
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function CustomerDetail() {
         </div>
 
         {/* 架電履歴 */}
-        <div className="border-2 border-gray-400 p-3 bg-gray-50">
+        <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-bold text-sm bg-gray-200 px-2 py-0.5">架電履歴</span>
             <button onClick={handleCallStart} disabled={isCallActive}
@@ -273,43 +273,38 @@ export default function CustomerDetail() {
           )}
 
           {/* 履歴テーブル */}
-          {/* 架電履歴テーブル - 最新5件表示 + スクロール対応 */}
-          <div className="flex flex-col h-64 border border-gray-300 rounded bg-white w-full">
+          {/* 架電履歴テーブル - 最新5件表示 */}
+          <div className="flex flex-col flex-1 border border-gray-300 rounded bg-white w-full min-h-0">
             <div className="overflow-x-auto overflow-y-auto flex-1">
-              <table className="w-full text-xs border-collapse min-w-max">
-                <thead className="sticky top-0 bg-gray-200">
+              <table className="w-full text-sm border-collapse min-w-max">
+                <thead className="sticky top-0 bg-gray-300">
                   <tr>
                     {['担当者','対応日','開始','終了','対応者','性別','進捗','コール備歴'].map(h => (
-                      <th key={h} className="border border-gray-400 px-3 py-1 text-left whitespace-nowrap font-bold bg-gray-300">{h}</th>
+                      <th key={h} className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {callHistory.length === 0 ? (
-                    <tr><td colSpan={8} className="border border-gray-400 px-2 py-3 text-center text-gray-400">履歴なし</td></tr>
+                    <tr><td colSpan={8} className="border border-gray-400 px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
                   ) : (
                     /* 最新順にソートして表示（新しい順） */
-                    [...callHistory].reverse().map((entry, i) => (
+                    [...callHistory].slice(0, 5).reverse().map((entry, i) => (
                       <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.operator}</td>
-                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.date}</td>
-                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.startTime}</td>
-                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.endTime}</td>
-                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.responder}</td>
-                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.gender}</td>
-                        <td className="border border-gray-400 px-3 py-1 whitespace-nowrap">{entry.progress}</td>
-                        <td className="border border-gray-400 px-3 py-1 min-w-32">{entry.note}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.operator}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.date}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.startTime}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.endTime}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.responder}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.gender}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap">{entry.progress}</td>
+                        <td className="border border-gray-400 px-4 py-2 min-w-40">{entry.note}</td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
-            {callHistory.length > 5 && (
-              <div className="text-xs text-gray-500 px-2 py-1 border-t border-gray-300 bg-gray-50">
-                全 {callHistory.length} 件（スクロールで全て表示）
-              </div>
-            )}
           </div>
         </div>
       </div>
