@@ -358,7 +358,7 @@ export default function CustomerDetail() {
                             {isEditing ? (
                               <input type="text" value={editingCallData?.date || ''} onChange={(e) => handleEditingCallFieldChange('date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                             ) : (
-                              entry.date ? `2026/${entry.date}` : ''
+                              entry.date
                             )}
                           </td>
                           <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
