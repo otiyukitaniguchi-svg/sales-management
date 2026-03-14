@@ -146,9 +146,9 @@ export default function CustomerDetail() {
               {/* フリガナ */}
               <div className="flex border-b border-gray-200">
                 <div className="w-24 px-4 py-3 font-semibold text-sm text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
-                <div className="flex-1 px-4 py-3">
+                <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.companyKana || ''} onChange={(e) => handleFieldChange('companyKana', e.target.value)}
-                    className="w-full border border-gray-200 px-3 py-2 text-base focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
+                    className="w-full border border-gray-200 px-3 py-1 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
                 </div>
               </div>
               {/* 住所 */}
@@ -162,9 +162,9 @@ export default function CustomerDetail() {
               {/* 住所フリガナ */}
               <div className="flex border-b border-gray-200">
                 <div className="w-24 px-4 py-3 font-semibold text-sm text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
-                <div className="flex-1 px-4 py-3">
+                <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.addressKana || ''} onChange={(e) => handleFieldChange('addressKana', e.target.value)}
-                    className="w-full border border-gray-200 px-3 py-2 text-base focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
+                    className="w-full border border-gray-200 px-3 py-1 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
                 </div>
               </div>
               {/* 固定番号 */}
@@ -198,9 +198,9 @@ export default function CustomerDetail() {
               {/* 代表者フリガナ */}
               <div className="flex border-b border-gray-200">
                 <div className="w-24 px-4 py-3 font-semibold text-sm text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
-                <div className="flex-1 px-4 py-3">
+                <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.repKana || ''} onChange={(e) => handleFieldChange('repKana', e.target.value)}
-                    className="w-full border border-gray-200 px-3 py-2 text-base focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
+                    className="w-full border border-gray-200 px-3 py-1 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
                 </div>
               </div>
               {/* 担当者 */}
@@ -214,9 +214,9 @@ export default function CustomerDetail() {
               {/* 担当者フリガナ */}
               <div className="flex border-b border-gray-200">
                 <div className="w-24 px-4 py-3 font-semibold text-sm text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
-                <div className="flex-1 px-4 py-3">
+                <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.staffKana || ''} onChange={(e) => handleFieldChange('staffKana', e.target.value)}
-                    className="w-full border border-gray-200 px-3 py-2 text-base focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
+                    className="w-full border border-gray-200 px-3 py-1 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
                 </div>
               </div>
               {/* 業種 */}
@@ -249,7 +249,7 @@ export default function CustomerDetail() {
         </div>
 
         {/* 架電履歴 */}
-        <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col">
+        <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col -mt-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-bold text-sm bg-gray-200 px-2 py-0.5">架電履歴</span>
             <button onClick={handleCallStart} disabled={isCallActive}
