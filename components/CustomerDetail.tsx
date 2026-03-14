@@ -20,6 +20,8 @@ export default function CustomerDetail() {
 
   const [editedRecord, setEditedRecord] = useState<FrontendCustomerRecord | null>(null)
   const [callHistory, setCallHistory] = useState<FrontendCallHistoryEntry[]>([])
+  const [editingCallIndex, setEditingCallIndex] = useState<number | null>(null)
+  const [editingCallData, setEditingCallData] = useState<FrontendCallHistoryEntry | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isCallActive, setIsCallActive] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
@@ -46,6 +48,44 @@ export default function CustomerDetail() {
   const handleFieldChange = (field: keyof FrontendCustomerRecord, value: string) => {
     if (editedRecord) {
       setEditedRecord({ ...editedRecord, [field]: value })
+    }
+  }
+
+  const handleEditCallHistory = (index: number, entry: FrontendCallHistoryEntry) => {
+    setEditingCallIndex(index)
+    setEditingCallData({ ...entry })
+  }
+
+  const handleSaveCallHistory = async (index: number) => {
+    if (!editingCallData || !record) return
+    try {
+      // 架電履歴を更新
+      const updatedHistory = [...callHistory]
+      updatedHistory[index] = editingCallData
+      setCallHistory(updatedHistory)
+      
+      // サーバーに保存
+      const result = await ApiClient.updateRecord(currentList, record.no, undefined, [editingCallData], user?.display_name)
+      if (result.success) {
+        setEditingCallIndex(null)
+        setEditingCallData(null)
+        alert('架電履歴を更新しました')
+      } else {
+        alert('更新エラー: ' + (result.message || '不明なエラー'))
+      }
+    } catch (e: any) {
+      alert('更新エラー: ' + e.message)
+    }
+  }
+
+  const handleCancelEditCallHistory = () => {
+    setEditingCallIndex(null)
+    setEditingCallData(null)
+  }
+
+  const handleEditingCallFieldChange = (field: keyof FrontendCallHistoryEntry, value: string) => {
+    if (editingCallData) {
+      setEditingCallData({ ...editingCallData, [field]: value })
     }
   }
 
@@ -298,25 +338,92 @@ export default function CustomerDetail() {
                     <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">性別</th>
                     <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-24">進捗</th>
                     <th className="border border-gray-400 px-4 py-2 text-left font-bold bg-gray-300 flex-1">コール履歴</th>
+                    <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {callHistory.length === 0 ? (
-                    <tr><td colSpan={8} className="border border-gray-400 px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
+                    <tr><td colSpan={9} className="border border-gray-400 px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
                   ) : (
                     /* 最新順にソートして表示（新しい順） */
-                    [...callHistory].slice(0, 5).reverse().map((entry, i) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.operator}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">{entry.date ? `2026/${entry.date}` : ''}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.startTime}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.endTime}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">{entry.responder}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.gender}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-24">{entry.progress}</td>
-                        <td className="border border-gray-400 px-4 py-2 flex-1 overflow-hidden">{entry.note}</td>
-                      </tr>
-                    ))
+                    [...callHistory].slice(0, 5).reverse().map((entry, originalIndex) => {
+                      const displayIndex = callHistory.length - 1 - originalIndex
+                      const isEditing = editingCallIndex === displayIndex
+                      return (
+                        <tr key={originalIndex} className={originalIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <input type="text" value={editingCallData?.operator || ''} onChange={(e) => handleEditingCallFieldChange('operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs" />
+                            ) : (
+                              entry.operator
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <input type="text" value={editingCallData?.date || ''} onChange={(e) => handleEditingCallFieldChange('date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs" />
+                            ) : (
+                              entry.date ? `2026/${entry.date}` : ''
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <input type="text" value={editingCallData?.startTime || ''} onChange={(e) => handleEditingCallFieldChange('startTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs" />
+                            ) : (
+                              entry.startTime
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <input type="text" value={editingCallData?.endTime || ''} onChange={(e) => handleEditingCallFieldChange('endTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs" />
+                            ) : (
+                              entry.endTime
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <input type="text" value={editingCallData?.responder || ''} onChange={(e) => handleEditingCallFieldChange('responder', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs" />
+                            ) : (
+                              entry.responder
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <select value={editingCallData?.gender || ''} onChange={(e) => handleEditingCallFieldChange('gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs">
+                                <option value="">選択</option>
+                                {['男性','女性'].map(v => <option key={v} value={v}>{v}</option>)}
+                              </select>
+                            ) : (
+                              entry.gender
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-24 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <select value={editingCallData?.progress || ''} onChange={(e) => handleEditingCallFieldChange('progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs">
+                                <option value="">選択</option>
+                                {['受注','見込みA','見込みC','担当不在','留守','いつの日か','現アナ','閉業','前回受注','前回NG','前回採択'].map(v => <option key={v} value={v}>{v}</option>)}
+                              </select>
+                            ) : (
+                              entry.progress
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 flex-1 overflow-hidden cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                            {isEditing ? (
+                              <input type="text" value={editingCallData?.note || ''} onChange={(e) => handleEditingCallFieldChange('note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs" />
+                            ) : (
+                              entry.note
+                            )}
+                          </td>
+                          <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20 text-center">
+                            {isEditing ? (
+                              <>
+                                <button onClick={() => handleSaveCallHistory(displayIndex)} className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 mr-1">保存</button>
+                                <button onClick={handleCancelEditCallHistory} className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600">キャンセル</button>
+                              </>
+                            ) : null}
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
