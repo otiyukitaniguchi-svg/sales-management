@@ -29,12 +29,8 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
 
   const handleJumpToNo = () => {
     if (!jumpNo.trim()) return
-    const targetNo = parseInt(jumpNo, 10)
-    if (isNaN(targetNo)) {
-      alert('有効な番号を入力してください')
-      return
-    }
-    const foundIndex = currentData?.findIndex((record: any) => record.no === targetNo)
+    const targetNo = jumpNo.trim()
+    const foundIndex = currentData?.findIndex((record: any) => String(record.no) === targetNo)
     if (foundIndex !== undefined && foundIndex >= 0) {
       if (isSearchMode) {
         setSearchResultIndex(foundIndex)
