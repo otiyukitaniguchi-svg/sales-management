@@ -19,17 +19,38 @@ export async function GET(
     const tableName = getTableName(listId)
 
     // Fetch all records from the list
-    // Note: Supabase has a default limit of 1000 rows, so we need to fetch in batches
-    // or use a large limit. We'll use a large limit to get all records.
-    const { data: records, error: recordsError } = await supabaseAdmin
-      .from(tableName)
-      .select('*')
-      .order('no', { ascending: true })
-      .limit(10000)
+    // Supabase has a default limit of 1000 rows. We need to fetch in batches using .range()
+    let allRecords: CustomerRecord[] = []
+    let offset = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (recordsError) {
-      throw recordsError
+    while (hasMore) {
+      const { data: records, error: recordsError } = await supabaseAdmin
+        .from(tableName)
+        .select('*')
+        .order('no', { ascending: true })
+        .range(offset, offset + pageSize - 1)
+
+      if (recordsError) {
+        throw recordsError
+      }
+
+      if (!records || records.length === 0) {
+        hasMore = false
+      } else {
+        allRecords = allRecords.concat(records)
+        if (records.length < pageSize) {
+          hasMore = false
+        } else {
+          offset += pageSize
+        }
+      }
     }
+
+    const records = allRecords
+
+
 
     // Fetch call history counts for all records
     const { data: historyData, error: historyError } = await supabaseAdmin
