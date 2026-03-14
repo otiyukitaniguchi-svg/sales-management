@@ -315,7 +315,7 @@ export default function CustomerDetail() {
                     [...callHistory].slice(0, 5).reverse().map((entry, i) => (
                       <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.operator}</td>
-                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">{entry.date}</td>
+                        <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">{entry.date ? `2026/${entry.date}` : ''}</td>
                         <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.startTime}</td>
                         <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16">{entry.endTime}</td>
                         <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">{entry.responder}</td>
