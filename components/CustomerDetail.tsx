@@ -178,7 +178,7 @@ export default function CustomerDetail() {
             <div className="flex-1 border-r border-blue-200">
               {/* 事業者名 */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">事業者名</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">事業者名</div>
                 <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.companyName || ''} onChange={(e) => handleFieldChange('companyName', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -186,7 +186,7 @@ export default function CustomerDetail() {
               </div>
               {/* フリガナ */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">フリガナ</div>
                 <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.companyKana || ''} onChange={(e) => handleFieldChange('companyKana', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-1 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -194,7 +194,7 @@ export default function CustomerDetail() {
               </div>
               {/* 住所 */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">住所</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">住所</div>
                 <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -202,7 +202,7 @@ export default function CustomerDetail() {
               </div>
               {/* 住所フリガナ */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">フリガナ</div>
                 <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.addressKana || ''} onChange={(e) => handleFieldChange('addressKana', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-1 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -210,7 +210,7 @@ export default function CustomerDetail() {
               </div>
               {/* 固定番号 */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">固定番号</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">固定番号</div>
                 <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.fixedNo || ''} onChange={(e) => handleFieldChange('fixedNo', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -218,7 +218,7 @@ export default function CustomerDetail() {
               </div>
               {/* その他番号 */}
               <div className="flex">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">その他番号</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">その他番号</div>
                 <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.otherContact || ''} onChange={(e) => handleFieldChange('otherContact', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -230,7 +230,7 @@ export default function CustomerDetail() {
             <div className="flex-1">
               {/* 代表者 */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">代表者</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">代表者</div>
                 <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.repName || ''} onChange={(e) => handleFieldChange('repName', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" placeholder="代表" />
@@ -238,7 +238,7 @@ export default function CustomerDetail() {
               </div>
               {/* 代表者フリガナ */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">フリガナ</div>
                 <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.repKana || ''} onChange={(e) => handleFieldChange('repKana', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-1 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -246,7 +246,7 @@ export default function CustomerDetail() {
               </div>
               {/* 担当者 */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">担当者</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">担当者</div>
                 <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.staffName || ''} onChange={(e) => handleFieldChange('staffName', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" placeholder="担当" />
@@ -254,7 +254,7 @@ export default function CustomerDetail() {
               </div>
               {/* 担当者フリガナ */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">フリガナ</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">フリガナ</div>
                 <div className="flex-1 px-4 py-2">
                   <input type="text" value={editedRecord.staffKana || ''} onChange={(e) => handleFieldChange('staffKana', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-1 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -262,7 +262,7 @@ export default function CustomerDetail() {
               </div>
               {/* 業種 */}
               <div className="flex border-b border-gray-200">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">業種</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">業種</div>
                 <div className="flex-1 px-4 py-3">
                   <input type="text" value={editedRecord.industry || ''} onChange={(e) => handleFieldChange('industry', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded" />
@@ -270,7 +270,7 @@ export default function CustomerDetail() {
               </div>
               {/* 備考 */}
               <div className="flex">
-                <div className="w-24 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200">備考</div>
+                <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 bg-gray-50 border-r border-gray-200 whitespace-nowrap">備考</div>
                 <div className="flex-1 px-4 py-3">
                   <textarea value={editedRecord.memo || ''} onChange={(e) => handleFieldChange('memo', e.target.value)}
                     className="w-full border border-gray-200 px-3 py-2 text-lg h-20 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 rounded resize-none" />
