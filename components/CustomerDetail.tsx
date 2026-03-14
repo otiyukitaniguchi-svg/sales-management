@@ -101,6 +101,7 @@ export default function CustomerDetail() {
         setIsCallActive(false)
         resetCurrentCall()
         await loadCallHistory()
+        alert('架電情報を保存しました')
       } else {
         alert('架電保存エラー: ' + (result.message || '不明なエラー'))
       }
@@ -238,18 +239,10 @@ export default function CustomerDetail() {
             </div>
           </div>
 
-          {/* 保存ボタン */}
-          <div className="flex justify-end gap-3 items-center px-6 py-3 bg-gray-50">
-            {saveMessage && <span className="text-green-600 text-sm font-bold animate-pulse">{saveMessage}</span>}
-            <button onClick={handleSave} disabled={isSaving}
-              className="px-6 py-2 bg-gradient-to-b from-green-400 to-green-600 text-white font-bold rounded-lg border border-green-700 hover:opacity-90 disabled:opacity-50 shadow-md transition-all">
-              {isSaving ? '保存中...' : '💾 保存'}
-            </button>
-          </div>
         </div>
 
         {/* 架電履歴 */}
-        <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col -mt-2">
+        <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-bold text-sm bg-gray-200 px-2 py-0.5">架電履歴</span>
             <button onClick={handleCallStart} disabled={isCallActive}

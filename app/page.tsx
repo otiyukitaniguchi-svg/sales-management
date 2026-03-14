@@ -32,7 +32,15 @@ export default function Home() {
   const loadListData = async (listId: string) => {
     try {
       const result = await ApiClient.getListData(listId)
-      if (result.success && result.data) { setListData(listId, result.data) }
+      if (result.success && result.data) {
+        // No.順でソート（昇順）
+        const sortedData = [...result.data].sort((a, b) => {
+          const noA = parseInt(a.no || '0', 10)
+          const noB = parseInt(b.no || '0', 10)
+          return noA - noB
+        })
+        setListData(listId, sortedData)
+      }
     } catch (error) { console.error('Failed to load list data:', error) }
   }
 
