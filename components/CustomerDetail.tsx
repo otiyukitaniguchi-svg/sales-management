@@ -115,27 +115,27 @@ export default function CustomerDetail() {
   }
 
   return (
-    <div className="flex gap-2 p-2 h-full overflow-auto bg-white">
+    <div className="flex gap-2 p-2 h-full overflow-auto bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       {/* ─── メインエリア ─── */}
       <div className="flex-1 flex flex-col gap-2 min-w-0">
 
         {/* 顧客基本情報 - 表統デザイン */}
-        <div className="border border-gray-300 bg-white rounded-lg shadow-sm">
+        <div className="border border-blue-200 bg-white rounded-lg shadow-md">
           {/* タイトル行 */}
-          <div className="flex border-b border-gray-300 bg-gradient-to-r from-blue-50 to-white">
-            <div className="flex-1 px-6 py-4 font-bold text-base text-gray-800">顧客管理</div>
-            <div className="w-32 px-6 py-4 font-bold text-base text-gray-700 border-l border-gray-300 text-right">No. {record.no}</div>
+          <div className="flex border-b border-blue-200 bg-gradient-to-r from-blue-100 to-blue-50">
+            <div className="flex-1 px-6 py-4 font-bold text-base text-blue-900">顧客管理</div>
+            <div className="w-32 px-6 py-4 font-bold text-base text-blue-800 border-l border-blue-200 text-right">No. {record.no}</div>
           </div>
 
           {/* 事業情報セクションタイトル */}
-          <div className="border-b border-gray-300">
-            <div className="px-6 py-2 font-semibold text-sm text-gray-700 bg-gray-50">会社情報</div>
+          <div className="border-b border-blue-200">
+            <div className="px-6 py-2 font-semibold text-sm text-blue-800 bg-blue-50">会社情報</div>
           </div>
 
           {/* 事業情報テーブル */}
-          <div className="flex border-b border-gray-300">
+          <div className="flex border-b border-blue-200">
             {/* 左列 */}
-            <div className="flex-1 border-r border-gray-300">
+            <div className="flex-1 border-r border-blue-200">
               {/* 事業者名 */}
               <div className="flex border-b border-gray-200">
                 <div className="w-24 px-4 py-3 font-semibold text-sm text-gray-700 bg-gray-50 border-r border-gray-200">事業者名</div>
