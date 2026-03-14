@@ -110,7 +110,7 @@ export default function CustomerDetail() {
   const handleCallStart = () => {
     const now = new Date()
     const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
-    const dateStr = `${now.getMonth() + 1}/${now.getDate()}`
+    const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`
     setCurrentCall({ ...currentCall, date: dateStr, startTime: timeStr, operator: user?.display_name || '' })
     setIsCallActive(true)
   }
