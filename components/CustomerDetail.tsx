@@ -174,6 +174,27 @@ export default function CustomerDetail() {
     setEditingCallData(null)
   }
 
+  const handleDeleteCallHistory = async (index: number) => {
+    if (!record || !callHistory[index]) return
+    
+    const entry = callHistory[index]
+    if (!confirm(`この履歴を削除しますか?\n日付: ${entry.date} ${entry.startTime}～${entry.endTime}`)) return
+    
+    try {
+      const updatedHistory = callHistory.filter((_, i) => i !== index)
+      const result = await ApiClient.updateRecord(currentList, record.no, undefined, updatedHistory, user?.display_name)
+      
+      if (result.success) {
+        await loadCallHistory()
+        alert('履歴を削除しました')
+      } else {
+        alert('削除エラー: ' + (result.message || '不明なエラー'))
+      }
+    } catch (e: any) {
+      alert('削除エラー: ' + e.message)
+    }
+  }
+
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       {/* 顧客管理 */}
@@ -424,14 +445,16 @@ export default function CustomerDetail() {
                         entry.note
                       )}
                     </td>
-                    <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-20">
+                    <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-32">
                       {isEditing ? (
                         <>
                           <button onClick={handleSaveCallHistory} className="px-2 py-1 bg-green-500 text-white rounded text-xs mr-1 hover:bg-green-600">保存</button>
                           <button onClick={handleCancelCallHistory} className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500">キャンセル</button>
                         </>
-                      ) : null}
-                    </td>
+                      ) : (
+                        <button onClick={() => handleDeleteCallHistory(displayIndex)} className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">削除</button>
+                      )
+                    }</td>
                   </tr>
                 )
               })
