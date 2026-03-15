@@ -81,6 +81,12 @@ export async function POST(
       console.warn('History count error (non-critical):', countError)
     }
 
+    // キャッシュ制御ヘッダーを追加
+    const headers = new Headers()
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+    headers.set('Pragma', 'no-cache')
+    headers.set('Expires', '0')
+
     return NextResponse.json({
       success: true,
       no: no,
@@ -88,7 +94,7 @@ export async function POST(
       addedHistory: addedCount,
       operator: body.operatorName || '',
       message: '更新が完了しました'
-    })
+    }, { headers })
   } catch (error: any) {
     console.error('Error in updateRecord:', error)
     return NextResponse.json(

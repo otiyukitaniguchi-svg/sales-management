@@ -123,10 +123,26 @@ export default function CustomerDetail() {
         resetCurrentCall()
         
         console.log('🔄 [DEBUG] Loading call history...')
-        // Wait for database to update
-        await new Promise(resolve => setTimeout(resolve, 500))
-        await loadCallHistory()
-        console.log('📋 [DEBUG] Updated call history length:', callHistory.length)
+        // 最新履歴を確実に取得するまで待機（最大5秒）
+        let retries = 0
+        const maxRetries = 10
+        let historyLoaded = false
+        
+        while (retries < maxRetries && !historyLoaded) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          const histResult = await ApiClient.getCallHistory(currentList, record.no)
+          if (histResult.success && histResult.data && histResult.data.length > 0) {
+            // 最新の履歴が今保存したものと一致するか確認
+            const latestEntry = histResult.data[0]
+            if (latestEntry.startTime === callEntry.startTime && latestEntry.date === callEntry.date) {
+              setCallHistory(histResult.data)
+              historyLoaded = true
+              console.log('📋 [DEBUG] Updated call history length:', histResult.data.length)
+              break
+            }
+          }
+          retries++
+        }
         
         alert('架電情報を保存しました')
       } else {
@@ -404,8 +420,8 @@ export default function CustomerDetail() {
             {callHistory.length === 0 ? (
               <tr><td colSpan={9} className="border border-gray-400 px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
             ) : (
-              /* 最新順にソートして表示（新しい順） */
-              callHistory.slice(0, 5).map((entry, displayIndex) => {
+              /* すべての履歴を表示（新しい順） */
+              callHistory.map((entry, displayIndex) => {
                 const isEditing = editingCallIndex === displayIndex
                 return (
                   <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>

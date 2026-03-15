@@ -43,7 +43,13 @@ export async function GET(
       count: frontendHistory.length,
     }
 
-    return NextResponse.json(response)
+    // キャッシュ制御ヘッダーを追加
+    const headers = new Headers()
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+    headers.set('Pragma', 'no-cache')
+    headers.set('Expires', '0')
+
+    return NextResponse.json(response, { headers })
   } catch (error: any) {
     console.error('Error in getCallHistory:', error)
     return NextResponse.json(
