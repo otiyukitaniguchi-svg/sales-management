@@ -438,14 +438,7 @@ export default function CustomerDetail() {
         </table>
       </div>
 
-      {/* 保存ボタン */}
-      <div className="flex gap-4 mt-6">
-        <button onClick={handleSave} disabled={isSaving}
-          className="px-6 py-2 bg-blue-500 text-white rounded font-semibold disabled:bg-gray-400 hover:bg-blue-600">
-          {isSaving ? '保存中...' : '保存'}
-        </button>
-        {saveMessage && <span className="text-green-600 font-semibold">{saveMessage}</span>}
-      </div>
+
     </div>
   )
 }
