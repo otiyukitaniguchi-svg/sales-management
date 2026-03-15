@@ -331,6 +331,26 @@ export default function CustomerDetail() {
 
         {isCallActive && (
           <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
+            <div className="flex items-center gap-4 mb-3 pb-3 border-b border-blue-300">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-red-500 rounded-full"></div>
+                <span className="font-bold text-red-600">架電中</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div>
+                  <label className="font-semibold text-gray-700">日付:</label>
+                  <span className="ml-2 text-gray-700">{currentCall.date || '-'}</span>
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-700">開始:</label>
+                  <span className="ml-2 text-gray-700">{currentCall.startTime || '-'}</span>
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-700">終了:</label>
+                  <span className="ml-2 text-gray-700">{currentCall.endTime || '-'}</span>
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div>
                 <label className="font-semibold text-gray-700">対応者:</label>
