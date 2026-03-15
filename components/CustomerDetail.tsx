@@ -311,12 +311,20 @@ export default function CustomerDetail() {
 
       {/* 架電履歴 */}
       <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="font-bold text-lg bg-gray-200 px-2 py-0.5">架電履歴</span>
-          <button onClick={handleCallStart} disabled={isCallActive}
-            className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-blue-600">開始</button>
-          <button onClick={handleCallEnd} disabled={!isCallActive}
-            className="px-3 py-1 bg-red-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-red-600">終了</button>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-lg bg-gray-200 px-2 py-0.5">架電履歴</span>
+            <button onClick={handleCallStart} disabled={isCallActive}
+              className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-blue-600">開始</button>
+            <button onClick={handleCallEnd} disabled={!isCallActive}
+              className="px-3 py-1 bg-red-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-red-600">終了</button>
+          </div>
+          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-300 rounded p-2">
+            <label className="font-semibold text-sm text-gray-700 whitespace-nowrap">再コール日時:</label>
+            <input type="date" className="border border-gray-300 px-2 py-1 rounded text-sm" />
+            <input type="time" className="border border-gray-300 px-2 py-1 rounded text-sm" />
+            <button className="px-3 py-1 bg-yellow-500 text-white rounded text-sm font-semibold hover:bg-yellow-600">設定</button>
+          </div>
         </div>
 
         {isCallActive && (
