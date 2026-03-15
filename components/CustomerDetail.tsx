@@ -39,6 +39,12 @@ export default function CustomerDetail() {
       console.log('📋 [DEBUG] Loading call history for:', currentList, record.no)
       const result = await ApiClient.getCallHistory(currentList, record.no)
       console.log('📋 [DEBUG] API call history response:', result)
+      console.log('📋 [DEBUG] API response success:', result.success)
+      console.log('📋 [DEBUG] API response data length:', result.data ? result.data.length : 'null')
+      if (result.data && result.data.length > 0) {
+        console.log('📋 [DEBUG] First entry:', result.data[0])
+        console.log('📋 [DEBUG] Last entry:', result.data[result.data.length - 1])
+      }
       if (result.success && result.data) {
         console.log('📋 [DEBUG] Setting call history with', result.data.length, 'entries')
         setCallHistory(result.data)
@@ -143,6 +149,9 @@ export default function CustomerDetail() {
     try {
       const result = await ApiClient.updateRecord(currentList, record.no, undefined, [callEntry], user?.display_name)
       console.log('✅ [DEBUG] API Response:', result)
+      console.log('✅ [DEBUG] API Response success:', result.success)
+      console.log('✅ [DEBUG] API Response data:', result.data)
+      console.log('✅ [DEBUG] API Response message:', result.message)
       
       if (result.success) {
         setIsCallActive(false)
