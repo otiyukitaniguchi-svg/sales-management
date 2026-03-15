@@ -25,6 +25,8 @@ export default function CustomerDetail() {
   const [isSaving, setIsSaving] = useState(false)
   const [isCallActive, setIsCallActive] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  const [recallDate, setRecallDate] = useState('')
+  const [recallTime, setRecallTime] = useState('')
 
   useEffect(() => {
     if (record) {
@@ -321,9 +323,9 @@ export default function CustomerDetail() {
           </div>
           <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-300 rounded p-2">
             <label className="font-semibold text-sm text-gray-700 whitespace-nowrap">再コール日時:</label>
-            <input type="date" className="border border-gray-300 px-2 py-1 rounded text-sm" />
-            <input type="time" className="border border-gray-300 px-2 py-1 rounded text-sm" />
-            <button className="px-3 py-1 bg-yellow-500 text-white rounded text-sm font-semibold hover:bg-yellow-600">設定</button>
+            <input type="date" value={recallDate} onChange={(e) => setRecallDate(e.target.value)} className="border border-gray-300 px-2 py-1 rounded text-sm" />
+            <input type="time" value={recallTime} onChange={(e) => setRecallTime(e.target.value)} className="border border-gray-300 px-2 py-1 rounded text-sm" />
+            <button onClick={() => alert(`再コール日時: ${recallDate} ${recallTime}`)} className="px-3 py-1 bg-yellow-500 text-white rounded text-sm font-semibold hover:bg-yellow-600">設定</button>
           </div>
         </div>
 
@@ -453,15 +455,14 @@ export default function CustomerDetail() {
                         entry.note
                       )}
                     </td>
-                    <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-32">
+                    <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-40">
                       {isEditing ? (
                         <>
                           <button onClick={handleSaveCallHistory} className="px-2 py-1 bg-green-500 text-white rounded text-xs mr-1 hover:bg-green-600">保存</button>
-                          <button onClick={handleCancelCallHistory} className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500">キャンセル</button>
+                          <button onClick={handleCancelCallHistory} className="px-2 py-1 bg-gray-400 text-white rounded text-xs mr-1 hover:bg-gray-500">キャンセル</button>
+                          <button onClick={() => handleDeleteCallHistory(displayIndex)} className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">削除</button>
                         </>
-                      ) : (
-                        <button onClick={() => handleDeleteCallHistory(displayIndex)} className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">削除</button>
-                      )
+                      ) : null
                     }</td>
                   </tr>
                 )
