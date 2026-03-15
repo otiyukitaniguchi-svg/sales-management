@@ -300,7 +300,7 @@ export default function CustomerDetail() {
 
         {isCallActive && (
           <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
-            <div className="grid grid-cols-4 gap-2 text-sm">
+            <div className="grid grid-cols-3 gap-2 text-sm">
               <div>
                 <label className="font-semibold text-gray-700">対応者:</label>
                 <input type="text" value={currentCall.operator || ''} onChange={(e) => setCurrentCall({ ...currentCall, operator: e.target.value })}
