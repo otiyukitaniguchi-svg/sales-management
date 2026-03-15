@@ -121,6 +121,8 @@ export default function CustomerDetail() {
         resetCurrentCall()
         
         console.log('🔄 [DEBUG] Loading call history...')
+        // Wait for database to update
+        await new Promise(resolve => setTimeout(resolve, 500))
         await loadCallHistory()
         console.log('📋 [DEBUG] Updated call history length:', callHistory.length)
         
