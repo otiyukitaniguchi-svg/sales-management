@@ -17,6 +17,34 @@ export default function Home() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
 
+  // ブラウザキャッシュを自動クリアする機能
+  useEffect(() => {
+    const clearBrowserCache = async () => {
+      try {
+        // Service Worker キャッシュをクリア
+        if ('caches' in window) {
+          const cacheNames = await caches.keys()
+          await Promise.all(
+            cacheNames.map(cacheName => caches.delete(cacheName))
+          )
+        }
+
+        // IndexedDB をクリア
+        if ('indexedDB' in window) {
+          const dbs = await indexedDB.databases()
+          dbs.forEach(db => {
+            indexedDB.deleteDatabase(db.name)
+          })
+        }
+      } catch (error) {
+        console.error('Failed to clear browser cache:', error)
+      }
+    }
+
+    // ページロード時にキャッシュをクリア
+    clearBrowserCache()
+  }, [])
+
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
     if (savedUser) {

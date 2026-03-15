@@ -2,9 +2,11 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '営業管理システム',
+  title: 'AnyPro',
   description: 'Sales Management System with Supabase',
 }
+
+export const revalidate = 0 // キャッシュなし - 常に最新版を取得
 
 export default function RootLayout({
   children,
