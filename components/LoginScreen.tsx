@@ -38,7 +38,7 @@ export default function LoginScreen() {
     <div className="fixed inset-0 bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center z-[10000]">
       <div className="bg-white p-10 rounded-xl shadow-2xl w-full max-w-md">
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          営業管理システム
+          AnyPro
         </h1>
 
         <form onSubmit={handleLogin}>
