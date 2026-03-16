@@ -219,8 +219,8 @@ export default function CustomerDetail() {
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       {/* 顧客管理 */}
-      <div className="rounded-xl shadow-md border-2 border-black p-4 bg-gradient-to-br from-orange-50 to-white mb-6">
-        <span className="font-bold text-lg bg-orange-300 px-3 py-1 rounded-lg">顧客管理</span>
+      <div className="rounded-2xl shadow-lg border-2 border-blue-400 p-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 mb-6">
+        <span className="font-bold text-lg bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 py-1 rounded-lg">顧客管理</span>
         
         <div className="flex gap-6 mt-4">
           {/* 左列 */}
@@ -440,7 +440,7 @@ export default function CustomerDetail() {
                       {isEditing ? (
                         <input type="text" value={editingCallData?.date || ''} onChange={(e) => handleEditingCallFieldChange('date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                       ) : (
-                        entry.date
+                        entry.date ? new Date(entry.date).toISOString().split('T')[0] : '-'
                       )}
                     </td>
                     <td className="border border-gray-400 px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
