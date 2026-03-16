@@ -1,5 +1,6 @@
 'use client'
 
+
 import { FrontendCustomerRecord } from '@/lib/types'
 import { FIELD_LABELS, getLabel } from '@/lib/labels'
 
