@@ -332,7 +332,7 @@ export default function CustomerDetail() {
 
       {/* 架電履歴 */}
       <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col">
-        <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <span className="font-bold text-lg bg-gray-200 px-2 py-0.5">架電履歴</span>
             <button onClick={handleCallStart} disabled={isCallActive}
@@ -407,7 +407,7 @@ export default function CustomerDetail() {
 
         <div className="overflow-y-auto" style={{ maxHeight: '300px' }}>
         <table className="w-full border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr>
               <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-16">担当者</th>
               <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-24">対応日</th>
