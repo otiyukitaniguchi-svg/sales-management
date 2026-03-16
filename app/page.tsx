@@ -33,7 +33,9 @@ export default function Home() {
         if ('indexedDB' in window) {
           const dbs = await indexedDB.databases()
           dbs.forEach(db => {
-            indexedDB.deleteDatabase(db.name)
+            if (db.name) {
+              indexedDB.deleteDatabase(db.name)
+            }
           })
         }
       } catch (error) {
