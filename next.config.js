@@ -8,6 +8,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // スタティックページ生成のタイムアウトを設定
+  staticPageGenerationTimeout: 120,
   // キャッシュ制御ヘッダーを追加
   headers: async () => {
     return [
