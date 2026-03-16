@@ -49,7 +49,9 @@ export default function CustomerDetail() {
       }
       if (result.success && result.data) {
         console.log('📋 [DEBUG] Setting call history with', result.data.length, 'entries')
-        setCallHistory(result.data)
+        // 最新履歴を上に表示するため、逆順にソート
+        const sortedData = [...result.data].reverse()
+        setCallHistory(sortedData)
       } else {
         console.warn('📋 [DEBUG] No data in response')
       }
@@ -402,13 +404,14 @@ export default function CustomerDetail() {
           </div>
         )}
 
+        <div className="overflow-y-auto" style={{ maxHeight: '300px' }}>
         <table className="w-full border-collapse border border-gray-400">
           <thead>
             <tr>
               <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">担当者</th>
-              <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">対応日</th>
-              <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">開始</th>
-              <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">終了</th>
+              <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-24">対応日</th>
+              <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">開始</th>
+              <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">終了</th>
               <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-20">対応者</th>
               <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-16">性別</th>
               <th className="border border-gray-400 px-4 py-2 text-left whitespace-nowrap font-bold bg-gray-300 w-24">進捗</th>
