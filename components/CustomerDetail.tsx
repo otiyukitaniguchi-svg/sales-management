@@ -509,6 +509,7 @@ export default function CustomerDetail() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
 
