@@ -20,6 +20,81 @@ export class ApiClient {
   }
 
   /**
+   * Update customer record
+   */
+  static async updateCustomer(
+    listId: string,
+    no: string,
+    record: FrontendCustomerRecord
+  ): Promise<boolean> {
+    const response = await fetch(`${API_BASE}/lists/${listId}/update/${no}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: record,
+      }),
+    })
+    const result = await response.json()
+    return result.success
+  }
+
+  /**
+   * Create call history entry
+   */
+  static async createCallHistory(
+    listId: string,
+    no: string,
+    entry: FrontendCallHistoryEntry
+  ): Promise<boolean> {
+    const response = await fetch(`${API_BASE}/lists/${listId}/history/${no}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(entry),
+    })
+    const result = await response.json()
+    return result.success
+  }
+
+  /**
+   * Update call history entry
+   */
+  static async updateCallHistory(
+    listId: string,
+    no: string,
+    index: number,
+    entry: FrontendCallHistoryEntry
+  ): Promise<boolean> {
+    const response = await fetch(`${API_BASE}/lists/${listId}/history/${no}/${index}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(entry),
+    })
+    const result = await response.json()
+    return result.success
+  }
+
+  /**
+   * Delete call history entry
+   */
+  static async deleteCallHistory(
+    listId: string,
+    no: string,
+    index: number
+  ): Promise<boolean> {
+    const response = await fetch(`${API_BASE}/lists/${listId}/history/${no}/${index}`, {
+      method: 'DELETE',
+    })
+    const result = await response.json()
+    return result.success
+  }
+
+  /**
    * Update record and add call history
    */
   static async updateRecord(
