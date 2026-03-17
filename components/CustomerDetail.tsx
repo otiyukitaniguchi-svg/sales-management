@@ -446,14 +446,14 @@ export default function CustomerDetail() {
                         entry.date ? new Date(entry.date).toISOString().split('T')[0] : '-'
                       )}
                     </td>
-                    <td className=" px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <input type="text" value={editingCallData?.startTime || ''} onChange={(e) => handleEditingCallFieldChange('startTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                       ) : (
                         entry.startTime
                       )}
                     </td>
-                    <td className=" px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <input type="text" value={editingCallData?.endTime || ''} onChange={(e) => handleEditingCallFieldChange('endTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                       ) : (
@@ -467,7 +467,7 @@ export default function CustomerDetail() {
                         entry.responder
                       )}
                     </td>
-                    <td className=" px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <select value={editingCallData?.gender || ''} onChange={(e) => handleEditingCallFieldChange('gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                           <option value="">選択</option>
@@ -478,7 +478,7 @@ export default function CustomerDetail() {
                         entry.gender
                       )}
                     </td>
-                    <td className=" px-4 py-2 whitespace-nowrap w-24 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 whitespace-nowrap w-24 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <select value={editingCallData?.progress || ''} onChange={(e) => handleEditingCallFieldChange('progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                           <option value="">選択</option>
