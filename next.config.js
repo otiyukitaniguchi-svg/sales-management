@@ -32,6 +32,8 @@ const nextConfig = {
       },
     ]
   },
+  // エクスポート設定
+  output: 'standalone',
 }
 
 module.exports = nextConfig

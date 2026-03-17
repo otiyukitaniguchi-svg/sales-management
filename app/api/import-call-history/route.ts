@@ -25,7 +25,7 @@ interface CallHistoryRow {
   担当オペレーター: string
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const text = await file.text()
 
     // CSVをパース
-    return new Promise((resolve) => {
+    return new Promise<Response>((resolve) => {
       Papa.parse(text, {
         header: true,
         skipEmptyLines: true,
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
             )
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Papa parse error:', error)
           resolve(
             NextResponse.json(
