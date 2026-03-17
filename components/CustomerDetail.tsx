@@ -220,7 +220,10 @@ export default function CustomerDetail() {
     <div className="flex-1 p-6 overflow-y-auto">
       {/* 顧客管理 */}
       <div className="rounded-2xl shadow-lg p-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 mb-6">
-        <span className="font-bold text-lg bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 py-1 rounded-lg">顧客管理</span>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="font-bold text-lg bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 py-1 rounded-lg">顧客管理</span>
+          <span className="font-bold text-lg text-gray-700">No.{record.no}</span>
+        </div>
         
         <div className="flex gap-6 mt-4">
           {/* 左列 */}
