@@ -8,6 +8,7 @@ import NavigationBar from '@/components/NavigationBar'
 import Sidebar from '@/components/Sidebar'
 import CustomerDetail from '@/components/CustomerDetail'
 import { CallHistoryImportExport } from '@/components/CallHistoryImportExport'
+import SearchModal from '@/components/SearchModal'
 
 export default function Home() {
   const user = useAppStore((state) => state.user)
@@ -113,13 +114,7 @@ export default function Home() {
         </div>
       )}
       {isSearchModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">検索</h2>
-            <p className="mb-4">検索機能は開発中です</p>
-            <button onClick={() => setIsSearchModalOpen(false)} className="px-4 py-2 bg-gray-500 text-white rounded">閉じる</button>
-          </div>
-        </div>
+        <SearchModal isOpen={isSearchModalOpen} onClose={() => setIsSearchModalOpen(false)} />
       )}
     </div>
   )

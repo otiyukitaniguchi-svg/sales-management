@@ -219,7 +219,7 @@ export default function CustomerDetail() {
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       {/* 顧客管理 */}
-      <div className="rounded-2xl shadow-lg p-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 mb-6">
+      <div className="rounded-2xl shadow-lg p-4 bg-blue-100 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <span className="font-bold text-3xl bg-gradient-to-r from-blue-400 to-blue-500 text-white px-4 py-2 rounded-lg">顧客管理</span>
           <span className="font-bold text-2xl text-gray-700">No.{record.no}</span>
@@ -334,7 +334,7 @@ export default function CustomerDetail() {
       </div>
 
       {/* 架電履歴 */}
-      <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-gradient-to-br from-gray-50 to-white flex flex-col">
+      <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-yellow-50 flex flex-col">
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <span className="font-bold text-lg bg-gray-200 px-2 py-0.5">架電履歴</span>
@@ -409,18 +409,18 @@ export default function CustomerDetail() {
         )}
 
         <div className="overflow-y-auto" style={{ maxHeight: '300px' }}>
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse border border-black">
           <thead className="sticky top-0 z-10">
             <tr>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-16">担当者</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-24">対応日</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-20">開始</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-20">終了</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-20">対応者</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-16">性別</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-24">進捗</th>
-              <th className="px-4 py-2 text-left font-bold bg-blue-200 flex-1">コール履歴</th>
-              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-200 w-20">操作</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">担当者</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">対応日</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">開始</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">終了</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">対応者</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">性別</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">進捗</th>
+              <th className="px-4 py-2 text-left font-bold bg-blue-300 flex-1 border border-black">コール履歴</th>
+              <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -432,14 +432,14 @@ export default function CustomerDetail() {
                 const isEditing = editingCallIndex === displayIndex
                 return (
                   <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className=" px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <input type="text" value={editingCallData?.operator || ''} onChange={(e) => handleEditingCallFieldChange('operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                       ) : (
                         entry.operator
                       )}
                     </td>
-                    <td className=" px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <input type="text" value={editingCallData?.date || ''} onChange={(e) => handleEditingCallFieldChange('date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                       ) : (
@@ -460,7 +460,7 @@ export default function CustomerDetail() {
                         entry.endTime
                       )}
                     </td>
-                    <td className=" px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <input type="text" value={editingCallData?.responder || ''} onChange={(e) => handleEditingCallFieldChange('responder', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                       ) : (
@@ -491,14 +491,14 @@ export default function CustomerDetail() {
                         entry.progress
                       )}
                     </td>
-                    <td className=" px-4 py-2 cursor-pointer hover:bg-blue-100" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                    <td className="px-4 py-2 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                       {isEditing ? (
                         <input type="text" value={editingCallData?.note || ''} onChange={(e) => handleEditingCallFieldChange('note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                       ) : (
                         entry.note
                       )}
                     </td>
-                    <td className=" px-4 py-2 whitespace-nowrap w-40">
+                    <td className="px-4 py-2 whitespace-nowrap w-40 border border-black">
                       {isEditing ? (
                         <>
                           <button onClick={handleSaveCallHistory} className="px-2 py-1 bg-green-500 text-white rounded text-xs mr-1 hover:bg-green-600">保存</button>
