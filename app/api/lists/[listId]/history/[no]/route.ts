@@ -23,11 +23,10 @@ export async function GET(
       )
     }
 
-    // Fetch call history for this record
+    // Fetch call history for this record (共通のNoをキーに取得)
     const { data: history, error } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('*')
-      .eq('list_type', listId)
       .eq('no', no)
       .order('created_at', { ascending: false })
 
