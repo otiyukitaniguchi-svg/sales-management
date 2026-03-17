@@ -7,6 +7,7 @@ import LoginScreen from '@/components/LoginScreen'
 import NavigationBar from '@/components/NavigationBar'
 import Sidebar from '@/components/Sidebar'
 import CustomerDetail from '@/components/CustomerDetail'
+import { CallHistoryImportExport } from '@/components/CallHistoryImportExport'
 
 export default function Home() {
   const user = useAppStore((state) => state.user)
@@ -100,8 +101,13 @@ export default function Home() {
       {isImportModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full">
-            <h2 className="text-xl font-bold mb-4">データインポート</h2>
-            <p className="mb-4">インポート機能は開発中です</p>
+            <h2 className="text-xl font-bold mb-4">架電履歴 インポート・エクスポート</h2>
+            <div className="mb-4">
+              <CallHistoryImportExport listType={currentList} onImportComplete={() => {
+                alert('インポートが完了しました')
+                setIsImportModalOpen(false)
+              }} />
+            </div>
             <button onClick={() => setIsImportModalOpen(false)} className="px-4 py-2 bg-gray-500 text-white rounded">閉じる</button>
           </div>
         </div>
