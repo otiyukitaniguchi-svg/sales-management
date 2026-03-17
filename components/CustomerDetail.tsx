@@ -50,9 +50,9 @@ export default function CustomerDetail() {
       }
       if (result.success && result.data) {
         console.log('📋 [DEBUG] Setting call history with', result.data.length, 'entries')
-        // 最新履歴を上に表示するため、逆順にソート
-        const sortedData = [...result.data].reverse()
-        setCallHistory(sortedData)
+        // 最新5件のみを取得（既に降順で取得されている）
+        const latestFive = result.data.slice(0, 5)
+        setCallHistory(latestFive)
       } else {
         console.warn('📋 [DEBUG] No data in response')
       }
@@ -424,8 +424,8 @@ export default function CustomerDetail() {
             {callHistory.length === 0 ? (
               <tr><td colSpan={9} className=" px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
             ) : (
-              /* すべての履歴を表示（新しい順） */
-              callHistory.map((entry, displayIndex) => {
+              /* 最新5件の履歴を表示（新しい順） */
+              callHistory.slice(0, 5).map((entry, displayIndex) => {
                 const isEditing = editingCallIndex === displayIndex
                 return (
                   <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
