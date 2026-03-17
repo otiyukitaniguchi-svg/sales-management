@@ -14,8 +14,6 @@ export default function Sidebar() {
   const currentList = useAppStore((state) => state.currentList)
   const setCurrentList = useAppStore((state) => state.setCurrentList)
   const listData = useAppStore((state) => state.listData)
-  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false)
-
   const handleListClick = (listId: 'list1' | 'list2' | 'list3') => {
     setCurrentList(listId)
   }
@@ -40,22 +38,6 @@ export default function Sidebar() {
           </div>
         )
       })}
-      
-      {/* 管理者メニュー */}
-      <div className="mt-auto border-t border-gray-600">
-        <button
-          onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-          className="w-full px-4 py-3 text-lg font-bold text-gray-700 bg-[#c0c0c0] border-b border-gray-600 hover:bg-[#b0b0b0] cursor-pointer"
-        >
-          管理者 {isAdminMenuOpen ? '▼' : '▶'}
-        </button>
-        {isAdminMenuOpen && (
-          <>
-            <button className="w-full px-4 py-2 text-sm text-left hover:bg-gray-400 border-b border-gray-600 bg-[#e0e0e0]">インポート</button>
-            <button className="w-full px-4 py-2 text-sm text-left hover:bg-gray-400 bg-[#e0e0e0]">エクスポート</button>
-          </>
-        )}
-      </div>
     </div>
   )
 }
