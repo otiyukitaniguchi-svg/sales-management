@@ -415,7 +415,7 @@ export default function CustomerDetail() {
           </div>
         )}
 
-        <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(5 * 40px + 50px)' }}>
           <table className="w-full border-collapse border border-black">
             <thead className="sticky top-0 z-10">
               <tr>
