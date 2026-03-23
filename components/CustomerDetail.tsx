@@ -29,6 +29,7 @@ export default function CustomerDetail() {
   const [recallTime, setRecallTime] = useState('')
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedForDelete, setSelectedForDelete] = useState<Set<number>>(new Set())
+  const [expandedNoteIndex, setExpandedNoteIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (record) {
@@ -509,7 +510,17 @@ export default function CustomerDetail() {
                         {isEditing ? (
                           <input type="text" value={editingCallData?.note || ''} onChange={(e) => handleEditingCallFieldChange('note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
-                          <div className="max-w-xs truncate" title={entry.note}>{entry.note}</div>
+                          <div
+                            onClick={() => setExpandedNoteIndex(expandedNoteIndex === displayIndex ? null : displayIndex)}
+                            className="cursor-pointer hover:bg-blue-50 p-1 rounded break-words text-sm"
+                            style={{
+                              maxHeight: expandedNoteIndex === displayIndex ? 'none' : '60px',
+                              overflow: expandedNoteIndex === displayIndex ? 'visible' : 'hidden',
+                              whiteSpace: expandedNoteIndex === displayIndex ? 'pre-wrap' : 'normal'
+                            }}
+                          >
+                            {entry.note}
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-24 border border-black">
