@@ -341,6 +341,10 @@ export default function CustomerDetail() {
               className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-blue-600">開始</button>
             <button onClick={handleCallEnd} disabled={!isCallActive}
               className="px-3 py-1 bg-red-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-red-600">終了</button>
+            <button onClick={() => setEditingCallIndex(editingCallIndex === null ? 0 : null)}
+              className={`px-3 py-1 rounded text-sm font-semibold ${editingCallIndex !== null ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}>
+              {editingCallIndex !== null ? '保存/取消' : '編集'}
+            </button>
             <button onClick={() => { setIsDeleteMode(!isDeleteMode); setSelectedForDelete(new Set()); }}
               className={`px-3 py-1 rounded text-sm font-semibold ${isDeleteMode ? 'bg-gray-400' : 'bg-purple-500'} text-white hover:opacity-80`}>
               {isDeleteMode ? 'キャンセル' : '削除/実行'}
@@ -429,7 +433,7 @@ export default function CustomerDetail() {
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">性別</th>
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">進捗</th>
                 <th className="px-4 py-2 text-left font-bold bg-blue-300 flex-1 border border-black">コール履歴</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">操作</th>
+
               </tr>
             </thead>
             <tbody>
@@ -445,49 +449,49 @@ export default function CustomerDetail() {
                           <input type="checkbox" checked={selectedForDelete.has(displayIndex)} onChange={() => toggleSelectForDelete(displayIndex)} />
                         </td>
                       )}
-                      <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
                         {isEditing ? (
                           <input type="text" value={editingCallData?.operator || ''} onChange={(e) => handleEditingCallFieldChange('operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.operator
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black">
                         {isEditing ? (
                           <input type="date" value={editingCallData?.date || ''} onChange={(e) => handleEditingCallFieldChange('date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.date ? new Date(entry.date).toISOString().split('T')[0] : '-'
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
                         {isEditing ? (
                           <input type="time" value={editingCallData?.startTime || ''} onChange={(e) => handleEditingCallFieldChange('startTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.startTime
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
                         {isEditing ? (
                           <input type="time" value={editingCallData?.endTime || ''} onChange={(e) => handleEditingCallFieldChange('endTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.endTime
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-20 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black">
                         {isEditing ? (
                           <input type="text" value={editingCallData?.responder || ''} onChange={(e) => handleEditingCallFieldChange('responder', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.responder
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-16 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
                         {isEditing ? (
                           <input type="text" value={editingCallData?.gender || ''} onChange={(e) => handleEditingCallFieldChange('gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.gender
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-24 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 whitespace-nowrap w-24 border border-black">
                         {isEditing ? (
                           <select value={editingCallData?.progress || ''} onChange={(e) => handleEditingCallFieldChange('progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                             <option value="">選択</option>
@@ -506,7 +510,7 @@ export default function CustomerDetail() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
+                      <td className="px-4 py-2 border border-black">
                         {isEditing ? (
                           <input type="text" value={editingCallData?.note || ''} onChange={(e) => handleEditingCallFieldChange('note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
@@ -523,19 +527,7 @@ export default function CustomerDetail() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-24 border border-black">
-                        {isEditing ? (
-                          <div className="flex gap-1">
-                            <button onClick={handleSaveCallHistory} className="px-2 py-0.5 bg-green-500 text-white text-xs rounded">保存</button>
-                            <button onClick={handleCancelCallHistory} className="px-2 py-0.5 bg-gray-500 text-white text-xs rounded">取消</button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-1">
-                            <button onClick={() => handleEditCallHistory(displayIndex, entry)} className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded">編集</button>
-                            <button onClick={() => handleDeleteCallHistory(displayIndex)} className="px-2 py-0.5 bg-red-500 text-white text-xs rounded">削除</button>
-                          </div>
-                        )}
-                      </td>
+
                     </tr>
                   )
                 })
