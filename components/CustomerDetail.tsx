@@ -328,17 +328,7 @@ export default function CustomerDetail() {
           </div>
         </div>
 
-        {/* 保存ボタン */}
-        <div className="absolute top-2 right-24 flex items-center gap-2">
-          {saveMessage && <span className="text-green-600 text-xs font-bold">{saveMessage}</span>}
-          <button
-            onClick={handleSaveRecord}
-            disabled={isSaving}
-            className="px-4 py-1 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700 disabled:bg-gray-400"
-          >
-            {isSaving ? '保存中...' : '保存'}
-          </button>
-        </div>
+
       </div>
 
       {/* 架電履歴セクション（既存機能を維持） */}
