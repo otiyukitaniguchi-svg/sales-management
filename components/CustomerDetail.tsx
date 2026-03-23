@@ -29,7 +29,6 @@ export default function CustomerDetail() {
   const [recallTime, setRecallTime] = useState('')
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedForDelete, setSelectedForDelete] = useState<Set<number>>(new Set())
-  const [expandedNoteIndex, setExpandedNoteIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (record) {
@@ -41,18 +40,10 @@ export default function CustomerDetail() {
   const loadCallHistory = async () => {
     if (!record) return
     try {
-      console.log('📋 [DEBUG] Loading call history for:', currentList, record.no)
       const result = await ApiClient.getCallHistory(currentList, record.no)
-      console.log('📋 [DEBUG] API call history response:', result)
-      console.log('📋 [DEBUG] API response success:', result.success)
-      console.log('📋 [DEBUG] API response data length:', result.data ? result.data.length : 'null')
-      if (result.data && result.data.length > 0) {
-        console.log('📋 [DEBUG] First entry:', result.data[0])
-        console.log('📋 [DEBUG] Last entry:', result.data[result.data.length - 1])
-      }
       setCallHistory(result.data || [])
     } catch (error) {
-      console.error('❌ [ERROR] Failed to load call history:', error)
+      console.error('Failed to load call history:', error)
       setCallHistory([])
     }
   }
@@ -161,11 +152,8 @@ export default function CustomerDetail() {
       alert('削除する行を選択してください')
       return
     }
-
     if (!record) return
-
     try {
-      // 降順で削除（インデックスがずれないように）
       const indices = Array.from(selectedForDelete).sort((a, b) => b - a)
       for (const index of indices) {
         await ApiClient.deleteCallHistory(currentList, record.no, index)
@@ -193,115 +181,175 @@ export default function CustomerDetail() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* 顧客管理セクション */}
-      <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-blue-100 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-3xl font-bold text-gray-800">顧客管理 No.{record.no}</h2>
-          <div className="flex gap-2">
-            <button onClick={handleSaveRecord} disabled={isSaving}
-              className="px-4 py-2 bg-green-500 text-white rounded font-semibold disabled:bg-gray-400 hover:bg-green-600">
-              {isSaving ? '保存中...' : '保存'}
-            </button>
-            {saveMessage && <span className="text-green-600 font-semibold">{saveMessage}</span>}
+    <div className="flex flex-col gap-4 p-4 bg-[#fdfcf0] min-h-full">
+      {/* 顧客基本情報セクション */}
+      <div className="border-2 border-black rounded-lg p-4 relative bg-[#fdfcf0]">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-sm font-bold">【顧客基本情報】</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold">No.</span>
+            <span className="text-sm font-bold border-b border-black min-w-[60px] text-center">{record.no}</span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {/* 事業者名 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【事業者名】</div>
-            <div className="flex-1 px-4 py-3">
-              <input type="text" value={editedRecord.companyName || ''} onChange={(e) => handleFieldChange('companyName', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" />
+        <div className="grid grid-cols-12 gap-2">
+          {/* 左側メインエリア */}
+          <div className="col-span-10 flex flex-col gap-2">
+            {/* 企業名 */}
+            <div className="border border-black p-2 rounded bg-white">
+              <label className="block text-[10px] font-bold mb-1">〈企業名〉</label>
+              <input
+                type="text"
+                value={editedRecord.companyKana || ''}
+                onChange={(e) => handleFieldChange('companyKana', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
+                placeholder="フリガナ"
+              />
+              <input
+                type="text"
+                value={editedRecord.companyName || ''}
+                onChange={(e) => handleFieldChange('companyName', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-2 text-xl font-bold focus:outline-none"
+                placeholder="企業名"
+              />
+            </div>
+
+            {/* 住所 */}
+            <div className="border border-black p-2 rounded bg-white">
+              <label className="block text-[10px] font-bold mb-1">〈住所〉</label>
+              <div className="flex gap-2 mb-1">
+                <input
+                  type="text"
+                  value={editedRecord.zipCode || ''}
+                  onChange={(e) => handleFieldChange('zipCode', e.target.value)}
+                  className="w-24 border border-gray-300 px-2 py-1 text-xs focus:outline-none"
+                  placeholder="郵便番号"
+                />
+                <input
+                  type="text"
+                  value={editedRecord.addressKana || ''}
+                  onChange={(e) => handleFieldChange('addressKana', e.target.value)}
+                  className="flex-1 border border-gray-300 px-2 py-1 text-xs focus:outline-none"
+                  placeholder="住所フリガナ"
+                />
+              </div>
+              <input
+                type="text"
+                value={editedRecord.address || ''}
+                onChange={(e) => handleFieldChange('address', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-2 text-xl font-bold focus:outline-none"
+                placeholder="住所"
+              />
             </div>
           </div>
-          {/* 事業者名フリガナ */}
-          <div className="flex">
-            <div className="w-32 px-4 py-1 font-semibold text-lg text-gray-700 whitespace-nowrap"></div>
-            <div className="flex-1 px-4 py-0.5">
-              <input type="text" value={editedRecord.companyKana || ''} onChange={(e) => handleFieldChange('companyKana', e.target.value)}
-                className="w-full border-2 border-black px-3 py-0.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" placeholder="フリガナ" />
+
+          {/* 右側サイドエリア */}
+          <div className="col-span-2 flex flex-col gap-2">
+            <div className="border border-black p-2 rounded bg-white flex-1">
+              <label className="block text-[10px] font-bold mb-1">固定番号</label>
+              <input
+                type="text"
+                value={editedRecord.fixedNo || ''}
+                onChange={(e) => handleFieldChange('fixedNo', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-sm mb-2 focus:outline-none"
+              />
+              <label className="block text-[10px] font-bold mb-1">その他連絡先</label>
+              <input
+                type="text"
+                value={editedRecord.otherContact || ''}
+                onChange={(e) => handleFieldChange('otherContact', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+              />
+            </div>
+            <div className="border border-black p-2 rounded bg-white">
+              <label className="block text-[10px] font-bold mb-1">Mail address</label>
+              <input
+                type="text"
+                value={editedRecord.email || ''}
+                onChange={(e) => handleFieldChange('email', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-sm mb-2 focus:outline-none"
+              />
+              <label className="block text-[10px] font-bold mb-1">業種</label>
+              <input
+                type="text"
+                value={editedRecord.industry || ''}
+                onChange={(e) => handleFieldChange('industry', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+              />
             </div>
           </div>
-          {/* 住所 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【住所】</div>
-            <div className="flex-1 px-4 py-3">
-              <input type="text" value={editedRecord.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" />
+        </div>
+
+        {/* 下部エリア（代表・担当・備考） */}
+        <div className="grid grid-cols-12 gap-2 mt-2">
+          <div className="col-span-6 border border-black p-2 rounded bg-white flex gap-4">
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold mb-1">代表</label>
+              <input
+                type="text"
+                value={editedRecord.repKana || ''}
+                onChange={(e) => handleFieldChange('repKana', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-[10px] mb-1 focus:outline-none"
+                placeholder="フリガナ"
+              />
+              <input
+                type="text"
+                value={editedRecord.repName || ''}
+                onChange={(e) => handleFieldChange('repName', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-2 text-sm focus:outline-none"
+                placeholder="漢字"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[10px] font-bold mb-1">担当</label>
+              <input
+                type="text"
+                value={editedRecord.staffKana || ''}
+                onChange={(e) => handleFieldChange('staffKana', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-[10px] mb-1 focus:outline-none"
+                placeholder="フリガナ"
+              />
+              <input
+                type="text"
+                value={editedRecord.staffName || ''}
+                onChange={(e) => handleFieldChange('staffName', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-2 text-sm focus:outline-none"
+                placeholder="漢字"
+              />
             </div>
           </div>
-          {/* 固定番号 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【固定番号】</div>
-            <div className="flex-1 px-4 py-3">
-              <input type="text" value={editedRecord.fixedNo || ''} onChange={(e) => handleFieldChange('fixedNo', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" />
-            </div>
+          <div className="col-span-6 border border-black p-2 rounded bg-white">
+            <label className="block text-[10px] font-bold mb-1">備考</label>
+            <textarea
+              value={editedRecord.memo || ''}
+              onChange={(e) => handleFieldChange('memo', e.target.value)}
+              className="w-full border border-gray-300 px-2 py-1 text-sm h-[60px] focus:outline-none resize-none"
+            />
           </div>
-          {/* その他番号 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【その他番号】</div>
-            <div className="flex-1 px-4 py-3">
-              <input type="text" value={editedRecord.otherContact || ''} onChange={(e) => handleFieldChange('otherContact', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" />
-            </div>
-          </div>
-          {/* 代表者 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【代表者】</div>
-            <div className="flex-1 px-4 py-3">
-              <input type="text" value={editedRecord.repName || ''} onChange={(e) => handleFieldChange('repName', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" />
-            </div>
-          </div>
-          {/* 担当者 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【担当者】</div>
-            <div className="flex-1 px-4 py-3">
-              <input type="text" value={editedRecord.staffName || ''} onChange={(e) => handleFieldChange('staffName', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" placeholder="担当" />
-            </div>
-          </div>
-          {/* 担当者フリガナ */}
-          <div className="flex">
-            <div className="w-32 px-4 py-1 font-semibold text-lg text-gray-700 whitespace-nowrap"></div>
-            <div className="flex-1 px-4 py-0.5">
-              <input type="text" value={editedRecord.staffKana || ''} onChange={(e) => handleFieldChange('staffKana', e.target.value)}
-                className="w-full border-2 border-black px-3 py-0.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" placeholder="フリガナ" />
-            </div>
-          </div>
-          {/* 業種 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【業種】</div>
-            <div className="flex-1 px-4 py-3">
-              <input type="text" value={editedRecord.industry || ''} onChange={(e) => handleFieldChange('industry', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg" />
-            </div>
-          </div>
-          {/* 備考 */}
-          <div className="flex">
-            <div className="w-32 px-4 py-3 font-semibold text-lg text-gray-700 whitespace-nowrap">【備考】</div>
-            <div className="flex-1 px-4 py-3">
-              <textarea value={editedRecord.memo || ''} onChange={(e) => handleFieldChange('memo', e.target.value)}
-                className="w-full border-2 border-black px-3 py-2 text-lg font-bold h-20 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg resize-none" />
-            </div>
-          </div>
+        </div>
+
+        {/* 保存ボタン */}
+        <div className="absolute top-2 right-24 flex items-center gap-2">
+          {saveMessage && <span className="text-green-600 text-xs font-bold">{saveMessage}</span>}
+          <button
+            onClick={handleSaveRecord}
+            disabled={isSaving}
+            className="px-4 py-1 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700 disabled:bg-gray-400"
+          >
+            {isSaving ? '保存中...' : '保存'}
+          </button>
         </div>
       </div>
 
-      {/* 架電履歴セクション */}
-      <div className="rounded-lg shadow-md border border-gray-300 p-4 bg-yellow-50 flex flex-col">
+      {/* 架電履歴セクション（既存機能を維持） */}
+      <div className="border-2 border-black rounded-lg p-4 bg-white">
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-lg bg-gray-200 px-2 py-0.5">架電履歴</span>
+            <span className="font-bold text-lg bg-gray-200 px-2 py-0.5 border border-black">架電履歴</span>
             <button onClick={handleCallStart} disabled={isCallActive}
               className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-blue-600">開始</button>
             <button onClick={handleCallEnd} disabled={!isCallActive}
               className="px-3 py-1 bg-red-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-red-600">終了</button>
-            <button onClick={() => setEditingCallIndex(0)} disabled={isCallActive || callHistory.length === 0}
-              className="px-3 py-1 bg-orange-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-orange-600">編集</button>
             <button onClick={() => { setIsDeleteMode(!isDeleteMode); setSelectedForDelete(new Set()); }}
               className={`px-3 py-1 rounded text-sm font-semibold ${isDeleteMode ? 'bg-gray-400' : 'bg-purple-500'} text-white hover:opacity-80`}>
               {isDeleteMode ? 'キャンセル' : '削除/実行'}
@@ -369,7 +417,7 @@ export default function CustomerDetail() {
                   className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
               </div>
               <div className="col-span-2">
-                <label className="font-semibold text-gray-700">コール備歴:</label>
+                <label className="font-semibold text-gray-700">コール備考:</label>
                 <input type="text" value={currentCall.note || ''} onChange={(e) => setCurrentCall({ ...currentCall, note: e.target.value })}
                   className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
               </div>
@@ -377,7 +425,7 @@ export default function CustomerDetail() {
           </div>
         )}
 
-        <div className="overflow-y-auto" style={{ maxHeight: '300px' }}>
+        <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
           <table className="w-full border-collapse border border-black">
             <thead className="sticky top-0 z-10">
               <tr>
@@ -397,7 +445,7 @@ export default function CustomerDetail() {
               {callHistory.length === 0 ? (
                 <tr><td colSpan={isDeleteMode ? 10 : 9} className="px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
               ) : (
-                callHistory.slice(0, 5).map((entry, displayIndex) => {
+                callHistory.map((entry, displayIndex) => {
                   const isEditing = editingCallIndex === displayIndex
                   return (
                     <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
@@ -458,28 +506,34 @@ export default function CustomerDetail() {
                             <option value="担当不在">担当不在</option>
                           </select>
                         ) : (
-                          entry.progress
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                            entry.progress === '受注' ? 'bg-red-100 text-red-700' :
+                            entry.progress?.includes('見込み') ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {entry.progress}
+                          </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => setExpandedNoteIndex(expandedNoteIndex === displayIndex ? null : displayIndex)}>
+                      <td className="px-4 py-2 cursor-pointer hover:bg-blue-100 border border-black" onClick={() => handleEditCallHistory(displayIndex, entry)}>
                         {isEditing ? (
                           <input type="text" value={editingCallData?.note || ''} onChange={(e) => handleEditingCallFieldChange('note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
-                          <div className="truncate text-sm cursor-pointer hover:underline">{entry.note || '-'}</div>
-                        )}
-                        {expandedNoteIndex === displayIndex && !isEditing && (
-                          <div className="absolute bg-white border border-gray-300 rounded p-2 mt-1 z-50 max-w-xs break-words">
-                            {entry.note}
-                          </div>
+                          <div className="max-w-xs truncate" title={entry.note}>{entry.note}</div>
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-24 border border-black">
                         {isEditing ? (
-                          <>
-                            <button onClick={handleSaveCallHistory} className="px-2 py-1 bg-green-500 text-white rounded text-xs mr-1 hover:bg-green-600">保存</button>
-                            <button onClick={handleCancelCallHistory} className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500">キャンセル</button>
-                          </>
-                        ) : null}
+                          <div className="flex gap-1">
+                            <button onClick={handleSaveCallHistory} className="px-2 py-0.5 bg-green-500 text-white text-xs rounded">保存</button>
+                            <button onClick={handleCancelCallHistory} className="px-2 py-0.5 bg-gray-500 text-white text-xs rounded">取消</button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-1">
+                            <button onClick={() => handleEditCallHistory(displayIndex, entry)} className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded">編集</button>
+                            <button onClick={() => handleDeleteCallHistory(displayIndex)} className="px-2 py-0.5 bg-red-500 text-white text-xs rounded">削除</button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
