@@ -76,27 +76,39 @@ export default function CustomerDetail() {
   const handleCallStart = () => {
     setIsCallActive(true)
     const now = new Date()
-    setCurrentCall({
-      ...currentCall,
+    const newEntry: FrontendCallHistoryEntry = {
+      operator: user?.name || 'オペレーター',
       date: now.toISOString().split('T')[0],
       startTime: now.toTimeString().slice(0, 5),
-    })
+      endTime: '',
+      responder: '',
+      gender: '',
+      progress: '',
+      note: '',
+    }
+    // 新規行を一番上に追加
+    setCallHistory([newEntry, ...callHistory])
+    setEditingCallIndex(0)
+    setEditingCallData(newEntry)
+    setCurrentCall(newEntry)
   }
 
   const handleCallEnd = async () => {
+    if (!record || editingCallIndex === null || !editingCallData) return
+    
     const now = new Date()
     const endTime = now.toTimeString().slice(0, 5)
-    setCurrentCall({ ...currentCall, endTime })
+    const finalEntry = { ...editingCallData, endTime }
+    
     setIsCallActive(false)
-
-    if (!record) return
+    
     try {
-      const success = await ApiClient.createCallHistory(currentList, record.no, {
-        ...currentCall,
-        endTime,
-      })
+      // 新規行を保存
+      const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
       if (success) {
         resetCurrentCall()
+        setEditingCallIndex(null)
+        setEditingCallData(null)
         await loadCallHistory()
       }
     } catch (error) {
