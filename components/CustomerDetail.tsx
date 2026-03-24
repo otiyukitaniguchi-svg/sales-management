@@ -344,8 +344,8 @@ export default function CustomerDetail() {
         </div>
 
         {/* 代表・担当・備考 */}
-        <div className="grid grid-cols-12 gap-1 mt-1">
-          <div className="col-span-6 border border-black p-1 rounded bg-white">
+        <div className="grid grid-cols-10 gap-1 mt-1">
+          <div className="col-span-5 border border-black p-1 rounded bg-white">
             <label className="block text-[9px] font-bold mb-0.5">代表</label>
             <input
               type="text"
@@ -362,7 +362,7 @@ export default function CustomerDetail() {
               placeholder="漢字"
             />
           </div>
-          <div className="col-span-6 border border-black p-1 rounded bg-white">
+          <div className="col-span-5 border border-black p-1 rounded bg-white">
             <label className="block text-[9px] font-bold mb-0.5">担当</label>
             <input
               type="text"
@@ -379,7 +379,7 @@ export default function CustomerDetail() {
               placeholder="漢字"
             />
           </div>
-          <div className="col-span-12 border border-black p-1 rounded bg-white">
+          <div className="col-span-10 border border-black p-1 rounded bg-white mt-1">
             <label className="block text-[9px] font-bold mb-0.5">備考</label>
             <textarea
               value={editedRecord.memo || ''}
