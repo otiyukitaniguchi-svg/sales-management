@@ -344,47 +344,47 @@ export default function CustomerDetail() {
         </div>
 
         {/* 代表・担当・備考 */}
-        <div className="grid grid-cols-12 gap-2 mt-2">
-          <div className="col-span-6 border border-black p-2 rounded bg-white">
-            <label className="block text-[10px] font-bold mb-1">代表</label>
+        <div className="grid grid-cols-12 gap-1 mt-1">
+          <div className="col-span-6 border border-black p-1 rounded bg-white">
+            <label className="block text-[9px] font-bold mb-0.5">代表</label>
             <input
               type="text"
               value={editedRecord.repKana || ''}
               onChange={(e) => handleFieldChange('repKana', e.target.value)}
-              className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
+              className="w-full border border-gray-300 px-1 py-0.5 text-xs mb-0.5 focus:outline-none"
               placeholder="フリガナ"
             />
             <input
               type="text"
               value={editedRecord.repName || ''}
               onChange={(e) => handleFieldChange('repName', e.target.value)}
-              className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+              className="w-full border border-gray-300 px-1 py-0.5 text-xs focus:outline-none"
               placeholder="漢字"
             />
           </div>
-          <div className="col-span-6 border border-black p-2 rounded bg-white">
-            <label className="block text-[10px] font-bold mb-1">担当</label>
+          <div className="col-span-6 border border-black p-1 rounded bg-white">
+            <label className="block text-[9px] font-bold mb-0.5">担当</label>
             <input
               type="text"
               value={editedRecord.staffKana || ''}
               onChange={(e) => handleFieldChange('staffKana', e.target.value)}
-              className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
+              className="w-full border border-gray-300 px-1 py-0.5 text-xs mb-0.5 focus:outline-none"
               placeholder="フリガナ"
             />
             <input
               type="text"
               value={editedRecord.staffName || ''}
               onChange={(e) => handleFieldChange('staffName', e.target.value)}
-              className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+              className="w-full border border-gray-300 px-1 py-0.5 text-xs focus:outline-none"
               placeholder="漢字"
             />
           </div>
-          <div className="col-span-6 border border-black p-2 rounded bg-white">
-            <label className="block text-[10px] font-bold mb-1">備考</label>
+          <div className="col-span-12 border border-black p-1 rounded bg-white">
+            <label className="block text-[9px] font-bold mb-0.5">備考</label>
             <textarea
               value={editedRecord.memo || ''}
               onChange={(e) => handleFieldChange('memo', e.target.value)}
-              className="w-full border border-gray-300 px-2 py-1 text-sm h-[60px] focus:outline-none resize-none"
+              className="w-full border border-gray-300 px-1 py-0.5 text-xs h-[40px] focus:outline-none resize-none"
             />
           </div>
         </div>
