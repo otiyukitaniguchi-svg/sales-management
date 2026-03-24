@@ -23,8 +23,7 @@ export default function CustomerDetail() {
   const [isSaving, setIsSaving] = useState(false)
   const [isCallActive, setIsCallActive] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
-  const [recallDate, setRecallDate] = useState('')
-  const [recallTime, setRecallTime] = useState('')
+  const [recallDateMap, setRecallDateMap] = useState<{ [key: string]: string }>({}) // レコード別の再コール日時
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedForDelete, setSelectedForDelete] = useState<Set<number>>(new Set())
   const [expandedNoteIndex, setExpandedNoteIndex] = useState<number | null>(null)
@@ -34,8 +33,13 @@ export default function CustomerDetail() {
     if (record) {
       setEditedRecord({ ...record })
       loadCallHistory()
+      // レコード別の再コール日時を読み込む
+      const saved = localStorage.getItem(`recall_${currentList}_${record.no}`)
+      if (saved) {
+        setRecallDateMap(prev => ({ ...prev, [`${currentList}_${record.no}`]: saved }))
+      }
     }
-  }, [record])
+  }, [record, currentList])
 
   const loadCallHistory = async () => {
     if (!record) return
@@ -166,14 +170,22 @@ export default function CustomerDetail() {
     if (!record) return
     try {
       const indices = Array.from(selectedForDelete).sort((a, b) => b - a)
+      let successCount = 0
       for (const index of indices) {
-        await ApiClient.deleteCallHistory(currentList, record.no, index)
+        const success = await ApiClient.deleteCallHistory(currentList, record.no, index)
+        if (success) successCount++
       }
-      setSelectedForDelete(new Set())
-      setIsDeleteMode(false)
-      await loadCallHistory()
+      if (successCount > 0) {
+        alert(`${successCount}件の履歴を削除しました`)
+        setSelectedForDelete(new Set())
+        setIsDeleteMode(false)
+        await loadCallHistory()
+      } else {
+        alert('削除に失敗しました')
+      }
     } catch (error) {
       console.error('Failed to delete call history:', error)
+      alert('削除処理中にエラーが発生しました')
     }
   }
 
@@ -405,17 +417,27 @@ export default function CustomerDetail() {
           </div>
           <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-300 rounded p-2">
             <label className="font-semibold text-sm text-gray-700 whitespace-nowrap">再コール日時:</label>
-            <input type="date" value={recallDate} onChange={(e) => setRecallDate(e.target.value)} className="border border-gray-300 px-2 py-1 rounded text-sm" />
-            <input type="time" value={recallTime} onChange={(e) => setRecallTime(e.target.value)} className="border border-gray-300 px-2 py-1 rounded text-sm" />
-            <button onClick={() => {
-              if (recallDate && recallTime) {
-                alert(`再コール日時を設定しました: ${recallDate} ${recallTime}`);
-                setRecallDate('');
-                setRecallTime('');
-              } else {
-                alert('日時を入力してください');
-              }
-            }} className="px-3 py-1 bg-yellow-500 text-white rounded text-sm font-semibold hover:bg-yellow-600">設定</button>
+            {(() => {
+              const key = `${currentList}_${record?.no}`
+              const saved = recallDateMap[key] || ''
+              const [savedDate, savedTime] = saved.split(' ')
+              return (
+                <>
+                  <input type="date" value={savedDate || ''} onChange={(e) => setRecallDateMap(prev => ({ ...prev, [key]: `${e.target.value} ${savedTime || ''}` }))} className="border border-gray-300 px-2 py-1 rounded text-sm" />
+                  <input type="time" value={savedTime || ''} onChange={(e) => setRecallDateMap(prev => ({ ...prev, [key]: `${savedDate || ''} ${e.target.value}` }))} className="border border-gray-300 px-2 py-1 rounded text-sm" />
+                  <button onClick={() => {
+                    const dateStr = recallDateMap[key]?.split(' ')[0] || ''
+                    const timeStr = recallDateMap[key]?.split(' ')[1] || ''
+                    if (dateStr && timeStr) {
+                      localStorage.setItem(`recall_${key}`, `${dateStr} ${timeStr}`)
+                      alert(`再コール日時を設定しました: ${dateStr} ${timeStr}`)
+                    } else {
+                      alert('日時を入力してください')
+                    }
+                  }} className="px-3 py-1 bg-yellow-500 text-white rounded text-sm font-semibold hover:bg-yellow-600">設定</button>
+                </>
+              )
+            })()}
           </div>
         </div>
 
