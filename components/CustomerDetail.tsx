@@ -10,10 +10,6 @@ export default function CustomerDetail() {
   const currentListIndex = useAppStore((state) => state.currentListIndex)
   const listData = useAppStore((state) => state.listData)
   const user = useAppStore((state) => state.user)
-  const currentCall = useAppStore((state) => state.currentCall)
-  const setCurrentCall = useAppStore((state) => state.setCurrentCall)
-  const resetCurrentCall = useAppStore((state) => state.resetCurrentCall)
-  const setListData = useAppStore((state) => state.setListData)
 
   const records = listData[currentList]
   const record = records[currentListIndex]
@@ -22,6 +18,8 @@ export default function CustomerDetail() {
   const [callHistory, setCallHistory] = useState<FrontendCallHistoryEntry[]>([])
   const [editingCallIndex, setEditingCallIndex] = useState<number | null>(null)
   const [editingCallData, setEditingCallData] = useState<FrontendCallHistoryEntry | null>(null)
+  const [isEditingAllRows, setIsEditingAllRows] = useState(false)
+  const [editingCallHistoryAll, setEditingCallHistoryAll] = useState<FrontendCallHistoryEntry[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [isCallActive, setIsCallActive] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
@@ -30,22 +28,22 @@ export default function CustomerDetail() {
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedForDelete, setSelectedForDelete] = useState<Set<number>>(new Set())
   const [expandedNoteIndex, setExpandedNoteIndex] = useState<number | null>(null)
+  const [currentCall, setCurrentCall] = useState<Partial<FrontendCallHistoryEntry>>({})
 
   useEffect(() => {
     if (record) {
       setEditedRecord({ ...record })
       loadCallHistory()
     }
-  }, [record?.no, currentList, currentListIndex])
+  }, [record])
 
   const loadCallHistory = async () => {
     if (!record) return
     try {
-      const result = await ApiClient.getCallHistory(currentList, record.no)
-      setCallHistory(result.data || [])
+      const history = await ApiClient.getCallHistory(currentList, record.no)
+      setCallHistory(history)
     } catch (error) {
       console.error('Failed to load call history:', error)
-      setCallHistory([])
     }
   }
 
@@ -55,22 +53,24 @@ export default function CustomerDetail() {
     }
   }
 
-  const handleSaveRecord = async () => {
+  const handleSave = async () => {
     if (!editedRecord || !record) return
     setIsSaving(true)
     try {
       const success = await ApiClient.updateCustomer(currentList, record.no, editedRecord)
       if (success) {
-        setSaveMessage('✓ 保存しました')
+        setSaveMessage('✓ 顧客情報を保存しました')
         setTimeout(() => setSaveMessage(''), 2000)
-        setListData(currentList, records.map((r) => (r.no === record.no ? editedRecord : r)))
       }
     } catch (error) {
       console.error('Failed to save:', error)
-      setSaveMessage('✗ 保存に失敗しました')
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const resetCurrentCall = () => {
+    setCurrentCall({})
   }
 
   const handleCallStart = () => {
@@ -86,7 +86,6 @@ export default function CustomerDetail() {
       progress: '',
       note: '',
     }
-    // 新規行を一番上に追加
     setCallHistory([newEntry, ...callHistory])
     setEditingCallIndex(0)
     setEditingCallData(newEntry)
@@ -103,7 +102,6 @@ export default function CustomerDetail() {
     setIsCallActive(false)
     
     try {
-      // 新規行を保存
       const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
       if (success) {
         resetCurrentCall()
@@ -189,6 +187,41 @@ export default function CustomerDetail() {
     setSelectedForDelete(newSelected)
   }
 
+  const handleEditAllRows = () => {
+    if (isEditingAllRows) {
+      handleSaveAllRows()
+    } else {
+      setIsEditingAllRows(true)
+      setEditingCallHistoryAll([...callHistory])
+    }
+  }
+
+  const handleSaveAllRows = async () => {
+    if (!record) return
+    setIsSaving(true)
+    try {
+      for (let i = 0; i < editingCallHistoryAll.length; i++) {
+        await ApiClient.updateCallHistory(currentList, record.no, i, editingCallHistoryAll[i])
+      }
+      setIsEditingAllRows(false)
+      setEditingCallHistoryAll([])
+      await loadCallHistory()
+      setSaveMessage('✓ 架電履歴を保存しました')
+      setTimeout(() => setSaveMessage(''), 2000)
+    } catch (error) {
+      console.error('Failed to save all rows:', error)
+      setSaveMessage('✗ 保存に失敗しました')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleEditingAllRowsFieldChange = (index: number, field: string, value: string) => {
+    const updated = [...editingCallHistoryAll]
+    updated[index] = { ...updated[index], [field]: value }
+    setEditingCallHistoryAll(updated)
+  }
+
   if (!record || !editedRecord) {
     return <div className="p-4 text-center text-gray-400">顧客を選択してください</div>
   }
@@ -264,8 +297,10 @@ export default function CustomerDetail() {
                 type="text"
                 value={editedRecord.fixedNo || ''}
                 onChange={(e) => handleFieldChange('fixedNo', e.target.value)}
-                className="w-full border border-gray-300 px-2 py-1 text-sm mb-2 focus:outline-none"
+                className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
               />
+            </div>
+            <div className="border border-black p-2 rounded bg-white flex-1">
               <label className="block text-[10px] font-bold mb-1">その他連絡先</label>
               <input
                 type="text"
@@ -274,14 +309,16 @@ export default function CustomerDetail() {
                 className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
               />
             </div>
-            <div className="border border-black p-2 rounded bg-white">
+            <div className="border border-black p-2 rounded bg-white flex-1">
               <label className="block text-[10px] font-bold mb-1">Mail address</label>
               <input
                 type="text"
                 value={editedRecord.email || ''}
                 onChange={(e) => handleFieldChange('email', e.target.value)}
-                className="w-full border border-gray-300 px-2 py-1 text-sm mb-2 focus:outline-none"
+                className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
               />
+            </div>
+            <div className="border border-black p-2 rounded bg-white flex-1">
               <label className="block text-[10px] font-bold mb-1">業種</label>
               <input
                 type="text"
@@ -293,43 +330,41 @@ export default function CustomerDetail() {
           </div>
         </div>
 
-        {/* 下部エリア（代表・担当・備考） */}
+        {/* 代表・担当・備考 */}
         <div className="grid grid-cols-12 gap-2 mt-2">
-          <div className="col-span-6 border border-black p-2 rounded bg-white flex gap-4">
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold mb-1">代表</label>
-              <input
-                type="text"
-                value={editedRecord.repKana || ''}
-                onChange={(e) => handleFieldChange('repKana', e.target.value)}
-                className="w-full border border-gray-300 px-2 py-1 text-[10px] mb-1 focus:outline-none"
-                placeholder="フリガナ"
-              />
-              <input
-                type="text"
-                value={editedRecord.repName || ''}
-                onChange={(e) => handleFieldChange('repName', e.target.value)}
-                className="w-full border border-gray-300 px-2 py-2 text-sm focus:outline-none"
-                placeholder="漢字"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-[10px] font-bold mb-1">担当</label>
-              <input
-                type="text"
-                value={editedRecord.staffKana || ''}
-                onChange={(e) => handleFieldChange('staffKana', e.target.value)}
-                className="w-full border border-gray-300 px-2 py-1 text-[10px] mb-1 focus:outline-none"
-                placeholder="フリガナ"
-              />
-              <input
-                type="text"
-                value={editedRecord.staffName || ''}
-                onChange={(e) => handleFieldChange('staffName', e.target.value)}
-                className="w-full border border-gray-300 px-2 py-2 text-sm focus:outline-none"
-                placeholder="漢字"
-              />
-            </div>
+          <div className="col-span-6 border border-black p-2 rounded bg-white">
+            <label className="block text-[10px] font-bold mb-1">代表</label>
+            <input
+              type="text"
+              value={editedRecord.representativeKana || ''}
+              onChange={(e) => handleFieldChange('representativeKana', e.target.value)}
+              className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
+              placeholder="フリガナ"
+            />
+            <input
+              type="text"
+              value={editedRecord.representative || ''}
+              onChange={(e) => handleFieldChange('representative', e.target.value)}
+              className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+              placeholder="漢字"
+            />
+          </div>
+          <div className="col-span-6 border border-black p-2 rounded bg-white">
+            <label className="block text-[10px] font-bold mb-1">担当</label>
+            <input
+              type="text"
+              value={editedRecord.personInChargeKana || ''}
+              onChange={(e) => handleFieldChange('personInChargeKana', e.target.value)}
+              className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
+              placeholder="フリガナ"
+            />
+            <input
+              type="text"
+              value={editedRecord.personInCharge || ''}
+              onChange={(e) => handleFieldChange('personInCharge', e.target.value)}
+              className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+              placeholder="漢字"
+            />
           </div>
           <div className="col-span-6 border border-black p-2 rounded bg-white">
             <label className="block text-[10px] font-bold mb-1">備考</label>
@@ -353,9 +388,9 @@ export default function CustomerDetail() {
               className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-blue-600">開始</button>
             <button onClick={handleCallEnd} disabled={!isCallActive}
               className="px-3 py-1 bg-red-500 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-red-600">終了</button>
-            <button onClick={() => setEditingCallIndex(editingCallIndex === null ? 0 : null)}
-              className={`px-3 py-1 rounded text-sm font-semibold ${editingCallIndex !== null ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}>
-              {editingCallIndex !== null ? '保存/取消' : '編集'}
+            <button onClick={handleEditAllRows} disabled={isSaving}
+              className={`px-3 py-1 rounded text-sm font-semibold ${isEditingAllRows ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'} text-white disabled:bg-gray-400`}>
+              {isEditingAllRows ? '保存' : '編集/保存'}
             </button>
             <button onClick={() => { setIsDeleteMode(!isDeleteMode); setSelectedForDelete(new Set()); }}
               className={`px-3 py-1 rounded text-sm font-semibold ${isDeleteMode ? 'bg-gray-400' : 'bg-purple-500'} text-white hover:opacity-80`}>
@@ -384,54 +419,6 @@ export default function CustomerDetail() {
           </div>
         </div>
 
-        {isCallActive && (
-          <div className="mb-4 p-3 bg-blue-100 border border-blue-300 rounded">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="font-semibold text-gray-700">対応日:</label>
-                <input type="date" value={currentCall.date || ''} onChange={(e) => setCurrentCall({ ...currentCall, date: e.target.value })}
-                  className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
-              </div>
-              <div>
-                <label className="font-semibold text-gray-700">開始時刻:</label>
-                <input type="time" value={currentCall.startTime || ''} onChange={(e) => setCurrentCall({ ...currentCall, startTime: e.target.value })}
-                  className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
-              </div>
-              <div>
-                <label className="font-semibold text-gray-700">対応者:</label>
-                <input type="text" value={currentCall.responder || ''} onChange={(e) => setCurrentCall({ ...currentCall, responder: e.target.value })}
-                  className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
-              </div>
-              <div>
-                <label className="font-semibold text-gray-700">性別:</label>
-                <input type="text" value={currentCall.gender || ''} onChange={(e) => setCurrentCall({ ...currentCall, gender: e.target.value })}
-                  className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
-              </div>
-              <div>
-                <label className="font-semibold text-gray-700">進捗:</label>
-                <select value={currentCall.progress || ''} onChange={(e) => setCurrentCall({ ...currentCall, progress: e.target.value })}
-                  className="w-full border border-gray-300 px-2 py-1 rounded text-sm">
-                  <option value="">選択</option>
-                  <option value="受注">受注</option>
-                  <option value="見込みA">見込みA</option>
-                  <option value="見込みC">見込みC</option>
-                  <option value="担当不在">担当不在</option>
-                </select>
-              </div>
-              <div>
-                <label className="font-semibold text-gray-700">オペレーター:</label>
-                <input type="text" value={currentCall.operator || ''} onChange={(e) => setCurrentCall({ ...currentCall, operator: e.target.value })}
-                  className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
-              </div>
-              <div className="col-span-2">
-                <label className="font-semibold text-gray-700">コール備考:</label>
-                <input type="text" value={currentCall.note || ''} onChange={(e) => setCurrentCall({ ...currentCall, note: e.target.value })}
-                  className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="overflow-y-auto" style={{ maxHeight: 'calc(5 * 40px + 50px)' }}>
           <table className="w-full border-collapse border border-black">
             <thead className="sticky top-0 z-10">
@@ -452,8 +439,7 @@ export default function CustomerDetail() {
               {callHistory.length === 0 ? (
                 <tr><td colSpan={isDeleteMode ? 10 : 9} className="px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
               ) : (
-                callHistory.map((entry, displayIndex) => {
-                  const isEditing = editingCallIndex === displayIndex
+                (isEditingAllRows ? editingCallHistoryAll : callHistory).map((entry, displayIndex) => {
                   return (
                     <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                       {isDeleteMode && (
@@ -462,50 +448,50 @@ export default function CustomerDetail() {
                         </td>
                       )}
                       <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
-                        {isEditing ? (
-                          <input type="text" value={editingCallData?.operator || ''} onChange={(e) => handleEditingCallFieldChange('operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                        {isEditingAllRows ? (
+                          <input type="text" value={editingCallHistoryAll[displayIndex]?.operator || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.operator
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-20 border border-black">
-                        {isEditing ? (
-                          <input type="date" value={editingCallData?.date || ''} onChange={(e) => handleEditingCallFieldChange('date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                        {isEditingAllRows ? (
+                          <input type="date" value={editingCallHistoryAll[displayIndex]?.date || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.date ? new Date(entry.date).toISOString().split('T')[0] : '-'
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
-                        {isEditing ? (
-                          <input type="time" value={editingCallData?.startTime || ''} onChange={(e) => handleEditingCallFieldChange('startTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                        {isEditingAllRows ? (
+                          <input type="time" value={editingCallHistoryAll[displayIndex]?.startTime || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'startTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.startTime
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
-                        {isEditing ? (
-                          <input type="time" value={editingCallData?.endTime || ''} onChange={(e) => handleEditingCallFieldChange('endTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                        {isEditingAllRows ? (
+                          <input type="time" value={editingCallHistoryAll[displayIndex]?.endTime || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'endTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.endTime
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-20 border border-black">
-                        {isEditing ? (
-                          <input type="text" value={editingCallData?.responder || ''} onChange={(e) => handleEditingCallFieldChange('responder', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                        {isEditingAllRows ? (
+                          <input type="text" value={editingCallHistoryAll[displayIndex]?.responder || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'responder', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.responder
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
-                        {isEditing ? (
-                          <input type="text" value={editingCallData?.gender || ''} onChange={(e) => handleEditingCallFieldChange('gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                        {isEditingAllRows ? (
+                          <input type="text" value={editingCallHistoryAll[displayIndex]?.gender || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.gender
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-24 border border-black">
-                        {isEditing ? (
-                          <select value={editingCallData?.progress || ''} onChange={(e) => handleEditingCallFieldChange('progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
+                        {isEditingAllRows ? (
+                          <select value={editingCallHistoryAll[displayIndex]?.progress || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                             <option value="">選択</option>
                             <option value="受注">受注</option>
                             <option value="見込みA">見込みA</option>
@@ -523,8 +509,8 @@ export default function CustomerDetail() {
                         )}
                       </td>
                       <td className="px-4 py-2 border border-black">
-                        {isEditing ? (
-                          <input type="text" value={editingCallData?.note || ''} onChange={(e) => handleEditingCallFieldChange('note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                        {isEditingAllRows ? (
+                          <input type="text" value={editingCallHistoryAll[displayIndex]?.note || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           <div
                             onClick={() => setExpandedNoteIndex(expandedNoteIndex === displayIndex ? null : displayIndex)}
