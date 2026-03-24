@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/lib/store'
+import { ApiClient } from '@/lib/api-client'
 import { FrontendCustomerRecord } from '@/lib/types'
 
 interface AdminDashboardProps {
@@ -14,9 +15,15 @@ const LIST_NAMES = {
   list3: 'モバイルリスト',
 } as const
 
+type AdminMode = 'menu' | 'report' | 'import'
+
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const listData = useAppStore((state) => state.listData)
+  const setListData = useAppStore((state) => state.setListData)
+  const [adminMode, setAdminMode] = useState<AdminMode>('menu')
   const [selectedList, setSelectedList] = useState<'list1' | 'list2' | 'list3'>('list1')
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importProgress, setImportProgress] = useState('')
 
   // 全体集計
   const overallStats = useMemo(() => {
@@ -57,7 +64,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const prospectRate = totalCalls > 0 ? (totalProspects / totalCalls) * 100 : 0
     const orderRate = totalCalls > 0 ? (totalOrders / totalCalls) * 100 : 0
     const avgCallDuration = totalCalls > 0 ? totalCallDuration / totalCalls : 0
-    const avgDailyCallCount = totalCalls > 0 ? (totalCalls / 43).toFixed(1) : 0 // 43日稼働と仮定
+    const avgDailyCallCount = totalCalls > 0 ? (totalCalls / 43).toFixed(1) : 0
 
     return {
       totalRecords,
@@ -105,187 +112,311 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             orderRate: 0,
           }
         }
-
         stats[operator].totalCalls++
         if (call.progress === '受注') stats[operator].totalOrders++
-        else if (call.progress?.includes('見込み')) {
-          if (call.progress === '見込みA') stats[operator].totalProspects++
-          else if (call.progress === '見込みB') stats[operator].totalProspects++
-          else if (call.progress === '見込みC') stats[operator].totalProspects++
-        }
+        else if (call.progress?.includes('見込み')) stats[operator].totalProspects++
         else if (call.progress === 'アポ') stats[operator].totalAppointments++
       })
     })
 
-    // 各担当者のレートを計算
-    Object.keys(stats).forEach((staffName) => {
-      const stat = stats[staffName]
-      if (stat.totalCalls > 0) {
-        stat.appointmentRate = Math.round((stat.totalAppointments / stat.totalCalls) * 100)
-        stat.prospectRate = Math.round((stat.totalProspects / stat.totalCalls) * 100)
-        stat.orderRate = Math.round((stat.totalOrders / stat.totalCalls) * 100)
-      }
+    Object.values(stats).forEach((stat) => {
+      stat.appointmentRate = stat.totalCalls > 0 ? (stat.totalAppointments / stat.totalCalls) * 100 : 0
+      stat.prospectRate = stat.totalCalls > 0 ? (stat.totalProspects / stat.totalCalls) * 100 : 0
+      stat.orderRate = stat.totalCalls > 0 ? (stat.totalOrders / stat.totalCalls) * 100 : 0
     })
 
-    return Object.values(stats).sort((a, b) => b.totalCalls - a.totalCalls)
+    return Object.values(stats)
   }, [listData, selectedList])
 
-  // 進捗別の内訳（ソート済み）
-  const progressBreakdown = useMemo(() => {
-    const entries = Object.entries(overallStats.progressCounts)
-      .map(([progress, count]) => ({
-        progress,
-        count,
-        percentage: overallStats.totalCalls > 0 ? ((count / overallStats.totalCalls) * 100).toFixed(1) : '0.0',
-      }))
-      .sort((a, b) => b.count - a.count)
-    return entries
-  }, [overallStats])
+  const handleImportFile = async (file: File) => {
+    setImportProgress('ファイルを読み込み中...')
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').filter((line) => line.trim())
+      let importedCount = 0
 
-  return (
-    <div className="w-full h-full flex flex-col bg-gray-50 overflow-hidden">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-800">効果報告レポート</h1>
+      for (const line of lines) {
+        const parts = line.split('\t')
+        if (parts.length < 3) continue
+
+        const [no, date, time, endTime, operator, responder, gender, progress, note] = parts
+        if (!no || !date) continue
+
+        const listKey = selectedList
+        const records = listData[listKey] || []
+        const recordIndex = records.findIndex((r: any) => String(r.no) === no.trim())
+
+        if (recordIndex >= 0) {
+          const record = records[recordIndex]
+          const callHistory = record.callHistory || []
+          callHistory.push({
+            operator: operator?.trim() || '',
+            date: date.trim(),
+            startTime: time?.trim() || '',
+            endTime: endTime?.trim() || '',
+            responder: responder?.trim() || '',
+            gender: gender?.trim() || '',
+            progress: progress?.trim() || '',
+            note: note?.trim() || '',
+          })
+          record.callHistory = callHistory
+          importedCount++
+        }
+      }
+
+      setImportProgress(`✓ ${importedCount}件のレコードをインポートしました`)
+      setTimeout(() => setImportProgress(''), 3000)
+    } catch (error) {
+      setImportProgress(`✗ インポートエラー: ${error}`)
+    }
+  }
+
+  function formatDuration(seconds: number): string {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    if (hours > 0) return `${hours}時間${minutes}分`
+    if (minutes > 0) return `${minutes}分${secs}秒`
+    return `${secs}秒`
+  }
+
+  // メニュー画面
+  if (adminMode === 'menu') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+          <h1 className="text-3xl font-bold text-center mb-8 text-blue-600">管理者メニュー</h1>
+          
+          <div className="flex flex-col gap-4">
+            <button
+              onClick={() => setAdminMode('report')}
+              className="px-6 py-4 bg-blue-500 text-white rounded-lg font-bold text-lg hover:bg-blue-600 transition"
+            >
+              📊 効果報告レポート
+            </button>
+            <button
+              onClick={() => setAdminMode('import')}
+              className="px-6 py-4 bg-green-500 text-white rounded-lg font-bold text-lg hover:bg-green-600 transition"
+            >
+              📥 架電履歴インポート
+            </button>
+          </div>
+
+          <button
+            onClick={onLogout}
+            className="w-full mt-8 px-6 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition"
+          >
+            ログアウト
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // インポート画面
+  if (adminMode === 'import') {
+    return (
+      <div className="flex flex-col gap-4 p-4 bg-white min-h-screen">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">架電履歴インポート</h2>
+          <button
+            onClick={() => setAdminMode('menu')}
+            className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600"
+          >
+            ← メニューに戻る
+          </button>
+        </div>
+
+        <div className="border-2 border-dashed border-blue-300 rounded-lg p-8 bg-blue-50">
+          <div className="text-center">
+            <p className="text-lg font-bold mb-4">インポート対象リスト:</p>
+            <select
+              value={selectedList}
+              onChange={(e) => setSelectedList(e.target.value as any)}
+              className="px-4 py-2 border border-gray-300 rounded text-lg mb-6"
+            >
+              <option value="list1">新規リスト</option>
+              <option value="list2">ハルエネリスト</option>
+              <option value="list3">モバイルリスト</option>
+            </select>
+
+            <div className="mt-6">
+              <label className="block text-lg font-bold mb-4">
+                TSV形式のファイルを選択してください
+              </label>
+              <input
+                type="file"
+                accept=".tsv,.txt,.csv"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setImportFile(file)
+                    handleImportFile(file)
+                  }
+                }}
+                className="block mx-auto px-4 py-2 border border-gray-300 rounded cursor-pointer"
+              />
+            </div>
+
+            {importProgress && (
+              <div className={`mt-6 p-4 rounded text-lg font-bold ${
+                importProgress.includes('✓') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {importProgress}
+              </div>
+            )}
+
+            <div className="mt-8 p-4 bg-white rounded border border-gray-300 text-left">
+              <p className="font-bold mb-2">ファイル形式:</p>
+              <p className="text-sm text-gray-700">
+                タブ区切り（TSV）形式で以下の順序で記入してください:<br/>
+                No. | 対応日 | 開始時間 | 終了時間 | オペレーター | 対応者 | 性別 | 進捗 | コール履歴
+              </p>
+            </div>
+          </div>
+        </div>
+
         <button
           onClick={onLogout}
-          className="px-4 py-2 bg-red-500 text-white rounded font-bold hover:bg-red-600"
+          className="mt-8 px-6 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition"
         >
           ログアウト
         </button>
       </div>
+    )
+  }
 
-      <div className="flex-1 overflow-auto p-6">
-        {/* 集計期間 */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">📅 集計期間:</span> 2001/1/21 〜 2026/3/23（9193日間 / 稼働43日）
-          </p>
+  // レポート画面（既存のダッシュボード）
+  return (
+    <div className="flex flex-col gap-4 p-4 bg-white min-h-screen">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">効果報告レポート</h2>
+        <button
+          onClick={() => setAdminMode('menu')}
+          className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600"
+        >
+          ← メニューに戻る
+        </button>
+      </div>
+
+      {/* サマリーカード */}
+      <div className="grid grid-cols-5 gap-3">
+        <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">リスト総件数</p>
+          <p className="text-3xl font-bold text-blue-600">{overallStats.totalRecords}</p>
         </div>
-
-        {/* サマリーカード */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">リスト総件数</div>
-            <div className="text-3xl font-bold text-gray-800">{overallStats.totalRecords.toLocaleString()}</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">総架電数</div>
-            <div className="text-3xl font-bold text-gray-800">{overallStats.totalCalls.toLocaleString()}</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">架電率</div>
-            <div className="text-3xl font-bold text-blue-600">{overallStats.callRate}%</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">受注件数</div>
-            <div className="text-3xl font-bold text-green-600">{overallStats.totalOrders}</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">アポ系合計</div>
-            <div className="text-3xl font-bold text-gray-800">{overallStats.totalAppointments + overallStats.totalProspects}</div>
-          </div>
+        <div className="bg-green-50 border border-green-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">総架電数</p>
+          <p className="text-3xl font-bold text-green-600">{overallStats.totalCalls}</p>
         </div>
-
-        {/* 第2行のサマリー */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">アポ率</div>
-            <div className="text-3xl font-bold text-orange-600">{overallStats.appointmentRate}%</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">日平均架電数</div>
-            <div className="text-3xl font-bold text-gray-800">{overallStats.avgDailyCallCount}</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">平均通話時間</div>
-            <div className="text-3xl font-bold text-gray-800">{overallStats.avgCallDuration}</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-sm font-semibold mb-2">見込み率</div>
-            <div className="text-3xl font-bold text-purple-600">{overallStats.prospectRate}%</div>
-          </div>
+        <div className="bg-purple-50 border border-purple-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">架電率</p>
+          <p className="text-3xl font-bold text-purple-600">{overallStats.callRate}%</p>
         </div>
-
-        {/* 進捗別内訳 */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">進捗別内訳</h2>
-          <div className="space-y-3">
-            {progressBreakdown.map((item) => (
-              <div key={item.progress} className="flex items-center gap-4">
-                <div className="w-32 text-sm font-semibold text-gray-700">{item.progress}</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-12 h-6 bg-blue-500 rounded flex items-center justify-center text-white text-xs font-bold">
-                      {item.count}件
-                    </div>
-                    <div className="text-sm font-semibold text-gray-700">{item.percentage}%</div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${Math.min(parseFloat(item.percentage) * 3, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">受注件数</p>
+          <p className="text-3xl font-bold text-red-600">{overallStats.totalOrders}</p>
         </div>
-
-        {/* オペレーター別実績 */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">オペレーター別実績</h2>
-          <div className="mb-4">
-            <label className="block font-semibold text-gray-700 mb-2">リスト選択</label>
-            <select
-              value={selectedList}
-              onChange={(e) => setSelectedList(e.target.value as 'list1' | 'list2' | 'list3')}
-              className="border-2 border-gray-300 px-3 py-2 rounded"
-            >
-              {Object.entries(LIST_NAMES).map(([listId, listName]) => (
-                <option key={listId} value={listId}>
-                  {listName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-100 border-b border-gray-300">
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">オペレーター</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-700">架電数</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-700">受注</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-700">見込A</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-700">見込B</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-700">見込C</th>
-                  <th className="px-4 py-3 text-center font-semibold text-gray-700">アポ率</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staffStats.map((stat, index) => (
-                  <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-semibold text-gray-800">{stat.staffName}</td>
-                    <td className="px-4 py-3 text-center text-gray-700">{stat.totalCalls}</td>
-                    <td className="px-4 py-3 text-center text-gray-700">{stat.totalOrders}</td>
-                    <td className="px-4 py-3 text-center text-gray-700">-</td>
-                    <td className="px-4 py-3 text-center text-gray-700">-</td>
-                    <td className="px-4 py-3 text-center text-gray-700">{stat.prospectRate}</td>
-                    <td className="px-4 py-3 text-center font-semibold text-blue-600">{stat.appointmentRate}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="bg-orange-50 border border-orange-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">アポ系合計</p>
+          <p className="text-3xl font-bold text-orange-600">{overallStats.totalAppointments + overallStats.totalProspects}</p>
         </div>
       </div>
+
+      {/* 詳細統計 */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="bg-indigo-50 border border-indigo-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">アポ率</p>
+          <p className="text-2xl font-bold text-indigo-600">{overallStats.appointmentRate}%</p>
+        </div>
+        <div className="bg-cyan-50 border border-cyan-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">日平均架電数</p>
+          <p className="text-2xl font-bold text-cyan-600">{overallStats.avgDailyCallCount}</p>
+        </div>
+        <div className="bg-teal-50 border border-teal-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">平均通話時間</p>
+          <p className="text-2xl font-bold text-teal-600">{overallStats.avgCallDuration}</p>
+        </div>
+        <div className="bg-pink-50 border border-pink-300 rounded-lg p-4">
+          <p className="text-sm text-gray-600">見込み率</p>
+          <p className="text-2xl font-bold text-pink-600">{overallStats.prospectRate}%</p>
+        </div>
+      </div>
+
+      {/* 進捗別内訳 */}
+      <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+        <h3 className="text-lg font-bold mb-4">進捗別内訳</h3>
+        <div className="space-y-2">
+          {Object.entries(overallStats.progressCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([progress, count]) => {
+              const percentage = overallStats.totalCalls > 0 ? (count / overallStats.totalCalls) * 100 : 0
+              return (
+                <div key={progress} className="flex items-center gap-2">
+                  <div className="w-32 text-sm font-bold">{progress}</div>
+                  <div className="flex-1 bg-gray-200 rounded h-6 overflow-hidden">
+                    <div
+                      className="bg-blue-500 h-full flex items-center justify-end pr-2 text-white text-xs font-bold"
+                      style={{ width: `${Math.min(percentage, 100)}%` }}
+                    >
+                      {percentage > 5 && `${percentage.toFixed(1)}%`}
+                    </div>
+                  </div>
+                  <div className="w-16 text-right text-sm font-bold">{count}件</div>
+                </div>
+              )
+            })}
+        </div>
+      </div>
+
+      {/* オペレーター別実績 */}
+      <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold">オペレーター別実績</h3>
+          <select
+            value={selectedList}
+            onChange={(e) => setSelectedList(e.target.value as any)}
+            className="px-3 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="list1">新規リスト</option>
+            <option value="list2">ハルエネリスト</option>
+            <option value="list3">モバイルリスト</option>
+          </select>
+        </div>
+        <table className="w-full border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-blue-300">
+              <th className="border border-gray-300 px-3 py-2 text-left">オペレーター</th>
+              <th className="border border-gray-300 px-3 py-2 text-center">架電数</th>
+              <th className="border border-gray-300 px-3 py-2 text-center">受注</th>
+              <th className="border border-gray-300 px-3 py-2 text-center">見込A</th>
+              <th className="border border-gray-300 px-3 py-2 text-center">見込B</th>
+              <th className="border border-gray-300 px-3 py-2 text-center">見込C</th>
+              <th className="border border-gray-300 px-3 py-2 text-center">アポ率</th>
+            </tr>
+          </thead>
+          <tbody>
+            {staffStats.map((staff, idx) => (
+              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                <td className="border border-gray-300 px-3 py-2">{staff.staffName}</td>
+                <td className="border border-gray-300 px-3 py-2 text-center">{staff.totalCalls}</td>
+                <td className="border border-gray-300 px-3 py-2 text-center">{staff.totalOrders}</td>
+                <td className="border border-gray-300 px-3 py-2 text-center">-</td>
+                <td className="border border-gray-300 px-3 py-2 text-center">-</td>
+                <td className="border border-gray-300 px-3 py-2 text-center">{staff.totalProspects}</td>
+                <td className="border border-gray-300 px-3 py-2 text-center">{staff.appointmentRate.toFixed(1)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <button
+        onClick={onLogout}
+        className="mt-8 px-6 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition"
+      >
+        ログアウト
+      </button>
     </div>
   )
-}
-
-function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${minutes}分${secs}秒`
 }

@@ -127,13 +127,6 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
       </button>
 
       <button
-        onClick={onImport}
-        className="px-5 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
-      >
-        💾 インポート
-      </button>
-
-      <button
         onClick={onSearch}
         className="px-5 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
       >
