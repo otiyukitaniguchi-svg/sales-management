@@ -44,8 +44,9 @@ export default function CustomerDetail() {
   const loadCallHistory = async () => {
     if (!record) return
     try {
-      const history = await ApiClient.getCallHistory(currentList, record.no)
-      setCallHistory(history)
+      const response = await ApiClient.getCallHistory(currentList, record.no)
+      const history = (response as any).data || []
+      setCallHistory(Array.isArray(history) ? history : [])
     } catch (error) {
       console.error('Failed to load call history:', error)
     }
@@ -81,7 +82,7 @@ export default function CustomerDetail() {
     setIsCallActive(true)
     const now = new Date()
     const newEntry: FrontendCallHistoryEntry = {
-      operator: user?.name || 'オペレーター',
+      operator: user?.display_name || 'オペレーター',
       date: now.toISOString().split('T')[0],
       startTime: now.toTimeString().slice(0, 5),
       endTime: '',
@@ -348,15 +349,15 @@ export default function CustomerDetail() {
             <label className="block text-[10px] font-bold mb-1">代表</label>
             <input
               type="text"
-              value={editedRecord.representativeKana || ''}
-              onChange={(e) => handleFieldChange('representativeKana', e.target.value)}
+              value={editedRecord.repKana || ''}
+              onChange={(e) => handleFieldChange('repKana', e.target.value)}
               className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
               placeholder="フリガナ"
             />
             <input
               type="text"
-              value={editedRecord.representative || ''}
-              onChange={(e) => handleFieldChange('representative', e.target.value)}
+              value={editedRecord.repName || ''}
+              onChange={(e) => handleFieldChange('repName', e.target.value)}
               className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
               placeholder="漢字"
             />
@@ -365,15 +366,15 @@ export default function CustomerDetail() {
             <label className="block text-[10px] font-bold mb-1">担当</label>
             <input
               type="text"
-              value={editedRecord.personInChargeKana || ''}
-              onChange={(e) => handleFieldChange('personInChargeKana', e.target.value)}
+              value={editedRecord.staffKana || ''}
+              onChange={(e) => handleFieldChange('staffKana', e.target.value)}
               className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
               placeholder="フリガナ"
             />
             <input
               type="text"
-              value={editedRecord.personInCharge || ''}
-              onChange={(e) => handleFieldChange('personInCharge', e.target.value)}
+              value={editedRecord.staffName || ''}
+              onChange={(e) => handleFieldChange('staffName', e.target.value)}
               className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
               placeholder="漢字"
             />
