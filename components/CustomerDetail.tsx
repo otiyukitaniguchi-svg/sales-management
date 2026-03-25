@@ -252,7 +252,7 @@ export default function CustomerDetail() {
         </div>
 
         <div className="grid grid-cols-12 gap-2">
-          {/* 左側メインエリア */}
+          {/* 左側メインエリア (住所セクションと代表・担当・備考を同じ幅にするために統合) */}
           <div className="col-span-10 flex flex-col gap-2">
             {/* 企業名 */}
             <div className="border border-black p-2 rounded bg-white">
@@ -300,6 +300,54 @@ export default function CustomerDetail() {
                 placeholder="住所"
               />
             </div>
+
+            {/* 代表・担当 (住所と同じ親コンテナ内にあるため幅が揃う) */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="border border-black p-2 rounded bg-white">
+                <label className="block text-[10px] font-bold mb-1">代表</label>
+                <input
+                  type="text"
+                  value={editedRecord.repKana || ''}
+                  onChange={(e) => handleFieldChange('repKana', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
+                  placeholder="フリガナ"
+                />
+                <input
+                  type="text"
+                  value={editedRecord.repName || ''}
+                  onChange={(e) => handleFieldChange('repName', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+                  placeholder="漢字"
+                />
+              </div>
+              <div className="border border-black p-2 rounded bg-white">
+                <label className="block text-[10px] font-bold mb-1">担当</label>
+                <input
+                  type="text"
+                  value={editedRecord.staffKana || ''}
+                  onChange={(e) => handleFieldChange('staffKana', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-1 text-xs mb-1 focus:outline-none"
+                  placeholder="フリガナ"
+                />
+                <input
+                  type="text"
+                  value={editedRecord.staffName || ''}
+                  onChange={(e) => handleFieldChange('staffName', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-1 text-sm focus:outline-none"
+                  placeholder="漢字"
+                />
+              </div>
+            </div>
+
+            {/* 備考 (住所と同じ親コンテナ内にあるため幅が揃う) */}
+            <div className="border border-black p-2 rounded bg-white">
+              <label className="block text-[10px] font-bold mb-1">備考</label>
+              <textarea
+                value={editedRecord.memo || ''}
+                onChange={(e) => handleFieldChange('memo', e.target.value)}
+                className="w-full border border-gray-300 px-2 py-1 text-sm h-[60px] focus:outline-none resize-none"
+              />
+            </div>
           </div>
 
           {/* 右側サイドエリア */}
@@ -342,56 +390,6 @@ export default function CustomerDetail() {
             </div>
           </div>
         </div>
-
-        {/* 代表・担当・備考 */}
-        <div className="grid grid-cols-12 gap-2">
-          {/* 代表・担当・備考（住所と同じ幅） */}
-<div className="col-span-10 grid grid-cols-3 gap-2">
-  <div className="border border-black p-1 rounded bg-white">
-    <label className="block text-[9px] font-bold mb-0.5">代表</label>
-    <input
-      type="text"
-      value={editedRecord.repKana || ''}
-      onChange={(e) => handleFieldChange('repKana', e.target.value)}
-      className="w-full border border-gray-300 px-1 py-0.5 text-xs mb-0.5 focus:outline-none"
-      placeholder="フリガナ"
-    />
-    <input
-      type="text"
-      value={editedRecord.repName || ''}
-      onChange={(e) => handleFieldChange('repName', e.target.value)}
-      className="w-full border border-gray-300 px-1 py-0.5 text-xs focus:outline-none"
-      placeholder="漢字"
-    />
-  </div>
-  <div className="border border-black p-1 rounded bg-white">
-    <label className="block text-[9px] font-bold mb-0.5">担当</label>
-    <input
-      type="text"
-      value={editedRecord.staffKana || ''}
-      onChange={(e) => handleFieldChange('staffKana', e.target.value)}
-      className="w-full border border-gray-300 px-1 py-0.5 text-xs mb-0.5 focus:outline-none"
-      placeholder="フリガナ"
-    />
-    <input
-      type="text"
-      value={editedRecord.staffName || ''}
-      onChange={(e) => handleFieldChange('staffName', e.target.value)}
-      className="w-full border border-gray-300 px-1 py-0.5 text-xs focus:outline-none"
-      placeholder="漢字"
-    />
-  </div>
-  <div className="border border-black p-1 rounded bg-white">
-    <label className="block text-[9px] font-bold mb-0.5">備考</label>
-    <textarea
-      value={editedRecord.memo || ''}
-      onChange={(e) => handleFieldChange('memo', e.target.value)}
-      className="w-full border border-gray-300 px-1 py-0.5 text-xs h-[52px] focus:outline-none resize-none"
-    />
-  </div>
-</div>
-
-
       </div>
 
       {/* 架電履歴セクション（既存機能を維持） */}
@@ -457,7 +455,6 @@ export default function CustomerDetail() {
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">性別</th>
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">進捗</th>
                 <th className="px-4 py-2 text-left font-bold bg-blue-300 flex-1 border border-black">コール履歴</th>
-
               </tr>
             </thead>
             <tbody>
@@ -509,7 +506,11 @@ export default function CustomerDetail() {
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
                         {isEditingAllRows ? (
-                          <input type="text" value={editingCallHistoryAll[displayIndex]?.gender || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                          <select value={editingCallHistoryAll[displayIndex]?.gender || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
+                            <option value="">-</option>
+                            <option value="男性">男性</option>
+                            <option value="女性">女性</option>
+                          </select>
                         ) : (
                           entry.gender
                         )}
@@ -517,40 +518,38 @@ export default function CustomerDetail() {
                       <td className="px-4 py-2 whitespace-nowrap w-24 border border-black">
                         {isEditingAllRows ? (
                           <select value={editingCallHistoryAll[displayIndex]?.progress || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
-                            <option value="">選択</option>
-                            <option value="受注">受注</option>
+                            <option value="">-</option>
                             <option value="見込みA">見込みA</option>
+                            <option value="見込みB">見込みB</option>
                             <option value="見込みC">見込みC</option>
-                            <option value="担当不在">担当不在</option>
+                            <option value="留守">留守</option>
+                            <option value="拒否">拒否</option>
                           </select>
                         ) : (
                           <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                            entry.progress === '受注' ? 'bg-red-100 text-red-700' :
-                            entry.progress?.includes('見込み') ? 'bg-yellow-100 text-yellow-700' :
+                            entry.progress === '見込みA' ? 'bg-red-100 text-red-700' :
+                            entry.progress === '見込みB' ? 'bg-orange-100 text-orange-700' :
+                            entry.progress === '見込みC' ? 'bg-yellow-100 text-yellow-700' :
                             'bg-gray-100 text-gray-700'
-                          }`}>
-                            {entry.progress}
-                          </span>
+                          }`}>{entry.progress}</span>
                         )}
                       </td>
                       <td className="px-4 py-2 border border-black">
                         {isEditingAllRows ? (
-                          <input type="text" value={editingCallHistoryAll[displayIndex]?.note || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                          <textarea value={editingCallHistoryAll[displayIndex]?.note || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm h-12 resize-none" />
                         ) : (
-                          <div
-                            onClick={() => setExpandedNoteIndex(expandedNoteIndex === displayIndex ? null : displayIndex)}
-                            className="cursor-pointer hover:bg-blue-50 p-1 rounded break-words text-sm"
-                            style={{
-                              maxHeight: expandedNoteIndex === displayIndex ? 'none' : '60px',
-                              overflow: expandedNoteIndex === displayIndex ? 'visible' : 'hidden',
-                              whiteSpace: expandedNoteIndex === displayIndex ? 'pre-wrap' : 'normal'
-                            }}
-                          >
-                            {entry.note}
+                          <div className="relative group">
+                            <div className={`text-sm ${expandedNoteIndex === displayIndex ? '' : 'line-clamp-2'}`}>
+                              {entry.note}
+                            </div>
+                            {entry.note && entry.note.length > 50 && (
+                              <button onClick={() => setExpandedNoteIndex(expandedNoteIndex === displayIndex ? null : displayIndex)} className="text-[10px] text-blue-500 hover:underline mt-1">
+                                {expandedNoteIndex === displayIndex ? '閉じる' : '全文表示'}
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
-
                     </tr>
                   )
                 })
