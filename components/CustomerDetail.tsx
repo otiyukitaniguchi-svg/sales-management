@@ -24,10 +24,10 @@ export default function CustomerDetail() {
   const [isCallActive, setIsCallActive] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const [recallDateMap, setRecallDateMap] = useState<{ [key: string]: string }>({})
-  const [isDeleteMode, setIsDeleteMode] = useState(false)
-  const [selectedForDelete, setSelectedForDelete] = useState<Set<number>>(new Set())
   const [expandedNoteIndex, setExpandedNoteIndex] = useState<number | null>(null)
   const [currentCall, setCurrentCall] = useState<Partial<FrontendCallHistoryEntry>>({})
+  const [isSearchMode, setIsSearchMode] = useState(false)
+  const [searchRecord, setSearchRecord] = useState<Partial<FrontendCustomerRecord>>({})
 
   useEffect(() => {
     if (record) {
@@ -55,6 +55,10 @@ export default function CustomerDetail() {
     if (editedRecord) {
       setEditedRecord({ ...editedRecord, [field]: value })
     }
+  }
+
+  const handleSearchFieldChange = (field: string, value: string) => {
+    setSearchRecord({ ...searchRecord, [field]: value })
   }
 
   const handleSave = async () => {
@@ -103,10 +107,8 @@ export default function CustomerDetail() {
     const endTime = now.toTimeString().slice(0, 5)
     const finalEntry = { ...editingCallData, endTime }
     
-    // 画面に終了時刻を反映
     setEditingCallData(finalEntry)
     
-    // 少し遅延させて保存（画面更新を確認してから）
     setTimeout(async () => {
       setIsCallActive(false)
       setEditingCallIndex(null)
@@ -122,87 +124,6 @@ export default function CustomerDetail() {
         console.error('Failed to save call history:', error)
       }
     }, 300)
-  }
-
-  const handleEditCallHistory = (index: number, entry: FrontendCallHistoryEntry) => {
-    setEditingCallIndex(index)
-    setEditingCallData({ ...entry })
-  }
-
-  const handleEditingCallFieldChange = (field: string, value: string) => {
-    if (editingCallData) {
-      setEditingCallData({ ...editingCallData, [field]: value })
-    }
-  }
-
-  const handleSaveCallHistory = async () => {
-    if (!editingCallData || !record || editingCallIndex === null) return
-    try {
-      const success = await ApiClient.updateCallHistory(currentList, record.no, editingCallIndex, editingCallData)
-      if (success) {
-        alert('✓ 架電履歴を保存しました')
-        setEditingCallIndex(null)
-        setEditingCallData(null)
-        await loadCallHistory()
-      }
-    } catch (error) {
-      console.error('Failed to save call history:', error)
-      alert('✗ 保存に失敗しました')
-    }
-  }
-
-  const handleCancelCallHistory = () => {
-    setEditingCallIndex(null)
-    setEditingCallData(null)
-  }
-
-  const handleDeleteCallHistory = async (index: number) => {
-    if (!record) return
-    try {
-      const success = await ApiClient.deleteCallHistory(currentList, record.no, index)
-      if (success) {
-        await loadCallHistory()
-      }
-    } catch (error) {
-      console.error('Failed to delete call history:', error)
-    }
-  }
-
-  const handleDeleteSelected = async () => {
-    if (selectedForDelete.size === 0) {
-      alert('削除する行を選択してください')
-      return
-    }
-    if (!record) return
-    try {
-      const indices = Array.from(selectedForDelete).sort((a, b) => b - a)
-      let successCount = 0
-      for (const index of indices) {
-        const success = await ApiClient.deleteCallHistory(currentList, record.no, index)
-        if (success) successCount++
-      }
-      if (successCount > 0) {
-        alert(`${successCount}件の履歴を削除しました`)
-        setSelectedForDelete(new Set())
-        setIsDeleteMode(false)
-        await loadCallHistory()
-      } else {
-        alert('削除に失敗しました')
-      }
-    } catch (error) {
-      console.error('Failed to delete call history:', error)
-      alert('削除処理中にエラーが発生しました')
-    }
-  }
-
-  const toggleSelectForDelete = (index: number) => {
-    const newSelected = new Set(selectedForDelete)
-    if (newSelected.has(index)) {
-      newSelected.delete(index)
-    } else {
-      newSelected.add(index)
-    }
-    setSelectedForDelete(newSelected)
   }
 
   const handleEditAllRows = () => {
@@ -240,8 +161,105 @@ export default function CustomerDetail() {
     setEditingCallHistoryAll(updated)
   }
 
+  const handleDeleteCallHistory = async (index: number) => {
+    if (!record) return
+    try {
+      const success = await ApiClient.deleteCallHistory(currentList, record.no, index)
+      if (success) {
+        await loadCallHistory()
+      }
+    } catch (error) {
+      console.error('Failed to delete call history:', error)
+    }
+  }
+
+  const handleSearch = async () => {
+    if (!searchRecord || Object.keys(searchRecord).length === 0) {
+      alert('検索条件を入力してください')
+      return
+    }
+
+    try {
+      const allRecords = listData[currentList] || []
+      const filtered = allRecords.filter((rec: FrontendCustomerRecord) => {
+        return Object.entries(searchRecord).every(([key, value]) => {
+          if (!value) return true
+          const recValue = (rec as any)[key]?.toString().toLowerCase() || ''
+          return recValue.includes(value.toString().toLowerCase())
+        })
+      })
+
+      if (filtered.length === 0) {
+        alert('該当する顧客がありません')
+        return
+      }
+
+      alert(`${filtered.length}件の顧客が見つかりました`)
+      setIsSearchMode(false)
+    } catch (error) {
+      console.error('Search failed:', error)
+      alert('検索中にエラーが発生しました')
+    }
+  }
+
   if (!record || !editedRecord) {
     return <div className="p-4 text-center text-gray-400">顧客を選択してください</div>
+  }
+
+  if (isSearchMode) {
+    return (
+      <div className="flex flex-col gap-4 p-4 bg-[#fdfcf0] min-h-full">
+        <div className="border-2 border-black rounded-lg p-4 bg-[#fdfcf0]">
+          <h2 className="text-sm font-bold mb-4">【検索モード】</h2>
+          
+          <div className="grid grid-cols-12 gap-2">
+            <div className="col-span-10 flex flex-col gap-2">
+              <div className="border border-black p-2 rounded bg-white">
+                <label className="block text-[10px] font-bold mb-1">企業名</label>
+                <input
+                  type="text"
+                  value={searchRecord.companyName || ''}
+                  onChange={(e) => handleSearchFieldChange('companyName', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-2 text-sm focus:outline-none"
+                  placeholder="企業名で検索"
+                />
+              </div>
+
+              <div className="border border-black p-2 rounded bg-white">
+                <label className="block text-[10px] font-bold mb-1">住所</label>
+                <input
+                  type="text"
+                  value={searchRecord.address || ''}
+                  onChange={(e) => handleSearchFieldChange('address', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-2 text-sm focus:outline-none"
+                  placeholder="住所で検索"
+                />
+              </div>
+
+              <div className="border border-black p-2 rounded bg-white">
+                <label className="block text-[10px] font-bold mb-1">電話番号</label>
+                <input
+                  type="text"
+                  value={searchRecord.fixedNo || ''}
+                  onChange={(e) => handleSearchFieldChange('fixedNo', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-2 text-sm focus:outline-none"
+                  placeholder="電話番号で検索"
+                />
+              </div>
+            </div>
+
+            <div className="col-span-2 flex flex-col gap-2">
+              <button onClick={handleSearch} className="px-3 py-2 bg-blue-500 text-white rounded text-sm font-semibold hover:bg-blue-600">
+                検索実行
+              </button>
+              <button onClick={() => setIsSearchMode(false)} className="px-3 py-2 bg-gray-400 text-white rounded text-sm font-semibold hover:bg-gray-500">
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -410,16 +428,6 @@ export default function CustomerDetail() {
               className={`px-3 py-1 rounded text-sm font-semibold ${isEditingAllRows ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'} text-white disabled:bg-gray-400`}>
               {isEditingAllRows ? '保存' : '編集/保存'}
             </button>
-            <button onClick={() => { setIsDeleteMode(!isDeleteMode); setSelectedForDelete(new Set()); }}
-              className={`px-3 py-1 rounded text-sm font-semibold ${isDeleteMode ? 'bg-gray-400' : 'bg-purple-500'} text-white hover:opacity-80`}>
-              {isDeleteMode ? 'キャンセル' : '削除/実行'}
-            </button>
-            {isDeleteMode && (
-              <button onClick={handleDeleteSelected} disabled={selectedForDelete.size === 0}
-                className="px-3 py-1 bg-red-600 text-white rounded text-sm font-semibold disabled:bg-gray-400 hover:bg-red-700">
-                実行
-              </button>
-            )}
           </div>
           <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-300 rounded p-2">
             <label className="font-semibold text-sm text-gray-700 whitespace-nowrap">再コール日時:</label>
@@ -451,66 +459,61 @@ export default function CustomerDetail() {
           <table className="w-full border-collapse border border-black">
             <thead className="sticky top-0 z-10">
               <tr>
-                {isDeleteMode && <th className="px-2 py-2 text-center whitespace-nowrap font-bold bg-blue-300 w-8 border border-black">✓</th>}
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">担当者</th>
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">対応日</th>
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">開始</th>
                 <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">終了</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">対応者</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">性別</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">進捗</th>
+                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 flex-1 border border-black">対応者</th>
+                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 flex-1 border border-black">性別</th>
+                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 flex-1 border border-black">進捗</th>
                 <th className="px-4 py-2 text-left font-bold bg-blue-300 flex-1 border border-black">コール履歴</th>
+                <th className="px-4 py-2 text-center whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">削除</th>
               </tr>
             </thead>
             <tbody>
               {callHistory.length === 0 ? (
-                <tr><td colSpan={isDeleteMode ? 10 : 9} className="px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
+                <tr><td colSpan={9} className="px-4 py-3 text-center text-gray-400">履歴なし</td></tr>
               ) : (
                 (isEditingAllRows ? editingCallHistoryAll : callHistory).map((entry, displayIndex) => {
                   const isCurrentCall = isCallActive && displayIndex === 0 && editingCallData
                   return (
                     <tr key={displayIndex} className={displayIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      {isDeleteMode && (
-                        <td className="px-2 py-2 text-center border border-black">
-                          <input type="checkbox" checked={selectedForDelete.has(displayIndex)} onChange={() => toggleSelectForDelete(displayIndex)} />
-                        </td>
-                      )}
-                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
-                        {isEditingAllRows || isCurrentCall ? (
-                          <input type="text" value={isCurrentCall ? editingCallData?.operator || '' : editingCallHistoryAll[displayIndex]?.operator || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, operator: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
+                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black text-sm">
+                        {isEditingAllRows ? (
+                          <input type="text" value={editingCallHistoryAll[displayIndex]?.operator || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.operator
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black">
-                        {isEditingAllRows || isCurrentCall ? (
+                      <td className="px-4 py-2 whitespace-nowrap w-24 border border-black text-sm">
+                        {isEditingAllRows ? (
                           <input type="date" value={isCurrentCall ? editingCallData?.date || '' : editingCallHistoryAll[displayIndex]?.date || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, date: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.date ? new Date(entry.date).toISOString().split('T')[0] : '-'
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
-                        {isEditingAllRows || isCurrentCall ? (
+                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black text-sm">
+                        {isEditingAllRows ? (
                           <input type="time" value={isCurrentCall ? editingCallData?.startTime || '' : editingCallHistoryAll[displayIndex]?.startTime || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, startTime: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'startTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.startTime
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
-                        {isEditingAllRows || isCurrentCall ? (
+                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black text-sm">
+                        {isEditingAllRows ? (
                           <input type="time" value={isCurrentCall ? editingCallData?.endTime || '' : editingCallHistoryAll[displayIndex]?.endTime || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, endTime: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'endTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.endTime
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black">
+                      <td className="px-4 py-2 border border-black text-sm">
                         {isEditingAllRows || isCurrentCall ? (
                           <input type="text" value={isCurrentCall ? editingCallData?.responder || '' : editingCallHistoryAll[displayIndex]?.responder || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, responder: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'responder', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.responder
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black">
+                      <td className="px-4 py-2 border border-black text-sm">
                         {isEditingAllRows || isCurrentCall ? (
                           <select value={isCurrentCall ? editingCallData?.gender || '' : editingCallHistoryAll[displayIndex]?.gender || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, gender: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                             <option value="">-</option>
@@ -521,26 +524,27 @@ export default function CustomerDetail() {
                           entry.gender
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-24 border border-black">
+                      <td className="px-4 py-2 border border-black text-sm">
                         {isEditingAllRows || isCurrentCall ? (
                           <select value={isCurrentCall ? editingCallData?.progress || '' : editingCallHistoryAll[displayIndex]?.progress || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                             <option value="">-</option>
+                            <option value="受注">受注</option>
                             <option value="見込みA">見込みA</option>
-                            <option value="見込みB">見込みB</option>
                             <option value="見込みC">見込みC</option>
+                            <option value="いつの日か">いつの日か</option>
                             <option value="留守">留守</option>
-                            <option value="拒否">拒否</option>
+                            <option value="担当不在">担当不在</option>
+                            <option value="前回受注">前回受注</option>
+                            <option value="現アナ">現アナ</option>
+                            <option value="前回NG">前回NG</option>
+                            <option value="前回採択">前回採択</option>
+                            <option value="閉業">閉業</option>
                           </select>
                         ) : (
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                            entry.progress === '見込みA' ? 'bg-red-100 text-red-700' :
-                            entry.progress === '見込みB' ? 'bg-orange-100 text-orange-700' :
-                            entry.progress === '見込みC' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>{entry.progress}</span>
+                          entry.progress
                         )}
                       </td>
-                      <td className="px-4 py-2 border border-black">
+                      <td className="px-4 py-2 border border-black text-sm">
                         {isEditingAllRows || isCurrentCall ? (
                           <textarea value={isCurrentCall ? editingCallData?.note || '' : editingCallHistoryAll[displayIndex]?.note || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, note: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm h-12 resize-none" />
                         ) : (
@@ -554,6 +558,13 @@ export default function CustomerDetail() {
                               </button>
                             )}
                           </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-center border border-black text-sm">
+                        {!isEditingAllRows && !isCurrentCall && (
+                          <button onClick={() => handleDeleteCallHistory(displayIndex)} className="px-2 py-1 bg-red-500 text-white rounded text-xs font-semibold hover:bg-red-600">
+                            削除
+                          </button>
                         )}
                       </td>
                     </tr>
