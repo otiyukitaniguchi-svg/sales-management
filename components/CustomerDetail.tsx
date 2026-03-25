@@ -103,19 +103,25 @@ export default function CustomerDetail() {
     const endTime = now.toTimeString().slice(0, 5)
     const finalEntry = { ...editingCallData, endTime }
     
-    setIsCallActive(false)
-    setEditingCallIndex(null)
-    setEditingCallData(null)
+    // 画面に終了時刻を反映
+    setEditingCallData(finalEntry)
     
-    try {
-      const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
-      if (success) {
-        resetCurrentCall()
-        await loadCallHistory()
+    // 少し遅延させて保存（画面更新を確認してから）
+    setTimeout(async () => {
+      setIsCallActive(false)
+      setEditingCallIndex(null)
+      setEditingCallData(null)
+      
+      try {
+        const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
+        if (success) {
+          resetCurrentCall()
+          await loadCallHistory()
+        }
+      } catch (error) {
+        console.error('Failed to save call history:', error)
       }
-    } catch (error) {
-      console.error('Failed to save call history:', error)
-    }
+    }, 300)
   }
 
   const handleEditCallHistory = (index: number, entry: FrontendCallHistoryEntry) => {
