@@ -494,14 +494,14 @@ export default function CustomerDetail() {
             <thead className="sticky top-0 z-10">
               <tr>
                 {isDeleteMode && <th className="px-2 py-2 text-center whitespace-nowrap font-bold bg-blue-300 w-10 border border-black"></th>}
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black">担当者</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black">対応日</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">開始</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-20 border border-black">終了</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 flex-1 border border-black">対応者</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 flex-1 border border-black">性別</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-32 border border-black">進捗</th>
-                <th className="px-4 py-2 text-left font-bold bg-blue-300 flex-1 border border-black">コール履歴</th>
+                <th className="px-2 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-14 border border-black text-xs">担当者</th>
+                <th className="px-2 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-28 border border-black text-xs">対応日</th>
+                <th className="px-2 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black text-xs">開始</th>
+                <th className="px-2 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black text-xs">終了</th>
+                <th className="px-2 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-24 border border-black text-xs">対応者</th>
+                <th className="px-2 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-16 border border-black text-xs">性別</th>
+                <th className="px-2 py-2 text-left whitespace-nowrap font-bold bg-blue-300 w-32 border border-black text-xs">進捗</th>
+                <th className="px-2 py-2 text-left font-bold bg-blue-300 flex-1 border border-black text-xs">コール履歴</th>
               </tr>
             </thead>
             <tbody>
@@ -517,42 +517,42 @@ export default function CustomerDetail() {
                           <input type="checkbox" checked={selectedForDelete.has(displayIndex)} onChange={() => handleToggleDeleteSelection(displayIndex)} className="w-4 h-4 cursor-pointer" />
                         </td>
                       )}
-                      <td className="px-4 py-2 whitespace-nowrap w-16 border border-black text-sm">
+                      <td className="px-2 py-2 whitespace-nowrap w-14 border border-black text-xs">
                         {isEditingAllRows ? (
                           <input type="text" value={editingCallHistoryAll[displayIndex]?.operator || ''} onChange={(e) => handleEditingAllRowsFieldChange(displayIndex, 'operator', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.operator
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-24 border border-black text-sm">
+                      <td className="px-2 py-2 whitespace-nowrap w-28 border border-black text-xs">
                         {isEditingAllRows ? (
                           <input type="date" value={isCurrentCall ? editingCallData?.date || '' : editingCallHistoryAll[displayIndex]?.date || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, date: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'date', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.date ? new Date(entry.date).toISOString().split('T')[0] : '-'
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black text-sm">
+                      <td className="px-2 py-2 whitespace-nowrap w-16 border border-black text-xs">
                         {isEditingAllRows ? (
                           <input type="time" value={isCurrentCall ? editingCallData?.startTime || '' : editingCallHistoryAll[displayIndex]?.startTime || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, startTime: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'startTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.startTime
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap w-20 border border-black text-sm">
+                      <td className="px-2 py-2 whitespace-nowrap w-16 border border-black text-xs">
                         {isEditingAllRows ? (
                           <input type="time" value={isCurrentCall ? editingCallData?.endTime || '' : editingCallHistoryAll[displayIndex]?.endTime || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, endTime: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'endTime', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.endTime
                         )}
                       </td>
-                      <td className="px-4 py-2 border border-black text-sm">
+                      <td className="px-2 py-2 border border-black text-xs w-24">
                         {isEditingAllRows || isCurrentCall ? (
                           <input type="text" value={isCurrentCall ? editingCallData?.responder || '' : editingCallHistoryAll[displayIndex]?.responder || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, responder: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'responder', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm" />
                         ) : (
                           entry.responder
                         )}
                       </td>
-                      <td className="px-4 py-2 border border-black text-sm">
+                      <td className="px-2 py-2 border border-black text-xs w-16">
                         {isEditingAllRows || isCurrentCall ? (
                           <select value={isCurrentCall ? editingCallData?.gender || '' : editingCallHistoryAll[displayIndex]?.gender || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, gender: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'gender', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                             <option value="">-</option>
@@ -563,7 +563,7 @@ export default function CustomerDetail() {
                           entry.gender
                         )}
                       </td>
-                      <td className="px-4 py-2 border border-black text-sm w-32">
+                      <td className="px-2 py-2 border border-black text-xs w-32">
                         {isEditingAllRows || isCurrentCall ? (
                           <select value={isCurrentCall ? editingCallData?.progress || '' : editingCallHistoryAll[displayIndex]?.progress || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'progress', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm">
                             <option value="">-</option>
@@ -583,12 +583,12 @@ export default function CustomerDetail() {
                           entry.progress
                         )}
                       </td>
-                      <td className="px-4 py-2 border border-black text-sm">
+                      <td className="px-2 py-2 border border-black text-xs flex-1">
                         {isEditingAllRows || isCurrentCall ? (
-                          <textarea value={isCurrentCall ? editingCallData?.note || '' : editingCallHistoryAll[displayIndex]?.note || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, note: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-sm h-12 resize-none" />
+                          <textarea value={isCurrentCall ? editingCallData?.note || '' : editingCallHistoryAll[displayIndex]?.note || ''} onChange={(e) => isCurrentCall ? setEditingCallData({...editingCallData, note: e.target.value}) : handleEditingAllRowsFieldChange(displayIndex, 'note', e.target.value)} className="w-full border border-gray-300 px-1 py-0.5 text-xs h-12 resize-none" />
                         ) : (
                           <div className="relative group">
-                            <div className={`text-sm ${expandedNoteIndex === displayIndex ? '' : 'line-clamp-2'}`}>
+                            <div className={`text-xs ${expandedNoteIndex === displayIndex ? '' : 'line-clamp-2'}`}>
                               {entry.note}
                             </div>
                             {entry.note && entry.note.length > 50 && (
