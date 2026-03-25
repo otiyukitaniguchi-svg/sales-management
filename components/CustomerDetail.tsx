@@ -301,9 +301,9 @@ export default function CustomerDetail() {
               />
             </div>
 
-            {/* 代表・担当 (住所と同じ親コンテナ内にあるため幅が揃う) */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="border border-black p-2 rounded bg-white">
+            {/* 代表・担当 (住所と同じ幅で横並び) */}
+            <div className="flex gap-2">
+              <div className="border border-black p-2 rounded bg-white flex-1">
                 <label className="block text-[10px] font-bold mb-1">代表</label>
                 <input
                   type="text"
@@ -320,7 +320,7 @@ export default function CustomerDetail() {
                   placeholder="漢字"
                 />
               </div>
-              <div className="border border-black p-2 rounded bg-white">
+              <div className="border border-black p-2 rounded bg-white flex-1">
                 <label className="block text-[10px] font-bold mb-1">担当</label>
                 <input
                   type="text"
