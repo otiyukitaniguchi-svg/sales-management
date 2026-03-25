@@ -144,8 +144,6 @@ export default function CustomerDetail() {
       for (let i = 0; i < editingCallHistoryAll.length; i++) {
         await ApiClient.updateCallHistory(currentList, record.no, i, editingCallHistoryAll[i])
       }
-      setIsEditingAllRows(false)
-      setEditingCallHistoryAll([])
       await loadCallHistory()
       setSaveMessage('✓ 架電履歴を保存しました')
       setTimeout(() => setSaveMessage(''), 2000)
@@ -154,6 +152,8 @@ export default function CustomerDetail() {
       setSaveMessage('✗ 保存に失敗しました')
     } finally {
       setIsSaving(false)
+      setIsEditingAllRows(false)
+      setEditingCallHistoryAll([])
     }
   }
 
