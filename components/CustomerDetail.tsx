@@ -599,13 +599,7 @@ export default function CustomerDetail() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-center border border-black text-sm">
-                        {!isEditingAllRows && !isCurrentCall && (
-                          <button onClick={() => handleDeleteCallHistory(displayIndex)} className="px-2 py-1 bg-red-500 text-white rounded text-xs font-semibold hover:bg-red-600">
-                            削除
-                          </button>
-                        )}
-                      </td>
+
                     </tr>
                   )
                 })
