@@ -489,8 +489,8 @@ export default function CustomerDetail() {
           </div>
         </div>
 
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(5 * 40px + 50px)' }}>
-          <table className="w-full border-collapse border border-black">
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(5 * 40px + 50px)', width: '100%' }}>
+          <table className="w-full border-collapse border border-black" style={{ tableLayout: 'fixed' }}>
             <thead className="sticky top-0 z-10">
               <tr>
                 {isDeleteMode && <th className="px-2 py-2 text-center whitespace-nowrap font-bold bg-blue-300 w-10 border border-black"></th>}
