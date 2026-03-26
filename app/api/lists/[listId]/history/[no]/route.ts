@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
-import { callHistoryToFrontendFormat, CallHistoryResponse } from '@/lib/types'
+import { callHistoryToFrontendFormat, callHistoryToDbFormat, CallHistoryResponse } from '@/lib/types'
+import { FrontendCallHistoryEntry } from '@/lib/types'
 
 export async function GET(
   request: NextRequest,
@@ -51,6 +52,59 @@ export async function GET(
     return NextResponse.json(response, { headers })
   } catch (error: any) {
     console.error('Error in getCallHistory:', error)
+    return NextResponse.json(
+      { success: false, message: error.message || '不明なエラー' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { listId: string; no: string } }
+) {
+  try {
+    const { listId, no } = params
+
+    if (!['list1', 'list2', 'list3'].includes(listId)) {
+      return NextResponse.json(
+        { success: false, message: '無効なリストIDです' },
+        { status: 400 }
+      )
+    }
+
+    if (!no) {
+      return NextResponse.json(
+        { success: false, message: 'Noが指定されていません' },
+        { status: 400 }
+      )
+    }
+
+    const entry: FrontendCallHistoryEntry = await request.json()
+    const dbEntry = callHistoryToDbFormat(entry, listId, no)
+
+    const { data, error } = await supabaseAdmin
+      .from(TABLES.CALL_HISTORY)
+      .insert([dbEntry])
+      .select()
+
+    if (error) {
+      throw error
+    }
+
+    const response = {
+      success: true,
+      data: data ? data.map(callHistoryToFrontendFormat) : [],
+    }
+
+    const headers = new Headers()
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+    headers.set('Pragma', 'no-cache')
+    headers.set('Expires', '0')
+
+    return NextResponse.json(response, { headers })
+  } catch (error: any) {
+    console.error('Error in createCallHistory:', error)
     return NextResponse.json(
       { success: false, message: error.message || '不明なエラー' },
       { status: 500 }
