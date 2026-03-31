@@ -48,7 +48,15 @@ export default function CustomerDetail() {
     if (!record) return
     try {
       const response = await ApiClient.getCallHistory(currentList, record.no)
-      const history = (response as any).data || []
+      let history = (response as any).data || []
+      if (Array.isArray(history)) {
+        // 日付と開始時間で降順（最新順）にソート
+        history.sort((a: any, b: any) => {
+          const dateA = new Date(`${a.date} ${a.startTime || '00:00'}`)
+          const dateB = new Date(`${b.date} ${b.startTime || '00:00'}`)
+          return dateB.getTime() - dateA.getTime()
+        })
+      }
       setCallHistory(Array.isArray(history) ? history : [])
     } catch (error) {
       console.error('Failed to load call history:', error)
@@ -135,9 +143,11 @@ export default function CustomerDetail() {
     if (!record) return
     setIsSaving(true)
     try {
+      // 編集内容を保存
       for (let i = 0; i < editingCallHistoryAll.length; i++) {
         await ApiClient.updateCallHistory(currentList, record.no, i, editingCallHistoryAll[i])
       }
+      // 保存完了後に編集モードを確実に終了
       setIsEditingAllRows(false)
       setEditingCallHistoryAll([])
       await loadCallHistory()
@@ -145,8 +155,11 @@ export default function CustomerDetail() {
       setTimeout(() => setSaveMessage(''), 2000)
     } catch (error) {
       console.error('Failed to save all rows:', error)
+      setSaveMessage('✗ 保存に失敗しました')
     } finally {
       setIsSaving(false)
+      // 念のためここでも編集モードを終了
+      setIsEditingAllRows(false)
     }
   }
 
