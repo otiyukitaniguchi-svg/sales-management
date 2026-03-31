@@ -422,35 +422,60 @@ export default function CustomerDetail() {
         <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col">
           {/* 架電履歴操作ボタン */}
           {!isSearchMode && (
-            <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center space-x-2">
-              <button 
-                onClick={handleCallStart}
-                disabled={isCallActive || isDeleteMode}
-                className="px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                開始
-              </button>
-              <button 
-                onClick={handleCallEnd}
-                disabled={!isCallActive}
-                className="px-3 py-1 bg-orange-600 text-white rounded text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
-              >
-                終了
-              </button>
-              <button 
-                onClick={handleEditAllRows}
-                disabled={isCallActive || isDeleteMode}
-                className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isEditingAllRows ? 'bg-green-600 text-white border-green-700 hover:bg-green-700' : 'bg-yellow-600 text-white border-yellow-700 hover:bg-yellow-700'}`}
-              >
-                {isEditingAllRows ? '保存' : '編集'}
-              </button>
-              <button 
-                onClick={handleDeleteModeToggle}
-                disabled={isCallActive || isEditingAllRows}
-                className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isDeleteMode ? 'bg-red-600 text-white border-red-700 hover:bg-red-700' : 'bg-gray-600 text-white border-gray-700 hover:bg-gray-700'}`}
-              >
-                {isDeleteMode ? (selectedDeleteIndices.length > 0 ? '実行' : 'キャンセル') : '削除/実行'}
-              </button>
+            <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={handleCallStart}
+                  disabled={isCallActive || isDeleteMode}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  開始
+                </button>
+                <button 
+                  onClick={handleCallEnd}
+                  disabled={!isCallActive}
+                  className="px-3 py-1 bg-orange-600 text-white rounded text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
+                >
+                  終了
+                </button>
+                <button 
+                  onClick={handleEditAllRows}
+                  disabled={isCallActive || isDeleteMode}
+                  className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isEditingAllRows ? 'bg-green-600 text-white border-green-700 hover:bg-green-700' : 'bg-yellow-600 text-white border-yellow-700 hover:bg-yellow-700'}`}
+                >
+                  {isEditingAllRows ? '保存' : '編集'}
+                </button>
+                <button 
+                  onClick={handleDeleteModeToggle}
+                  disabled={isCallActive || isEditingAllRows}
+                  className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isDeleteMode ? 'bg-red-600 text-white border-red-700 hover:bg-red-700' : 'bg-gray-600 text-white border-gray-700 hover:bg-gray-700'}`}
+                >
+                  {isDeleteMode ? (selectedDeleteIndices.length > 0 ? '実行' : 'キャンセル') : '削除/実行'}
+                </button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">再コール日時:</label>
+                <input 
+                  type="date" 
+                  value={currentCall.recallDate || ''}
+                  onChange={(e) => setCurrentCall({...currentCall, recallDate: e.target.value})}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <input 
+                  type="time" 
+                  value={currentCall.recallTime || ''}
+                  onChange={(e) => setCurrentCall({...currentCall, recallTime: e.target.value})}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <button 
+                  onClick={() => {
+                    console.log('再コール日時を設定:', currentCall.recallDate, currentCall.recallTime)
+                  }}
+                  className="px-3 py-1 bg-green-500 text-white rounded text-sm font-medium hover:bg-green-600"
+                >
+                  設定
+                </button>
+              </div>
             </div>
           )}
           
