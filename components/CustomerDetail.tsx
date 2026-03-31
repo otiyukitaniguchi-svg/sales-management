@@ -431,18 +431,18 @@ export default function CustomerDetail() {
           {/* 架電履歴テーブル */}
           <div className="overflow-hidden flex-1 flex flex-col">
             <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '300px' }}>
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead className="bg-blue-100 sticky top-0">
                   <tr>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-20">担当者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">対応日</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">開始</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">終了</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">対応者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">性別</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">進捗</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]">コール履歴</th>
-                    {!isSearchMode && <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">操作</th>}
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>担当者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応日</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>開始</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>終了</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>性別</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>進捗</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '24%' }}>コール履歴</th>
+                    {!isSearchMode && <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>操作</th>}
                   </tr>
                 </thead>
                 <tbody>
