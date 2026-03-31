@@ -248,18 +248,18 @@ export default function CustomerDetail() {
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <button 
-            onClick={toggleSearchMode}
-            className={`px-4 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isSearchMode ? 'bg-red-500 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+            onClick={isSearchMode ? handleSearchExecute : toggleSearchMode}
+            disabled={isSearching}
+            className={`px-4 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isSearchMode ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
           >
-            {isSearchMode ? 'キャンセル' : '検索'}
+            {isSearching ? '検索中...' : (isSearchMode ? '検索実行' : '検索')}
           </button>
           {isSearchMode && (
             <button 
-              onClick={handleSearchExecute}
-              disabled={isSearching}
-              className="px-4 py-1 bg-blue-600 text-white rounded text-sm font-medium border border-blue-700 shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              onClick={toggleSearchMode}
+              className="px-4 py-1 bg-red-500 text-white rounded text-sm font-medium border border-red-600 shadow-sm hover:bg-red-600"
             >
-              {isSearching ? '検索中...' : '実行'}
+              キャンセル
             </button>
           )}
           <span className="text-sm text-gray-600 ml-2">{saveMessage}</span>
