@@ -19,13 +19,20 @@ export default function CustomerDetail() {
 
   const [editedRecord, setEditedRecord] = useState<FrontendCustomerRecord | null>(null)
   const [callHistory, setCallHistory] = useState<FrontendCallHistoryEntry[]>([])
+  const [editingCallIndex, setEditingCallIndex] = useState<number | null>(null)
+  const [editingCallData, setEditingCallData] = useState<FrontendCallHistoryEntry | null>(null)
+  const [isEditingAllRows, setIsEditingAllRows] = useState(false)
+  const [editingCallHistoryAll, setEditingCallHistoryAll] = useState<FrontendCallHistoryEntry[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [isCallActive, setIsCallActive] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
+  const [expandedNoteIndex, setExpandedNoteIndex] = useState<number | null>(null)
+  const [currentCall, setCurrentCall] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [searchRecord, setSearchRecord] = useState<Partial<FrontendCustomerRecord>>({})
   const [searchHistory, setSearchHistory] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearching, setIsSearching] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
 
-  // レコードが切り替わった時にデータを同期
   useEffect(() => {
     if (record && !isSearchMode) {
       setEditedRecord({ ...record })
@@ -33,14 +40,6 @@ export default function CustomerDetail() {
     }
   }, [record, isSearchMode])
 
-  // フィールド値の変更
-  const handleFieldChange = (field: string, value: string) => {
-    if (editedRecord) {
-      setEditedRecord({ ...editedRecord, [field]: value })
-    }
-  }
-
-  // 架電履歴を読み込む
   const loadCallHistory = async () => {
     if (!record) return
     try {
@@ -49,6 +48,121 @@ export default function CustomerDetail() {
       setCallHistory(Array.isArray(history) ? history : [])
     } catch (error) {
       console.error('Failed to load call history:', error)
+    }
+  }
+
+  const handleFieldChange = (field: string, value: string) => {
+    if (editedRecord) {
+      setEditedRecord({ ...editedRecord, [field]: value })
+    }
+  }
+
+  const handleSave = async () => {
+    if (!editedRecord || !record) return
+    setIsSaving(true)
+    try {
+      const success = await ApiClient.updateCustomer(currentList, record.no, editedRecord)
+      if (success) {
+        setSaveMessage('✓ 顧客情報を保存しました')
+        setTimeout(() => setSaveMessage(''), 2000)
+      }
+    } catch (error) {
+      console.error('Failed to save:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCallStart = () => {
+    setIsCallActive(true)
+    const now = new Date()
+    const newEntry: FrontendCallHistoryEntry = {
+      operator: user?.display_name || 'オペレーター',
+      date: now.toISOString().split('T')[0],
+      startTime: now.toTimeString().slice(0, 5),
+      endTime: '',
+      responder: '',
+      gender: '',
+      progress: '',
+      note: '',
+    }
+    setCallHistory([newEntry, ...callHistory])
+    setEditingCallIndex(0)
+    setEditingCallData(newEntry)
+    setCurrentCall(newEntry)
+  }
+
+  const handleCallEnd = async () => {
+    if (!record || editingCallIndex === null || !editingCallData) return
+    
+    const now = new Date()
+    const endTime = now.toTimeString().slice(0, 5)
+    const finalEntry = { ...editingCallData, endTime }
+    
+    setEditingCallData(finalEntry)
+    
+    setTimeout(async () => {
+      setIsCallActive(false)
+      setEditingCallIndex(null)
+      setEditingCallData(null)
+      
+      try {
+        const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
+        if (success) {
+          setCurrentCall({})
+          await loadCallHistory()
+        }
+      } catch (error) {
+        console.error('Failed to save call history:', error)
+      }
+    }, 300)
+  }
+
+  const handleEditAllRows = () => {
+    if (isEditingAllRows) {
+      handleSaveAllRows()
+    } else {
+      setIsEditingAllRows(true)
+      setEditingCallHistoryAll([...callHistory])
+    }
+  }
+
+  const handleSaveAllRows = async () => {
+    if (!record) return
+    setIsSaving(true)
+    try {
+      for (let i = 0; i < editingCallHistoryAll.length; i++) {
+        await ApiClient.updateCallHistory(currentList, record.no, i, editingCallHistoryAll[i])
+      }
+      setIsEditingAllRows(false)
+      setEditingCallHistoryAll([])
+      await loadCallHistory()
+      setSaveMessage('✓ 架電履歴を保存しました')
+      setTimeout(() => setSaveMessage(''), 2000)
+    } catch (error) {
+      console.error('Failed to save all rows:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleEditingAllRowsFieldChange = (index: number, field: string, value: string) => {
+    const updated = [...editingCallHistoryAll]
+    updated[index] = { ...updated[index], [field]: value }
+    setEditingCallHistoryAll(updated)
+  }
+
+  const handleDeleteCallHistory = async (index: number) => {
+    if (!record) return
+    try {
+      const success = await ApiClient.deleteCallHistory(currentList, record.no, index)
+      if (success) {
+        await loadCallHistory()
+        setSaveMessage('✓ 架電履歴を削除しました')
+        setTimeout(() => setSaveMessage(''), 2000)
+      }
+    } catch (error) {
+      console.error('Failed to delete call history:', error)
     }
   }
 
@@ -263,91 +377,242 @@ export default function CustomerDetail() {
               </div>
             </div>
           </div>
+          
+          {/* 顧客情報操作ボタン */}
+          {!isSearchMode && (
+            <div className="mt-4 flex space-x-2">
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-1 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+              >
+                {isSaving ? '保存中...' : '保存'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 架電履歴セクション */}
-        <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden">
-          <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
-            <h2 className="text-sm font-bold">架電履歴</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead className="bg-blue-100">
-                <tr>
-                  <th className="border border-gray-300 px-2 py-1 text-[10px] w-20">担当者</th>
-                  <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">対応者</th>
-                  <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">性別</th>
-                  <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">進捗</th>
-                  <th className="border border-gray-300 px-2 py-1 text-[10px]">コール履歴</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isSearchMode ? (
-                  <tr className="bg-yellow-50">
-                    <td className="border border-gray-300 p-1">
-                      <input 
-                        type="text" 
-                        placeholder="担当者検索"
-                        value={searchHistory.operator || ''}
-                        onChange={(e) => setSearchHistory({...searchHistory, operator: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
-                      />
-                    </td>
-                    <td className="border border-gray-300 p-1">
-                      <input 
-                        type="text" 
-                        placeholder="対応者検索"
-                        value={searchHistory.responder || ''}
-                        onChange={(e) => setSearchHistory({...searchHistory, responder: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
-                      />
-                    </td>
-                    <td className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
-                    <td className="border border-gray-300 p-1">
-                      <select 
-                        value={searchHistory.progress || ''}
-                        onChange={(e) => setSearchHistory({...searchHistory, progress: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
-                      >
-                        <option value="">進捗検索</option>
-                        <option value="受注">受注</option>
-                        <option value="見込みA">見込みA</option>
-                        <option value="見込みC">見込みC</option>
-                        <option value="留守">留守</option>
-                        <option value="拒否">拒否</option>
-                      </select>
-                    </td>
-                    <td className="border border-gray-300 p-1">
-                      <input 
-                        type="text" 
-                        placeholder="履歴の内容で検索..."
-                        value={searchHistory.note || ''}
-                        onChange={(e) => setSearchHistory({...searchHistory, note: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
-                      />
-                    </td>
+        <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col">
+          {/* 架電履歴操作ボタン */}
+          {!isSearchMode && (
+            <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center space-x-2">
+              <button 
+                onClick={handleCallStart}
+                disabled={isCallActive}
+                className="px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                開始
+              </button>
+              <button 
+                onClick={handleCallEnd}
+                disabled={!isCallActive}
+                className="px-3 py-1 bg-orange-600 text-white rounded text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
+              >
+                終了
+              </button>
+              <button 
+                onClick={handleEditAllRows}
+                disabled={isCallActive}
+                className="px-3 py-1 bg-yellow-600 text-white rounded text-sm font-medium hover:bg-yellow-700 disabled:opacity-50"
+              >
+                {isEditingAllRows ? '保存' : '編集'}
+              </button>
+              <button 
+                onClick={() => setIsEditingAllRows(false)}
+                disabled={!isEditingAllRows}
+                className="px-3 py-1 bg-gray-600 text-white rounded text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+              >
+                削除/実行
+              </button>
+            </div>
+          )}
+          
+          {/* 架電履歴テーブル */}
+          <div className="overflow-hidden flex-1 flex flex-col">
+            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '300px' }}>
+              <table className="w-full border-collapse">
+                <thead className="bg-blue-100 sticky top-0">
+                  <tr>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-20">担当者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">対応日</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">開始</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">終了</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">対応者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">性別</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px] w-24">進捗</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]">コール履歴</th>
+                    {!isSearchMode && <th className="border border-gray-300 px-2 py-1 text-[10px] w-16">操作</th>}
                   </tr>
-                ) : (
-                  callHistory.length > 0 ? (
-                    callHistory.map((entry, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.operator}</td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.responder}</td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.gender}</td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.progress}</td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.note}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="border border-gray-300 px-2 py-4 text-center text-xs text-gray-400">
-                        履歴はありません
+                </thead>
+                <tbody>
+                  {isSearchMode ? (
+                    <tr className="bg-yellow-50">
+                      <td className="border border-gray-300 p-1">
+                        <input 
+                          type="text" 
+                          placeholder="担当者検索"
+                          value={searchHistory.operator || ''}
+                          onChange={(e) => setSearchHistory({...searchHistory, operator: e.target.value})}
+                          className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        />
+                      </td>
+                      <td colSpan={2} className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
+                      <td className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
+                      <td className="border border-gray-300 p-1">
+                        <input 
+                          type="text" 
+                          placeholder="対応者検索"
+                          value={searchHistory.responder || ''}
+                          onChange={(e) => setSearchHistory({...searchHistory, responder: e.target.value})}
+                          className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        />
+                      </td>
+                      <td className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
+                      <td className="border border-gray-300 p-1">
+                        <select 
+                          value={searchHistory.progress || ''}
+                          onChange={(e) => setSearchHistory({...searchHistory, progress: e.target.value})}
+                          className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        >
+                          <option value="">進捗検索</option>
+                          <option value="受注">受注</option>
+                          <option value="見込みA">見込みA</option>
+                          <option value="見込みC">見込みC</option>
+                        </select>
+                      </td>
+                      <td className="border border-gray-300 p-1">
+                        <input 
+                          type="text" 
+                          placeholder="履歴の内容で検索..."
+                          value={searchHistory.note || ''}
+                          onChange={(e) => setSearchHistory({...searchHistory, note: e.target.value})}
+                          className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        />
                       </td>
                     </tr>
-                  )
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    callHistory.length > 0 ? (
+                      callHistory.slice(0, 5).map((entry, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="border border-gray-300 px-2 py-1 text-xs">
+                            {isEditingAllRows || (isCallActive && idx === 0) ? (
+                              <input 
+                                type="text" 
+                                value={isCallActive && idx === 0 ? editingCallData?.operator || '' : editingCallHistoryAll[idx]?.operator || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, operator: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'operator', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              />
+                            ) : entry.operator}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-xs">{entry.date}</td>
+                          <td className="border border-gray-300 px-2 py-1 text-xs">
+                            {isEditingAllRows || (isCallActive && idx === 0) ? (
+                              <input 
+                                type="text" 
+                                value={isCallActive && idx === 0 ? editingCallData?.startTime || '' : editingCallHistoryAll[idx]?.startTime || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, startTime: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'startTime', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              />
+                            ) : entry.startTime}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-xs">
+                            {isEditingAllRows || (isCallActive && idx === 0) ? (
+                              <input 
+                                type="text" 
+                                value={isCallActive && idx === 0 ? editingCallData?.endTime || '' : editingCallHistoryAll[idx]?.endTime || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, endTime: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'endTime', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              />
+                            ) : entry.endTime}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-xs">
+                            {isEditingAllRows || (isCallActive && idx === 0) ? (
+                              <input 
+                                type="text" 
+                                value={isCallActive && idx === 0 ? editingCallData?.responder || '' : editingCallHistoryAll[idx]?.responder || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, responder: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'responder', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              />
+                            ) : entry.responder}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-xs">
+                            {isEditingAllRows || (isCallActive && idx === 0) ? (
+                              <select 
+                                value={isCallActive && idx === 0 ? editingCallData?.gender || '' : editingCallHistoryAll[idx]?.gender || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, gender: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'gender', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              >
+                                <option value="">-</option>
+                                <option value="男性">男性</option>
+                                <option value="女性">女性</option>
+                              </select>
+                            ) : entry.gender}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-xs">
+                            {isEditingAllRows || (isCallActive && idx === 0) ? (
+                              <select 
+                                value={isCallActive && idx === 0 ? editingCallData?.progress || '' : editingCallHistoryAll[idx]?.progress || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              >
+                                <option value="">-</option>
+                                <option value="受注">受注</option>
+                                <option value="見込みA">見込みA</option>
+                                <option value="見込みC">見込みC</option>
+                                <option value="留守">留守</option>
+                                <option value="拒否">拒否</option>
+                              </select>
+                            ) : entry.progress}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-xs">
+                            {isEditingAllRows || (isCallActive && idx === 0) ? (
+                              <textarea 
+                                value={isCallActive && idx === 0 ? editingCallData?.note || '' : editingCallHistoryAll[idx]?.note || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, note: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'note', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs h-12 resize-none"
+                              />
+                            ) : (
+                              <div className="relative group">
+                                <div className={`text-xs ${expandedNoteIndex === idx ? '' : 'line-clamp-2'}`}>
+                                  {entry.note}
+                                </div>
+                                {entry.note && entry.note.length > 50 && (
+                                  <button 
+                                    onClick={() => setExpandedNoteIndex(expandedNoteIndex === idx ? null : idx)}
+                                    className="text-[10px] text-blue-500 hover:underline mt-1"
+                                  >
+                                    {expandedNoteIndex === idx ? '閉じる' : '全文表示'}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          {!isSearchMode && (
+                            <td className="border border-gray-300 px-2 py-1 text-center">
+                              {!isEditingAllRows && !isCallActive && (
+                                <button 
+                                  onClick={() => handleDeleteCallHistory(idx)}
+                                  className="px-2 py-1 bg-red-500 text-white rounded text-xs font-semibold hover:bg-red-600"
+                                >
+                                  削除
+                                </button>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="border border-gray-300 px-2 py-4 text-center text-xs text-gray-400">
+                          履歴はありません
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
