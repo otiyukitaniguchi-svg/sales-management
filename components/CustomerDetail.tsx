@@ -416,17 +416,17 @@ export default function CustomerDetail() {
               ))}
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: '代表', field: 'repName', placeholder: '代表者名で検索...' },
-                  { label: '担当', field: 'staffName', placeholder: '担当者名で検索...' },
+                  { label: '《代表》', field: 'repName', placeholder: '代表者名で検索...' },
+                  { label: '《担当》', field: 'staffName', placeholder: '担当者名で検索...' },
                 ].map((item) => (
                   <div key={item.field}>
-                    <label className="block text-[10px] text-gray-500">{item.label}</label>
+                    <label className="block text-[10px] text-gray-500 mb-1">{item.label}</label>
                     <input
                       type="text"
                       placeholder={isSearchMode ? item.placeholder : ""}
                       value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                       onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
-                      className="w-full border border-gray-300 px-2 py-1 text-sm"
+                      className="w-full border border-gray-300 px-3 py-2 text-base h-10"
                     />
                   </div>
                 ))}
@@ -443,18 +443,18 @@ export default function CustomerDetail() {
             </div>
             <div className="col-span-3 space-y-3">
               {[
-                { label: '固定番号', field: 'fixedNo' },
-                { label: 'その他連絡先', field: 'otherContact' },
-                { label: 'メールアドレス', field: 'email' },
-                { label: '業種', field: 'industry' },
+                { label: '《固定番号》', field: 'fixedNo' },
+                { label: '《その他連絡先》', field: 'otherContact' },
+                { label: '《メールアドレス》', field: 'email' },
+                { label: '《業種》', field: 'industry' },
               ].map((item) => (
                 <div key={item.field}>
-                  <label className="block text-[10px] text-gray-500">{item.label}</label>
+                  <label className="block text-[10px] text-gray-500 mb-1">{item.label}</label>
                   <input
                     type="text"
                     value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                     onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
-                    className="w-full border border-gray-300 px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 px-3 py-2 text-base h-10"
                   />
                 </div>
               ))}
