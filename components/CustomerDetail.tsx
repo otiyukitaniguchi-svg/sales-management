@@ -290,7 +290,7 @@ export default function CustomerDetail() {
                   placeholder={isSearchMode ? "企業名・フリガナで検索..." : ""}
                   value={isSearchMode ? (searchRecord.companyName || '') : (editedRecord?.companyName || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, companyName: e.target.value}) : handleFieldChange('companyName', e.target.value)}
-                  className="w-full border border-gray-300 px-2 py-1 text-sm font-bold"
+                  className="w-full border border-gray-300 px-3 py-3 text-xl font-bold"
                 />
               </div>
               <div>
