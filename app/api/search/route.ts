@@ -5,23 +5,75 @@ import { toFrontendFormat } from '@/lib/types'
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    
+    // 顧客基本情報の検索条件
     const no = searchParams.get('no')
+    const companyName = searchParams.get('companyName')
+    const address = searchParams.get('address')
+    const repName = searchParams.get('repName')
+    const staffName = searchParams.get('staffName')
+    const memo = searchParams.get('memo')
+    
+    // 架電履歴の検索条件
+    const operator = searchParams.get('operator')
+    const responder = searchParams.get('responder')
+    const progress = searchParams.get('progress')
+    const historyNote = searchParams.get('historyNote')
 
-    if (!no) {
+    // 少なくとも一つの検索条件が必要
+    if (!no && !companyName && !address && !repName && !staffName && !memo && 
+        !operator && !responder && !progress && !historyNote) {
       return NextResponse.json(
-        { success: false, message: '検索キーワード(No)が指定されていません' },
+        { success: false, message: '検索条件が指定されていません' },
         { status: 400 }
       )
     }
 
+    let matchedCustomerNos: { listId: string, no: string }[] = []
+
+    // 1. 架電履歴からの検索（もし履歴条件があれば）
+    if (operator || responder || progress || historyNote) {
+      let historyQuery = supabaseAdmin.from(TABLES.CALL_HISTORY).select('list_type, no')
+      
+      if (operator) historyQuery = historyQuery.ilike('operator', `%${operator}%`)
+      if (responder) historyQuery = historyQuery.ilike('responder', `%${responder}%`)
+      if (progress) historyQuery = historyQuery.eq('progress', progress)
+      if (historyNote) historyQuery = historyQuery.ilike('note', `%${historyNote}%`)
+      
+      const { data: historyMatches, error: historyError } = await historyQuery
+      
+      if (historyError) {
+        console.error('History search error:', historyError)
+      } else if (historyMatches) {
+        matchedCustomerNos = historyMatches.map(m => ({ listId: m.list_type, no: m.no }))
+      }
+    }
+
     const results = []
 
-    // Search across all three lists
+    // 2. 各リスト（新規、ハルエネ、モバイル）を横断検索
     for (const [listId, tableName] of Object.entries(LIST_TYPE_MAP)) {
-      const { data: records, error } = await supabaseAdmin
-        .from(tableName)
-        .select('*')
-        .eq('no', no)
+      let query = supabaseAdmin.from(tableName).select('*')
+
+      // 基本情報の条件があれば適用
+      if (no) query = query.ilike('no', `%${no}%`)
+      if (companyName) query = query.or(`company_name.ilike.%${companyName}%,company_kana.ilike.%${companyName}%`)
+      if (address) query = query.ilike('address', `%${address}%`)
+      if (repName) query = query.or(`rep_name.ilike.%${repName}%,rep_kana.ilike.%${repName}%`)
+      if (staffName) query = query.or(`staff_name.ilike.%${staffName}%,staff_kana.ilike.%${staffName}%`)
+      if (memo) query = query.ilike('memo', `%${memo}%`)
+
+      // 履歴検索でヒットしたNoがあれば、そのリストに属するものだけに絞り込む
+      const listSpecificMatches = matchedCustomerNos.filter(m => m.listId === listId).map(m => m.no)
+      if (operator || responder || progress || historyNote) {
+        if (listSpecificMatches.length === 0) {
+          // 履歴条件があるが、このリストに該当がない場合はスキップ
+          continue
+        }
+        query = query.in('no', listSpecificMatches)
+      }
+
+      const { data: records, error } = await query.limit(50)
 
       if (error) {
         console.error(`Search error in ${tableName}:`, error)
@@ -29,20 +81,22 @@ export async function GET(request: NextRequest) {
       }
 
       if (records && records.length > 0) {
-        // Get call history count for this record
-        const { data: historyData } = await supabaseAdmin
-          .from(TABLES.CALL_HISTORY)
-          .select('id', { count: 'exact' })
-          .eq('list_type', listId)
-          .eq('no', no)
+        for (const record of records) {
+          // 各レコードの架電履歴件数を取得
+          const { count } = await supabaseAdmin
+            .from(TABLES.CALL_HISTORY)
+            .select('*', { count: 'exact', head: true })
+            .eq('list_type', listId)
+            .eq('no', record.no)
 
-        const frontendRecord = toFrontendFormat(records[0])
-        frontendRecord.callHistoryCount = historyData?.length || 0
+          const frontendRecord = toFrontendFormat(record)
+          frontendRecord.callHistoryCount = count || 0
 
-        results.push({
-          listId: listId,
-          record: frontendRecord,
-        })
+          results.push({
+            listId: listId,
+            record: frontendRecord,
+          })
+        }
       }
     }
 

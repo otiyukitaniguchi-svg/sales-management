@@ -81,7 +81,7 @@ export async function POST(
     }
 
     const entry: FrontendCallHistoryEntry = await request.json()
-    const dbEntry = callHistoryToDbFormat(entry, listId, no)
+    const dbEntry = callHistoryToDbFormat(entry, listId as 'list1' | 'list2' | 'list3', no)
 
     const { data, error } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
