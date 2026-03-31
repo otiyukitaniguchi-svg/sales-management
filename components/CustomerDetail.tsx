@@ -10,6 +10,8 @@ export default function CustomerDetail() {
   const currentListIndex = useAppStore((state) => state.currentListIndex)
   const listData = useAppStore((state) => state.listData)
   const setListData = useAppStore((state) => state.setListData)
+  const setCurrentList = useAppStore((state) => state.setCurrentList)
+  const setCurrentListIndex = useAppStore((state) => state.setCurrentListIndex)
   const user = useAppStore((state) => state.user)
 
   const records = listData[currentList] || []
@@ -22,6 +24,14 @@ export default function CustomerDetail() {
   const [searchHistory, setSearchHistory] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearching, setIsSearching] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+
+  // レコードが切り替わった時にデータを同期
+  useEffect(() => {
+    if (record && !isSearchMode) {
+      setEditedRecord({ ...record })
+      loadCallHistory()
+    }
+  }, [record, isSearchMode])
 
   // フィールド値の変更
   const handleFieldChange = (field: string, value: string) => {
@@ -70,6 +80,10 @@ export default function CustomerDetail() {
       if (searchRecord.repName) params.append('repName', searchRecord.repName)
       if (searchRecord.staffName) params.append('staffName', searchRecord.staffName)
       if (searchRecord.memo) params.append('memo', searchRecord.memo)
+      if (searchRecord.fixedNo) params.append('fixedNo', searchRecord.fixedNo)
+      if (searchRecord.otherContact) params.append('otherContact', searchRecord.otherContact)
+      if (searchRecord.email) params.append('email', searchRecord.email)
+      if (searchRecord.industry) params.append('industry', searchRecord.industry)
       
       if (searchHistory.operator) params.append('operator', searchHistory.operator)
       if (searchHistory.responder) params.append('responder', searchHistory.responder)
@@ -95,6 +109,11 @@ export default function CustomerDetail() {
           setListData(listId, records)
         })
         
+        // 最初のヒット結果を表示
+        const firstResult = data.results[0]
+        setCurrentList(firstResult.listId)
+        setCurrentListIndex(0)
+        
         setIsSearchMode(false)
         setSaveMessage(`✓ ${data.results.length}件ヒットしました`)
       } else {
@@ -109,8 +128,6 @@ export default function CustomerDetail() {
     }
   }
 
-  // ... (既存の保存・架電履歴読み込みロジックは維持)
-
   return (
     <div className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden">
       {/* 上部アクションバー */}
@@ -118,23 +135,30 @@ export default function CustomerDetail() {
         <div className="flex items-center space-x-2">
           <button 
             onClick={toggleSearchMode}
-            className={`px-4 py-1 rounded text-sm font-medium ${isSearchMode ? 'bg-red-500 text-white' : 'bg-blue-600 text-white'}`}
+            className={`px-4 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isSearchMode ? 'bg-red-500 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
           >
-            {isSearchMode ? '検索キャンセル' : '検索モード開始'}
+            {isSearchMode ? 'キャンセル' : '検索'}
           </button>
           {isSearchMode && (
             <button 
               onClick={handleSearchExecute}
               disabled={isSearching}
-              className="px-4 py-1 bg-green-600 text-white rounded text-sm font-medium disabled:opacity-50"
+              className="px-4 py-1 bg-blue-600 text-white rounded text-sm font-medium border border-blue-700 shadow-sm hover:bg-blue-700 disabled:opacity-50"
             >
-              {isSearching ? '検索中...' : '検索実行'}
+              {isSearching ? '検索中...' : '実行'}
             </button>
           )}
-          <span className="text-sm text-gray-600">{saveMessage}</span>
+          <span className="text-sm text-gray-600 ml-2">{saveMessage}</span>
         </div>
-        <div className="text-sm font-bold">
-          No. {isSearchMode ? '---' : (record?.no || '---')}
+        <div className="text-sm font-bold flex items-center">
+          <span className="mr-2">No.</span>
+          <input 
+            type="text"
+            value={isSearchMode ? (searchRecord.no || '') : (record?.no || '')}
+            onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, no: e.target.value}) : null}
+            readOnly={!isSearchMode}
+            className={`w-12 text-right border-b border-black focus:outline-none bg-transparent ${isSearchMode ? 'text-blue-600 font-bold' : ''}`}
+          />
         </div>
       </div>
 
@@ -202,12 +226,41 @@ export default function CustomerDetail() {
                 <label className="block text-[10px] text-gray-500">固定番号</label>
                 <input 
                   type="text" 
+                  placeholder={isSearchMode ? "電話番号で検索..." : ""}
                   value={isSearchMode ? (searchRecord.fixedNo || '') : (editedRecord?.fixedNo || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, fixedNo: e.target.value}) : handleFieldChange('fixedNo', e.target.value)}
                   className="w-full border border-gray-300 px-2 py-1 text-sm"
                 />
               </div>
-              {/* ... 他の右側フィールドも同様に実装 */}
+              <div>
+                <label className="block text-[10px] text-gray-500">その他連絡先</label>
+                <input 
+                  type="text" 
+                  value={isSearchMode ? (searchRecord.otherContact || '') : (editedRecord?.otherContact || '')}
+                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, otherContact: e.target.value}) : handleFieldChange('otherContact', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-500">Mail address</label>
+                <input 
+                  type="text" 
+                  placeholder={isSearchMode ? "メールで検索..." : ""}
+                  value={isSearchMode ? (searchRecord.email || '') : (editedRecord?.email || '')}
+                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, email: e.target.value}) : handleFieldChange('email', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-500">業種</label>
+                <input 
+                  type="text" 
+                  placeholder={isSearchMode ? "業種で検索..." : ""}
+                  value={isSearchMode ? (searchRecord.industry || '') : (editedRecord?.industry || '')}
+                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, industry: e.target.value}) : handleFieldChange('industry', e.target.value)}
+                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -260,7 +313,8 @@ export default function CustomerDetail() {
                         <option value="受注">受注</option>
                         <option value="見込みA">見込みA</option>
                         <option value="見込みC">見込みC</option>
-                        {/* ... 他のオプション */}
+                        <option value="留守">留守</option>
+                        <option value="拒否">拒否</option>
                       </select>
                     </td>
                     <td className="border border-gray-300 p-1">
@@ -274,15 +328,23 @@ export default function CustomerDetail() {
                     </td>
                   </tr>
                 ) : (
-                  callHistory.map((entry, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="border border-gray-300 px-2 py-1 text-xs">{entry.operator}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-xs">{entry.responder}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.gender}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-xs">{entry.progress}</td>
-                      <td className="border border-gray-300 px-2 py-1 text-xs">{entry.note}</td>
+                  callHistory.length > 0 ? (
+                    callHistory.map((entry, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.operator}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.responder}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs text-center">{entry.gender}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.progress}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.note}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="border border-gray-300 px-2 py-4 text-center text-xs text-gray-400">
+                        履歴はありません
+                      </td>
                     </tr>
-                  ))
+                  )
                 )}
               </tbody>
             </table>
