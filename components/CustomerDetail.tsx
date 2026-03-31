@@ -339,7 +339,7 @@ export default function CustomerDetail() {
                   placeholder={isSearchMode ? "住所で検索..." : ""}
                   value={isSearchMode ? (searchRecord.address || '') : (editedRecord?.address || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, address: e.target.value}) : handleFieldChange('address', e.target.value)}
-                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                  className="w-full border border-gray-300 px-3 py-3 text-base"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -350,7 +350,7 @@ export default function CustomerDetail() {
                     placeholder={isSearchMode ? "代表者名で検索..." : ""}
                     value={isSearchMode ? (searchRecord.repName || '') : (editedRecord?.repName || '')}
                     onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, repName: e.target.value}) : handleFieldChange('repName', e.target.value)}
-                    className="w-full border border-gray-300 px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 px-3 py-3 text-base"
                   />
                 </div>
                 <div>
@@ -360,7 +360,7 @@ export default function CustomerDetail() {
                     placeholder={isSearchMode ? "担当者名で検索..." : ""}
                     value={isSearchMode ? (searchRecord.staffName || '') : (editedRecord?.staffName || '')}
                     onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, staffName: e.target.value}) : handleFieldChange('staffName', e.target.value)}
-                    className="w-full border border-gray-300 px-2 py-1 text-sm"
+                    className="w-full border border-gray-300 px-3 py-3 text-base"
                   />
                 </div>
               </div>
@@ -370,7 +370,7 @@ export default function CustomerDetail() {
                   placeholder={isSearchMode ? "備考内容で検索..." : ""}
                   value={isSearchMode ? (searchRecord.memo || '') : (editedRecord?.memo || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, memo: e.target.value}) : handleFieldChange('memo', e.target.value)}
-                  className="w-full border border-gray-300 px-2 py-1 text-sm h-16 resize-none"
+                  className="w-full border border-gray-300 px-3 py-3 text-base h-24 resize-none"
                 />
               </div>
             </div>
@@ -382,7 +382,7 @@ export default function CustomerDetail() {
                   placeholder={isSearchMode ? "電話番号で検索..." : ""}
                   value={isSearchMode ? (searchRecord.fixedNo || '') : (editedRecord?.fixedNo || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, fixedNo: e.target.value}) : handleFieldChange('fixedNo', e.target.value)}
-                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                  className="w-full border border-gray-300 px-3 py-3 text-base"
                 />
               </div>
               <div>
@@ -391,7 +391,7 @@ export default function CustomerDetail() {
                   type="text" 
                   value={isSearchMode ? (searchRecord.otherContact || '') : (editedRecord?.otherContact || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, otherContact: e.target.value}) : handleFieldChange('otherContact', e.target.value)}
-                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                  className="w-full border border-gray-300 px-3 py-3 text-base"
                 />
               </div>
               <div>
@@ -401,7 +401,7 @@ export default function CustomerDetail() {
                   placeholder={isSearchMode ? "メールで検索..." : ""}
                   value={isSearchMode ? (searchRecord.email || '') : (editedRecord?.email || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, email: e.target.value}) : handleFieldChange('email', e.target.value)}
-                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                  className="w-full border border-gray-300 px-3 py-3 text-base"
                 />
               </div>
               <div>
@@ -411,7 +411,7 @@ export default function CustomerDetail() {
                   placeholder={isSearchMode ? "業種で検索..." : ""}
                   value={isSearchMode ? (searchRecord.industry || '') : (editedRecord?.industry || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, industry: e.target.value}) : handleFieldChange('industry', e.target.value)}
-                  className="w-full border border-gray-300 px-2 py-1 text-sm"
+                  className="w-full border border-gray-300 px-3 py-3 text-base"
                 />
               </div>
             </div>
