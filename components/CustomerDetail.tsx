@@ -457,18 +457,18 @@ export default function CustomerDetail() {
           {/* 架電履歴テーブル */}
           <div className="overflow-hidden flex-1 flex flex-col">
             <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '300px' }}>
-              <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+              <table className="w-full border-collapse" style={{ tableLayout: 'auto' }}>
                 <thead className="bg-blue-100 sticky top-0">
                   <tr>
                     {isDeleteMode && <th className="border border-gray-300 px-1 py-1 w-8"></th>}
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>担当者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応日</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>開始</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>終了</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>性別</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>進捗</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '16%' }}>コール履歴</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '90px', minWidth: '90px' }}>担当者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '90px', minWidth: '90px' }}>対応日</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '70px', minWidth: '70px' }}>開始</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '70px', minWidth: '70px' }}>終了</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '90px', minWidth: '90px' }}>対応者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '50px', minWidth: '50px' }}>性別</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '80px', minWidth: '80px' }}>進捗</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ flex: 1 }}>コール履歴</th>
                   </tr>
                 </thead>
                 <tbody>
