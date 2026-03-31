@@ -80,9 +80,21 @@ export default function CustomerDetail() {
       const data = await response.json()
 
       if (data.success && data.results.length > 0) {
-        // 検索結果を現在のリストに反映（簡易的な実装例）
-        const newRecords = data.results.map((r: any) => r.record)
-        setListData(currentList, newRecords)
+        // 検索結果をすべてのリストに反映（リストごとにグループ化）
+        const groupedByList: { [key: string]: any[] } = {}
+        data.results.forEach((r: any) => {
+          const listId = r.listId || currentList
+          if (!groupedByList[listId]) {
+            groupedByList[listId] = []
+          }
+          groupedByList[listId].push(r.record)
+        })
+        
+        // 各リストのデータを更新
+        Object.entries(groupedByList).forEach(([listId, records]) => {
+          setListData(listId, records)
+        })
+        
         setIsSearchMode(false)
         setSaveMessage(`✓ ${data.results.length}件ヒットしました`)
       } else {
