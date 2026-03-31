@@ -32,6 +32,10 @@ export default function CustomerDetail() {
   const [searchRecord, setSearchRecord] = useState<Partial<FrontendCustomerRecord>>({})
   const [searchHistory, setSearchHistory] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearching, setIsSearching] = useState(false)
+  
+  // 削除モード用の状態
+  const [isDeleteMode, setIsDeleteMode] = useState(false)
+  const [selectedDeleteIndices, setSelectedDeleteIndices] = useState<number[]>([])
 
   useEffect(() => {
     if (record && !isSearchMode) {
@@ -152,18 +156,43 @@ export default function CustomerDetail() {
     setEditingCallHistoryAll(updated)
   }
 
-  const handleDeleteCallHistory = async (index: number) => {
-    if (!record) return
-    try {
-      const success = await ApiClient.deleteCallHistory(currentList, record.no, index)
-      if (success) {
-        await loadCallHistory()
-        setSaveMessage('✓ 架電履歴を削除しました')
-        setTimeout(() => setSaveMessage(''), 2000)
+  // 削除モードの切り替えと実行
+  const handleDeleteModeToggle = async () => {
+    if (isDeleteMode) {
+      if (selectedDeleteIndices.length === 0) {
+        setIsDeleteMode(false)
+        return
       }
-    } catch (error) {
-      console.error('Failed to delete call history:', error)
+      
+      if (!confirm(`${selectedDeleteIndices.length}件の履歴を削除しますか？`)) return
+      
+      setIsSaving(true)
+      try {
+        // インデックスが大きい順に削除して、インデックスのズレを防ぐ
+        const sortedIndices = [...selectedDeleteIndices].sort((a, b) => b - a)
+        for (const index of sortedIndices) {
+          await ApiClient.deleteCallHistory(currentList, record.no, index)
+        }
+        setIsDeleteMode(false)
+        setSelectedDeleteIndices([])
+        await loadCallHistory()
+        setSaveMessage('✓ 選択した履歴を削除しました')
+        setTimeout(() => setSaveMessage(''), 2000)
+      } catch (error) {
+        console.error('Failed to delete selected rows:', error)
+      } finally {
+        setIsSaving(false)
+      }
+    } else {
+      setIsDeleteMode(true)
+      setSelectedDeleteIndices([])
     }
+  }
+
+  const toggleDeleteSelection = (index: number) => {
+    setSelectedDeleteIndices(prev => 
+      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
+    )
   }
 
   // 検索モードへの切り替え
@@ -208,7 +237,6 @@ export default function CustomerDetail() {
       const data = await response.json()
 
       if (data.success && data.results.length > 0) {
-        // 検索結果をすべてのリストに反映（リストごとにグループ化）
         const groupedByList: { [key: string]: any[] } = {}
         data.results.forEach((r: any) => {
           const listId = r.listId || currentList
@@ -218,12 +246,10 @@ export default function CustomerDetail() {
           groupedByList[listId].push(r.record)
         })
         
-        // 各リストのデータを更新
         Object.entries(groupedByList).forEach(([listId, records]) => {
           setListData(listId, records)
         })
         
-        // 最初のヒット結果を表示
         const firstResult = data.results[0]
         setCurrentList(firstResult.listId)
         setCurrentListIndex(0)
@@ -377,19 +403,6 @@ export default function CustomerDetail() {
               </div>
             </div>
           </div>
-          
-          {/* 顧客情報操作ボタン */}
-          {!isSearchMode && (
-            <div className="mt-4 flex space-x-2">
-              <button 
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-4 py-1 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-              >
-                {isSaving ? '保存中...' : '保存'}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* 架電履歴セクション */}
@@ -399,7 +412,7 @@ export default function CustomerDetail() {
             <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center space-x-2">
               <button 
                 onClick={handleCallStart}
-                disabled={isCallActive}
+                disabled={isCallActive || isDeleteMode}
                 className="px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
               >
                 開始
@@ -413,17 +426,17 @@ export default function CustomerDetail() {
               </button>
               <button 
                 onClick={handleEditAllRows}
-                disabled={isCallActive}
-                className="px-3 py-1 bg-yellow-600 text-white rounded text-sm font-medium hover:bg-yellow-700 disabled:opacity-50"
+                disabled={isCallActive || isDeleteMode}
+                className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isEditingAllRows ? 'bg-green-600 text-white border-green-700 hover:bg-green-700' : 'bg-yellow-600 text-white border-yellow-700 hover:bg-yellow-700'}`}
               >
                 {isEditingAllRows ? '保存' : '編集'}
               </button>
               <button 
-                onClick={() => setIsEditingAllRows(false)}
-                disabled={!isEditingAllRows}
-                className="px-3 py-1 bg-gray-600 text-white rounded text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+                onClick={handleDeleteModeToggle}
+                disabled={isCallActive || isEditingAllRows}
+                className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isDeleteMode ? 'bg-red-600 text-white border-red-700 hover:bg-red-700' : 'bg-gray-600 text-white border-gray-700 hover:bg-gray-700'}`}
               >
-                削除/実行
+                {isDeleteMode ? (selectedDeleteIndices.length > 0 ? '実行' : 'キャンセル') : '削除/実行'}
               </button>
             </div>
           )}
@@ -434,15 +447,15 @@ export default function CustomerDetail() {
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead className="bg-blue-100 sticky top-0">
                   <tr>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>担当者</th>
+                    {isDeleteMode && <th className="border border-gray-300 px-1 py-1 w-8"></th>}
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '6%' }}>担当者</th>
                     <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応日</th>
                     <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>開始</th>
                     <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>終了</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>性別</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>進捗</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '24%' }}>コール履歴</th>
-                    {!isSearchMode && <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>操作</th>}
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '6%' }}>対応者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '6%' }}>性別</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '6%' }}>進捗</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '48%' }}>コール履歴</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -493,8 +506,17 @@ export default function CustomerDetail() {
                     </tr>
                   ) : (
                     callHistory.length > 0 ? (
-                      callHistory.slice(0, 5).map((entry, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50">
+                      callHistory.map((entry, idx) => (
+                        <tr key={idx} className={`hover:bg-gray-50 ${selectedDeleteIndices.includes(idx) ? 'bg-red-50' : ''}`}>
+                          {isDeleteMode && (
+                            <td className="border border-gray-300 px-1 py-1 text-center">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedDeleteIndices.includes(idx)}
+                                onChange={() => toggleDeleteSelection(idx)}
+                              />
+                            </td>
+                          )}
                           <td className="border border-gray-300 px-2 py-1 text-xs">
                             {isEditingAllRows || (isCallActive && idx === 0) ? (
                               <input 
@@ -573,38 +595,16 @@ export default function CustomerDetail() {
                                 className="w-full border border-gray-300 px-1 py-0.5 text-xs h-12 resize-none"
                               />
                             ) : (
-                              <div className="relative group">
-                                <div className={`text-xs ${expandedNoteIndex === idx ? '' : 'line-clamp-2'}`}>
-                                  {entry.note}
-                                </div>
-                                {entry.note && entry.note.length > 50 && (
-                                  <button 
-                                    onClick={() => setExpandedNoteIndex(expandedNoteIndex === idx ? null : idx)}
-                                    className="text-[10px] text-blue-500 hover:underline mt-1"
-                                  >
-                                    {expandedNoteIndex === idx ? '閉じる' : '全文表示'}
-                                  </button>
-                                )}
+                              <div className="text-xs whitespace-pre-wrap break-words">
+                                {entry.note}
                               </div>
                             )}
                           </td>
-                          {!isSearchMode && (
-                            <td className="border border-gray-300 px-2 py-1 text-center">
-                              {!isEditingAllRows && !isCallActive && (
-                                <button 
-                                  onClick={() => handleDeleteCallHistory(idx)}
-                                  className="px-2 py-1 bg-red-500 text-white rounded text-xs font-semibold hover:bg-red-600"
-                                >
-                                  削除
-                                </button>
-                              )}
-                            </td>
-                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={9} className="border border-gray-300 px-2 py-4 text-center text-xs text-gray-400">
+                        <td colSpan={isDeleteMode ? 9 : 8} className="border border-gray-300 px-2 py-4 text-center text-xs text-gray-400">
                           履歴はありません
                         </td>
                       </tr>
