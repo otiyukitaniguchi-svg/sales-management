@@ -473,7 +473,7 @@ export default function CustomerDetail() {
                 </thead>
                 <tbody>
                   {isSearchMode ? (
-                    <tr className="bg-yellow-50" style={{ height: '60px' }}>
+                    <tr className="bg-yellow-50" style={{ height: 'auto' }}>
                       <td className="border border-gray-300 p-1">
                         <input 
                           type="text" 
@@ -520,7 +520,7 @@ export default function CustomerDetail() {
                     ) : (
                       callHistory.length > 0 ? (
                         callHistory.map((entry, idx) => (
-                          <tr key={idx} className={`hover:bg-gray-50 ${selectedDeleteIndices.includes(idx) ? 'bg-red-50' : ''}`} style={{ height: '60px' }}>
+                          <tr key={idx} className={`hover:bg-gray-50 ${selectedDeleteIndices.includes(idx) ? 'bg-red-50' : ''}`} style={{ height: 'auto' }}>
                           {isDeleteMode && (
                             <td className="border border-gray-300 px-1 py-1 text-center">
                               <input 
@@ -605,10 +605,10 @@ export default function CustomerDetail() {
                               <textarea 
                                 value={isCallActive && idx === 0 ? editingCallData?.note || '' : editingCallHistoryAll[idx]?.note || ''}
                                 onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, note: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'note', e.target.value)}
-                                className="w-full border border-gray-300 px-1 py-0.5 text-xs resize-none overflow-y-auto" style={{ height: '52px' }}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-xs resize-none overflow-y-auto" style={{ height: '20px', minHeight: '20px' }}
                               />
                             ) : (
-                              <div className="text-xs whitespace-pre-wrap break-words overflow-y-auto" style={{ height: '52px' }}>
+                              <div className="text-xs whitespace-pre-wrap break-words overflow-y-auto" style={{ height: '20px', minHeight: '20px' }}>
                                 {entry.note}
                               </div>
                             )}
