@@ -146,6 +146,7 @@ export default function CustomerDetail() {
         const entry = editingCallHistoryAll[i]
         let success = false
         
+        // IDがある場合はIDベースの更新APIを使用する
         if ((entry as any).id) {
           const response = await fetch(`/api/call-history/${(entry as any).id}`, {
             method: 'PUT',
@@ -155,6 +156,7 @@ export default function CustomerDetail() {
           const result = await response.json()
           success = response.ok && (result.success || !result.error)
         } else {
+          // IDがない場合はインデックスベースの更新APIを使用する
           success = await ApiClient.updateCallHistory(currentList, record.no, i, entry)
         }
         
@@ -194,13 +196,22 @@ export default function CustomerDetail() {
       
       setIsSaving(true)
       try {
+        // インデックスが大きい順に削除して、インデックスのズレを防ぐ
         const sortedIndices = [...selectedDeleteIndices].sort((a, b) => b - a)
         for (const index of sortedIndices) {
           const entry = callHistory[index]
+          let success = false
+          
           if ((entry as any).id) {
-            await fetch(`/api/call-history/${(entry as any).id}`, { method: 'DELETE' })
+            const response = await fetch(`/api/call-history/${(entry as any).id}`, { method: 'DELETE' })
+            const result = await response.json()
+            success = response.ok && (result.success || !result.error)
           } else {
-            await ApiClient.deleteCallHistory(currentList, record.no, index)
+            success = await ApiClient.deleteCallHistory(currentList, record.no, index)
+          }
+          
+          if (!success) {
+            console.error(`Failed to delete index ${index}`)
           }
         }
         setIsDeleteMode(false)
@@ -210,6 +221,7 @@ export default function CustomerDetail() {
         setTimeout(() => setSaveMessage(''), 2000)
       } catch (error) {
         console.error('Failed to delete selected rows:', error)
+        setSaveMessage('✗ 削除に失敗しました')
       } finally {
         setIsSaving(false)
       }
@@ -352,7 +364,7 @@ export default function CustomerDetail() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* 顧客情報セクション - 配色復元: bg-[#FFFDE7] */}
+        {/* 顧客情報セクション */}
         <div className="bg-[#FFFDE7] border border-gray-300 rounded shadow-sm p-4">
           <div className="flex justify-between items-center mb-3 border-b border-gray-300 pb-1">
             <h2 className="text-sm font-bold">【顧客基本情報】</h2>
@@ -431,7 +443,7 @@ export default function CustomerDetail() {
           </div>
         </div>
 
-        {/* 架電履歴セクション - 5行表示制限復元 */}
+        {/* 架電履歴セクション */}
         <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden">
           <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex justify-between items-center">
             <div className="flex items-center space-x-2">
@@ -487,7 +499,6 @@ export default function CustomerDetail() {
             )}
           </div>
           
-          {/* 5行表示制限のためのコンテナ: max-height: 180px (約5行分) */}
           <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '180px' }}>
             <table className="w-full border-collapse table-fixed">
               <thead className="bg-blue-100 sticky top-0 z-10">
