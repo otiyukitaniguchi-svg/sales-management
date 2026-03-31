@@ -39,6 +39,9 @@ export default function CustomerDetail() {
   // レコードごとの編集状態を保持するためのキャッシュ
   const [editCache, setEditCache] = useState<{[key: string]: FrontendCustomerRecord}>({})
 
+  // 履歴の展開状態を管理
+  const [expandedHistoryIndices, setExpandedHistoryIndices] = useState<number[]>([])
+
   useEffect(() => {
     if (record && !isSearchMode) {
       // キャッシュがあればそれを使用、なければレコードから初期化
@@ -49,6 +52,7 @@ export default function CustomerDetail() {
         setEditedRecord({ ...record })
       }
       loadCallHistory()
+      setExpandedHistoryIndices([]) // レコード切り替え時に展開状態をリセット
     }
   }, [record, isSearchMode])
 
@@ -356,6 +360,12 @@ export default function CustomerDetail() {
     }
   }
 
+  const toggleHistoryExpand = (index: number) => {
+    setExpandedHistoryIndices(prev => 
+      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
+    )
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden">
       {/* 上部アクションバー */}
@@ -566,7 +576,11 @@ export default function CustomerDetail() {
                         <option value="">進捗検索</option>
                         <option value="受注">受注</option>
                         <option value="見込みA">見込みA</option>
+                        <option value="見込みB">見込みB</option>
                         <option value="見込みC">見込みC</option>
+                        <option value="留守">留守</option>
+                        <option value="拒否">拒否</option>
+                        <option value="時期尚早">時期尚早</option>
                       </select>
                     </td>
                     <td className="border border-gray-300 p-1">
@@ -656,13 +670,18 @@ export default function CustomerDetail() {
                               <option value="">-</option>
                               <option value="受注">受注</option>
                               <option value="見込みA">見込みA</option>
+                              <option value="見込みB">見込みB</option>
                               <option value="見込みC">見込みC</option>
                               <option value="留守">留守</option>
                               <option value="拒否">拒否</option>
+                              <option value="時期尚早">時期尚早</option>
                             </select>
                           ) : entry.progress}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <td 
+                          className="border border-gray-300 px-2 py-1 text-xs cursor-pointer"
+                          onClick={() => !isEditingAllRows && !(isCallActive && idx === 0) && toggleHistoryExpand(idx)}
+                        >
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <textarea 
                               value={isCallActive && idx === 0 ? editingCallData?.note || '' : editingCallHistoryAll[idx]?.note || ''}
@@ -670,7 +689,7 @@ export default function CustomerDetail() {
                               className="w-full border border-gray-300 px-1 py-0.5 text-xs resize-none" style={{ height: '24px' }}
                             />
                           ) : (
-                            <div className="text-xs whitespace-pre-wrap break-words">
+                            <div className={`text-xs whitespace-pre-wrap break-words ${expandedHistoryIndices.includes(idx) ? '' : 'line-clamp-1'}`}>
                               {entry.note}
                             </div>
                           )}
