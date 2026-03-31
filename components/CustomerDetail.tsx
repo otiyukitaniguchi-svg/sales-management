@@ -461,14 +461,14 @@ export default function CustomerDetail() {
                 <thead className="bg-blue-100 sticky top-0">
                   <tr>
                     {isDeleteMode && <th className="border border-gray-300 px-1 py-1 w-8"></th>}
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>担当者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>担当者</th>
                     <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応日</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '10%' }}>開始</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '10%' }}>終了</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>対応者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>性別</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '8%' }}>進捗</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '36%' }}>コール履歴</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>開始</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>終了</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>対応者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>性別</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '12%' }}>進捗</th>
+                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '16%' }}>コール履歴</th>
                   </tr>
                 </thead>
                 <tbody>
