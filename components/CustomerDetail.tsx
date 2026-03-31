@@ -144,9 +144,26 @@ export default function CustomerDetail() {
     setIsSaving(true)
     try {
       // 編集内容を保存
+      // 注意: callHistoryは最新順にソートされているが、ApiClient.updateCallHistoryのindexは
+      // データベース上のインデックス（作成順）を期待している可能性がある。
+      // しかし、現在のAPI実装（/api/call-history/[id]）はIDベースなので、
+      // フロントエンドの各エントリがIDを持っているか確認が必要。
+      
       for (let i = 0; i < editingCallHistoryAll.length; i++) {
-        await ApiClient.updateCallHistory(currentList, record.no, i, editingCallHistoryAll[i])
+        const entry = editingCallHistoryAll[i]
+        // IDがある場合はIDベースの更新APIを使用する
+        if ((entry as any).id) {
+          await fetch(`/api/call-history/${(entry as any).id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry)
+          })
+        } else {
+          // IDがない場合は従来のインデックスベース（非推奨だが互換性のため）
+          await ApiClient.updateCallHistory(currentList, record.no, i, entry)
+        }
       }
+      
       // 保存完了後に編集モードを確実に終了
       setIsEditingAllRows(false)
       setEditingCallHistoryAll([])
@@ -184,7 +201,12 @@ export default function CustomerDetail() {
         // インデックスが大きい順に削除して、インデックスのズレを防ぐ
         const sortedIndices = [...selectedDeleteIndices].sort((a, b) => b - a)
         for (const index of sortedIndices) {
-          await ApiClient.deleteCallHistory(currentList, record.no, index)
+          const entry = callHistory[index]
+          if ((entry as any).id) {
+            await fetch(`/api/call-history/${(entry as any).id}`, { method: 'DELETE' })
+          } else {
+            await ApiClient.deleteCallHistory(currentList, record.no, index)
+          }
         }
         setIsDeleteMode(false)
         setSelectedDeleteIndices([])
@@ -281,6 +303,26 @@ export default function CustomerDetail() {
     }
   }
 
+  const handleSetRecall = async () => {
+    if (!editedRecord || !record) return
+    setIsSaving(true)
+    try {
+      const success = await ApiClient.updateCustomer(currentList, record.no, {
+        ...editedRecord,
+        recallDate: editedRecord.recallDate,
+        recallTime: editedRecord.recallTime
+      })
+      if (success) {
+        setSaveMessage('✓ 再コール日時を設定しました')
+        setTimeout(() => setSaveMessage(''), 2000)
+      }
+    } catch (error) {
+      console.error('Failed to set recall:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden">
       {/* 上部アクションバー */}
@@ -289,216 +331,164 @@ export default function CustomerDetail() {
           <button 
             onClick={isSearchMode ? handleSearchExecute : toggleSearchMode}
             disabled={isSearching}
-            className={`px-4 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isSearchMode ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+              isSearchMode 
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
           >
-            {isSearching ? '検索中...' : (isSearchMode ? '検索実行' : '検索')}
+            {isSearching ? '検索中...' : isSearchMode ? '検索実行' : '検索モード'}
           </button>
           {isSearchMode && (
             <button 
               onClick={toggleSearchMode}
-              className="px-4 py-1 bg-red-500 text-white rounded text-sm font-medium border border-red-600 shadow-sm hover:bg-red-600"
+              className="px-4 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
             >
               キャンセル
             </button>
           )}
-          <span className="text-sm text-gray-600 ml-2">{saveMessage}</span>
+          {saveMessage && (
+            <span className={`text-sm font-medium ${saveMessage.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
+              {saveMessage}
+            </span>
+          )}
         </div>
-        <div className="text-sm font-bold flex items-center">
-          <span className="mr-2">No.</span>
-          <input 
-            type="text"
-            value={isSearchMode ? (searchRecord.no || '') : (record?.no || '')}
-            onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, no: e.target.value}) : null}
-            readOnly={!isSearchMode}
-            className={`w-12 text-right border-b border-black focus:outline-none bg-transparent ${isSearchMode ? 'text-blue-600 font-bold' : ''}`}
-          />
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-500">
+            {currentList}: {currentListIndex + 1} / {records.length}
+          </div>
         </div>
       </div>
 
-      {/* メインコンテンツエリア */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* 顧客基本情報セクション */}
-        <div className="bg-[#FFFDE7] border border-gray-300 rounded shadow-sm p-4">
-          <h2 className="text-sm font-bold mb-3 border-b border-gray-300 pb-1">【顧客基本情報】</h2>
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-9 space-y-3">
-              <div>
-                <label className="block text-[10px] text-gray-500">《企業名》</label>
-                <input 
-                  type="text" 
-                  placeholder={isSearchMode ? "企業名・フリガナで検索..." : ""}
-                  value={isSearchMode ? (searchRecord.companyName || '') : (editedRecord?.companyName || '')}
-                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, companyName: e.target.value}) : handleFieldChange('companyName', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-3 text-xl font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-gray-500">《住所》</label>
-                <input 
-                  type="text" 
-                  placeholder={isSearchMode ? "住所で検索..." : ""}
-                  value={isSearchMode ? (searchRecord.address || '') : (editedRecord?.address || '')}
-                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, address: e.target.value}) : handleFieldChange('address', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-3 text-base"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] text-gray-500">代表</label>
-                  <input 
-                    type="text" 
-                    placeholder={isSearchMode ? "代表者名で検索..." : ""}
-                    value={isSearchMode ? (searchRecord.repName || '') : (editedRecord?.repName || '')}
-                    onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, repName: e.target.value}) : handleFieldChange('repName', e.target.value)}
-                    className="w-full border border-gray-300 px-3 py-3 text-base"
-                  />
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* 顧客情報セクション */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="font-bold text-gray-700">顧客情報</h3>
+            {!isSearchMode && (
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSaving ? '保存中...' : '保存'}
+              </button>
+            )}
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { label: 'No', field: 'no' },
+                { label: '会社名', field: 'companyName' },
+                { label: '会社名(カナ)', field: 'companyKana' },
+                { label: '電話番号', field: 'fixedNo' },
+                { label: 'その他連絡先', field: 'otherContact' },
+                { label: '郵便番号', field: 'zipCode' },
+                { label: '住所', field: 'address' },
+                { label: '代表者名', field: 'repName' },
+                { label: '担当者名', field: 'staffName' },
+                { label: 'メールアドレス', field: 'email' },
+                { label: '業種', field: 'industry' },
+                { label: '備考', field: 'memo' },
+              ].map((item) => (
+                <div key={item.field} className="space-y-1">
+                  <label className="text-xs font-medium text-gray-500">{item.label}</label>
+                  {isSearchMode ? (
+                    <input
+                      type="text"
+                      value={(searchRecord as any)[item.field] || ''}
+                      onChange={(e) => setSearchRecord({ ...searchRecord, [item.field]: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder={`${item.label}で検索...`}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={(editedRecord as any)?.[item.field] || ''}
+                      onChange={(e) => handleFieldChange(item.field, e.target.value)}
+                      className="w-full border border-gray-300 rounded px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  )}
                 </div>
-                <div>
-                  <label className="block text-[10px] text-gray-500">担当</label>
-                  <input 
-                    type="text" 
-                    placeholder={isSearchMode ? "担当者名で検索..." : ""}
-                    value={isSearchMode ? (searchRecord.staffName || '') : (editedRecord?.staffName || '')}
-                    onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, staffName: e.target.value}) : handleFieldChange('staffName', e.target.value)}
-                    className="w-full border border-gray-300 px-3 py-3 text-base"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] text-gray-500">備考</label>
-                <textarea 
-                  placeholder={isSearchMode ? "備考内容で検索..." : ""}
-                  value={isSearchMode ? (searchRecord.memo || '') : (editedRecord?.memo || '')}
-                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, memo: e.target.value}) : handleFieldChange('memo', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-3 text-base h-24 resize-none"
-                />
-              </div>
-            </div>
-            <div className="col-span-3 space-y-3">
-              <div>
-                <label className="block text-[10px] text-gray-500">固定番号</label>
-                <input 
-                  type="text" 
-                  placeholder={isSearchMode ? "電話番号で検索..." : ""}
-                  value={isSearchMode ? (searchRecord.fixedNo || '') : (editedRecord?.fixedNo || '')}
-                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, fixedNo: e.target.value}) : handleFieldChange('fixedNo', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-3 text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-gray-500">その他連絡先</label>
-                <input 
-                  type="text" 
-                  value={isSearchMode ? (searchRecord.otherContact || '') : (editedRecord?.otherContact || '')}
-                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, otherContact: e.target.value}) : handleFieldChange('otherContact', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-3 text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-gray-500">Mail address</label>
-                <input 
-                  type="text" 
-                  placeholder={isSearchMode ? "メールで検索..." : ""}
-                  value={isSearchMode ? (searchRecord.email || '') : (editedRecord?.email || '')}
-                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, email: e.target.value}) : handleFieldChange('email', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-3 text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-gray-500">業種</label>
-                <input 
-                  type="text" 
-                  placeholder={isSearchMode ? "業種で検索..." : ""}
-                  value={isSearchMode ? (searchRecord.industry || '') : (editedRecord?.industry || '')}
-                  onChange={(e) => isSearchMode ? setSearchRecord({...searchRecord, industry: e.target.value}) : handleFieldChange('industry', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-3 text-base"
-                />
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* 架電履歴セクション */}
-        <div className="bg-white border border-gray-300 rounded shadow-sm overflow-hidden flex flex-col">
-          {/* 架電履歴操作ボタン */}
-          {!isSearchMode && (
-            <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={handleCallStart}
-                  disabled={isCallActive || isDeleteMode}
-                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  開始
-                </button>
-                <button 
-                  onClick={handleCallEnd}
-                  disabled={!isCallActive}
-                  className="px-3 py-1 bg-orange-600 text-white rounded text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
-                >
-                  終了
-                </button>
-                <button 
-                  onClick={handleEditAllRows}
-                  disabled={isCallActive || isDeleteMode}
-                  className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isEditingAllRows ? 'bg-green-600 text-white border-green-700 hover:bg-green-700' : 'bg-yellow-600 text-white border-yellow-700 hover:bg-yellow-700'}`}
-                >
-                  {isEditingAllRows ? '保存' : '編集'}
-                </button>
-                <button 
-                  onClick={handleDeleteModeToggle}
-                  disabled={isCallActive || isEditingAllRows}
-                  className={`px-3 py-1 rounded text-sm font-medium border shadow-sm transition-colors ${isDeleteMode ? 'bg-red-600 text-white border-red-700 hover:bg-red-700' : 'bg-gray-600 text-white border-gray-700 hover:bg-gray-700'}`}
-                >
-                  {isDeleteMode ? (selectedDeleteIndices.length > 0 ? '実行' : 'キャンセル') : '削除/実行'}
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">再コール日時:</label>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <h3 className="font-bold text-gray-700">架電履歴</h3>
+              {!isSearchMode && (
+                <>
+                  <button 
+                    onClick={isCallActive ? handleCallEnd : handleCallStart}
+                    className={`px-3 py-1 rounded text-sm font-medium text-white ${isCallActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                  >
+                    {isCallActive ? '終了' : '開始'}
+                  </button>
+                  <button 
+                    onClick={handleEditAllRows}
+                    className={`px-3 py-1 rounded text-sm font-medium ${isEditingAllRows ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  >
+                    {isEditingAllRows ? '保存' : '編集'}
+                  </button>
+                  <button 
+                    onClick={handleDeleteModeToggle}
+                    className={`px-3 py-1 rounded text-sm font-medium ${isDeleteMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  >
+                    {isDeleteMode ? (selectedDeleteIndices.length > 0 ? '実行' : '解除') : '削除'}
+                  </button>
+                </>
+              )}
+            </div>
+            
+            {/* 再コール日時設定セクション */}
+            {!isSearchMode && (
+              <div className="flex items-center space-x-2 bg-white p-1 rounded border border-gray-200">
+                <span className="text-xs font-bold text-gray-600 px-1">再コール日時</span>
                 <input 
                   type="date" 
-                  value={currentCall.recallDate || ''}
-                  onChange={(e) => setCurrentCall({...currentCall, recallDate: e.target.value})}
-                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                  value={editedRecord?.recallDate || ''} 
+                  onChange={(e) => handleFieldChange('recallDate', e.target.value)}
+                  className="border border-gray-300 rounded px-1 py-0.5 text-xs"
                 />
                 <input 
                   type="time" 
-                  value={currentCall.recallTime || ''}
-                  onChange={(e) => setCurrentCall({...currentCall, recallTime: e.target.value})}
-                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                  value={editedRecord?.recallTime || ''} 
+                  onChange={(e) => handleFieldChange('recallTime', e.target.value)}
+                  className="border border-gray-300 rounded px-1 py-0.5 text-xs"
                 />
                 <button 
-                  onClick={() => {
-                    console.log('再コール日時を設定:', currentCall.recallDate, currentCall.recallTime)
-                  }}
-                  className="px-3 py-1 bg-green-500 text-white rounded text-sm font-medium hover:bg-green-600"
+                  onClick={handleSetRecall}
+                  disabled={isSaving}
+                  className="bg-green-600 text-white px-2 py-0.5 rounded text-xs hover:bg-green-700 disabled:opacity-50"
                 >
                   設定
                 </button>
               </div>
-            </div>
-          )}
-          
-          {/* 架電履歴テーブル */}
-          <div className="overflow-hidden flex-1 flex flex-col">
-            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '300px' }}>
-              <table className="w-full border-collapse" style={{ tableLayout: 'auto' }}>
-                <thead className="bg-blue-100 sticky top-0">
-                  <tr>
-                    {isDeleteMode && <th className="border border-gray-300 px-1 py-1 w-8"></th>}
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '90px', minWidth: '90px' }}>担当者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '90px', minWidth: '90px' }}>対応日</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '70px', minWidth: '70px' }}>開始</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '70px', minWidth: '70px' }}>終了</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '90px', minWidth: '90px' }}>対応者</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '50px', minWidth: '50px' }}>性別</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ width: '80px', minWidth: '80px' }}>進捗</th>
-                    <th className="border border-gray-300 px-2 py-1 text-[10px]" style={{ flex: 1 }}>コール履歴</th>
+            )}
+          </div>
+          <div className="p-0 overflow-x-auto">
+            <div className="min-w-full inline-block align-middle">
+              <table className="min-w-full border-collapse table-fixed">
+                <thead>
+                  <tr className="bg-gray-100">
+                    {isDeleteMode && <th className="border border-gray-300 px-1 py-1 text-xs text-gray-600 w-[40px]">選択</th>}
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600 w-[90px]">担当者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600 w-[90px]">対応日</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600 w-[70px]">開始</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600 w-[70px]">終了</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600 w-[90px]">対応者</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600 w-[50px]">性別</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600 w-[80px]">進捗</th>
+                    <th className="border border-gray-300 px-2 py-1 text-left text-xs font-medium text-gray-600">コール履歴</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isSearchMode ? (
-                    <tr className="bg-yellow-50" style={{ height: 'auto' }}>
+                    <tr className="bg-blue-50">
                       <td className="border border-gray-300 p-1">
                         <input 
                           type="text" 
@@ -542,10 +532,10 @@ export default function CustomerDetail() {
                         />
                       </td>
                     </tr>
-                    ) : (
-                      callHistory.length > 0 ? (
-                        callHistory.map((entry, idx) => (
-                          <tr key={idx} className={`hover:bg-gray-50 ${selectedDeleteIndices.includes(idx) ? 'bg-red-50' : ''}`} style={{ height: 'auto' }}>
+                  ) : (
+                    callHistory.length > 0 ? (
+                      callHistory.map((entry, idx) => (
+                        <tr key={idx} className={`hover:bg-gray-50 ${selectedDeleteIndices.includes(idx) ? 'bg-red-50' : ''}`} style={{ height: 'auto' }}>
                           {isDeleteMode && (
                             <td className="border border-gray-300 px-1 py-1 text-center">
                               <input 
