@@ -13,6 +13,20 @@ const cacheHeaders = {
   'Expires': '0',
 }
 
+// フロントエンド形式からDB形式への変換関数
+function callHistoryToDbFormat(entry: any) {
+  const dbEntry: any = {}
+  if (entry.operator !== undefined) dbEntry.operator = entry.operator
+  if (entry.date !== undefined) dbEntry.date = entry.date
+  if (entry.startTime !== undefined) dbEntry.start_time = entry.startTime
+  if (entry.endTime !== undefined) dbEntry.end_time = entry.endTime
+  if (entry.responder !== undefined) dbEntry.responder = entry.responder
+  if (entry.gender !== undefined) dbEntry.gender = entry.gender
+  if (entry.progress !== undefined) dbEntry.progress = entry.progress
+  if (entry.note !== undefined) dbEntry.note = entry.note
+  return dbEntry
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -48,22 +62,30 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
+    
+    // フロントエンド形式（startTime等）をDB形式（start_time等）に変換
+    const dbData = callHistoryToDbFormat(body)
+    
+    // 更新対象からIDを除外（更新不可のため）
+    delete dbData.id
+    delete dbData.created_at
+    delete dbData.updated_at
 
     const { data, error } = await supabase
       .from('架電履歴_全記録')
-      .update(body)
+      .update(dbData)
       .eq('id', params.id)
       .select()
 
     if (error) {
       console.error('Supabase update error:', error)
       return NextResponse.json(
-        { error: `データ更新失敗: ${error.message}` },
+        { error: `データ更新失敗: ${error.message}`, details: error },
         { status: 500, headers: cacheHeaders }
       )
     }
 
-    return NextResponse.json(data, { headers: cacheHeaders })
+    return NextResponse.json({ success: true, data }, { headers: cacheHeaders })
   } catch (error) {
     console.error('Request error:', error)
     return NextResponse.json(

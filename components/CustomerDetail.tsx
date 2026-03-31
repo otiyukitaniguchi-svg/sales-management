@@ -151,16 +151,22 @@ export default function CustomerDetail() {
       
       for (let i = 0; i < editingCallHistoryAll.length; i++) {
         const entry = editingCallHistoryAll[i]
-        // IDがある場合はIDベースの更新APIを使用する
+        let success = false
+        
         if ((entry as any).id) {
-          await fetch(`/api/call-history/${(entry as any).id}`, {
+          const response = await fetch(`/api/call-history/${(entry as any).id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(entry)
           })
+          const result = await response.json()
+          success = response.ok && (result.success || !result.error)
         } else {
-          // IDがない場合は従来のインデックスベース（非推奨だが互換性のため）
-          await ApiClient.updateCallHistory(currentList, record.no, i, entry)
+          success = await ApiClient.updateCallHistory(currentList, record.no, i, entry)
+        }
+        
+        if (!success) {
+          throw new Error(`履歴の保存に失敗しました (Index: ${i})`)
         }
       }
       
