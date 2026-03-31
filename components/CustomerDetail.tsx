@@ -509,8 +509,8 @@ export default function CustomerDetail() {
                   <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[70px]">開始</th>
                   <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[70px]">終了</th>
                   <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">対応者</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[50px]">性別</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[80px]">進捗</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">性別</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">進捗</th>
                   <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600">コール履歴</th>
                 </tr>
               </thead>
