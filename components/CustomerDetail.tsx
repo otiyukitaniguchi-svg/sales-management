@@ -36,9 +36,18 @@ export default function CustomerDetail() {
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   const [selectedDeleteIndices, setSelectedDeleteIndices] = useState<number[]>([])
 
+  // レコードごとの編集状態を保持するためのキャッシュ
+  const [editCache, setEditCache] = useState<{[key: string]: FrontendCustomerRecord}>({})
+
   useEffect(() => {
     if (record && !isSearchMode) {
-      setEditedRecord({ ...record })
+      // キャッシュがあればそれを使用、なければレコードから初期化
+      const cacheKey = `${currentList}-${record.no}`
+      if (editCache[cacheKey]) {
+        setEditedRecord(editCache[cacheKey])
+      } else {
+        setEditedRecord({ ...record })
+      }
       loadCallHistory()
     }
   }, [record, isSearchMode])
@@ -63,8 +72,16 @@ export default function CustomerDetail() {
   }
 
   const handleFieldChange = (field: string, value: string) => {
-    if (editedRecord) {
-      setEditedRecord({ ...editedRecord, [field]: value })
+    if (editedRecord && record) {
+      const updated = { ...editedRecord, [field]: value }
+      setEditedRecord(updated)
+      
+      // キャッシュを更新
+      const cacheKey = `${currentList}-${record.no}`
+      setEditCache(prev => ({
+        ...prev,
+        [cacheKey]: updated
+      }))
     }
   }
 
@@ -74,6 +91,11 @@ export default function CustomerDetail() {
     try {
       const success = await ApiClient.updateCustomer(currentList, record.no, editedRecord)
       if (success) {
+        // 保存成功時にストアのデータも更新して同期をとる
+        const updatedRecords = [...records]
+        updatedRecords[currentListIndex] = editedRecord
+        setListData(currentList, updatedRecords)
+        
         setSaveMessage('✓ 顧客情報を保存しました')
         setTimeout(() => setSaveMessage(''), 2000)
       }
@@ -247,7 +269,8 @@ export default function CustomerDetail() {
     } else {
       setIsSearchMode(false)
       if (record) {
-        setEditedRecord({ ...record })
+        const cacheKey = `${currentList}-${record.no}`
+        setEditedRecord(editCache[cacheKey] || { ...record })
         loadCallHistory()
       }
     }
@@ -318,6 +341,11 @@ export default function CustomerDetail() {
         recallTime: editedRecord.recallTime
       })
       if (success) {
+        // 保存成功時にストアのデータも更新
+        const updatedRecords = [...records]
+        updatedRecords[currentListIndex] = editedRecord
+        setListData(currentList, updatedRecords)
+        
         setSaveMessage('✓ 再コール日時を設定しました')
         setTimeout(() => setSaveMessage(''), 2000)
       }
@@ -370,19 +398,19 @@ export default function CustomerDetail() {
             )}
           </div>
           <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-9 space-y-3">
+            <div className="col-span-9 space-y-4">
               {[
-                { label: '《企業名》', field: 'companyName', placeholder: '企業名・フリガナで検索...' },
-                { label: '《住所》', field: 'address', placeholder: '住所で検索...' },
+                { label: '《企業名》', field: 'companyName', placeholder: '企業名・フリガナで検索...', height: 'h-12', fontSize: 'text-xl' },
+                { label: '《住所》', field: 'address', placeholder: '住所で検索...', height: 'h-10', fontSize: 'text-lg' },
               ].map((item) => (
                 <div key={item.field}>
-                  <label className="block text-[10px] text-gray-500">{item.label}</label>
+                  <label className="block text-[10px] text-gray-500 mb-1">{item.label}</label>
                   <input
                     type="text"
                     placeholder={isSearchMode ? item.placeholder : ""}
                     value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                     onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
-                    className={`w-full border border-gray-300 px-2 py-1 text-sm ${item.field === 'companyName' ? 'font-bold' : ''}`}
+                    className={`w-full border border-gray-300 px-3 py-2 ${item.fontSize} ${item.height} ${item.field === 'companyName' ? 'font-bold' : ''}`}
                   />
                 </div>
               ))}
