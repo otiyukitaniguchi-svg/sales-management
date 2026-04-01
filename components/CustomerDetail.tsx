@@ -533,14 +533,14 @@ export default function CustomerDetail() {
               <thead className="bg-blue-100 sticky top-0 z-10">
                 <tr>
                   {isDeleteMode && <th className="border border-gray-300 px-1 py-1 text-[10px] text-gray-600 w-[40px]">選択</th>}
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">担当者</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">対応日</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[70px]">開始</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[70px]">終了</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">対応者</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">性別</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600 w-[90px]">進捗</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-[10px] font-medium text-gray-600">コール履歴</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">担当者</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">対応日</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[70px]">開始</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[70px]">終了</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">対応者</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">性別</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">進捗</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700">コール履歴</th>
                 </tr>
               </thead>
               <tbody>
@@ -552,7 +552,7 @@ export default function CustomerDetail() {
                         placeholder="担当者検索"
                         value={searchHistory.operator || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, operator: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
                       />
                     </td>
                     <td colSpan={2} className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
@@ -563,7 +563,7 @@ export default function CustomerDetail() {
                         placeholder="対応者検索"
                         value={searchHistory.responder || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, responder: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
                       />
                     </td>
                     <td className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
@@ -571,7 +571,7 @@ export default function CustomerDetail() {
                       <select 
                         value={searchHistory.progress || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, progress: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
                       >
                         <option value="">進捗検索</option>
                         <option value="受注">受注</option>
@@ -589,7 +589,7 @@ export default function CustomerDetail() {
                         placeholder="履歴の内容で検索..."
                         value={searchHistory.note || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, note: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
                       />
                     </td>
                   </tr>
@@ -606,53 +606,53 @@ export default function CustomerDetail() {
                             />
                           </td>
                         )}
-                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <input 
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.operator || '' : editingCallHistoryAll[idx]?.operator || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, operator: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'operator', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
                             />
                           ) : entry.operator}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">{entry.date}</td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <td className="border border-gray-300 px-2 py-1 text-sm">{entry.date}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <input 
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.startTime || '' : editingCallHistoryAll[idx]?.startTime || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, startTime: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'startTime', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
                             />
                           ) : entry.startTime}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <input 
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.endTime || '' : editingCallHistoryAll[idx]?.endTime || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, endTime: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'endTime', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
                             />
                           ) : entry.endTime}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <input 
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.responder || '' : editingCallHistoryAll[idx]?.responder || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, responder: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'responder', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
                             />
                           ) : entry.responder}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <select 
                               value={isCallActive && idx === 0 ? editingCallData?.gender || '' : editingCallHistoryAll[idx]?.gender || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, gender: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'gender', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
                             >
                               <option value="">-</option>
                               <option value="男性">男性</option>
@@ -660,12 +660,12 @@ export default function CustomerDetail() {
                             </select>
                           ) : entry.gender}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                        <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <select 
                               value={isCallActive && idx === 0 ? editingCallData?.progress || '' : editingCallHistoryAll[idx]?.progress || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-xs"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
                             >
                               <option value="">-</option>
                               <option value="受注">受注</option>
@@ -686,10 +686,10 @@ export default function CustomerDetail() {
                             <textarea 
                               value={isCallActive && idx === 0 ? editingCallData?.note || '' : editingCallHistoryAll[idx]?.note || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, note: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'note', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-xs resize-none" style={{ height: '24px' }}
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm resize-none" style={{ height: '28px' }}
                             />
                           ) : (
-                            <div className={`text-xs whitespace-pre-wrap break-words ${expandedHistoryIndices.includes(idx) ? '' : 'line-clamp-1'}`}>
+                            <div className={`text-sm whitespace-pre-wrap break-words ${expandedHistoryIndices.includes(idx) ? '' : 'line-clamp-1'}`}>
                               {entry.note}
                             </div>
                           )}
