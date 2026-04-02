@@ -637,7 +637,10 @@ export default function CustomerDetail() {
                             />
                           ) : entry.endTime}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">
+                        <td 
+                          className="border border-gray-300 px-2 py-1 text-xs cursor-pointer"
+                          onClick={() => !isEditingAllRows && !(isCallActive && idx === 0) && toggleHistoryExpand(idx)}
+                        >
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <input 
                               type="text" 
@@ -645,7 +648,11 @@ export default function CustomerDetail() {
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, responder: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'responder', e.target.value)}
                               className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             />
-                          ) : entry.responder}
+                          ) : (
+                            <div className={`text-sm whitespace-pre-wrap break-words tracking-wider ${expandedHistoryIndices.includes(idx) ? '' : 'line-clamp-1'}`}>
+                              {entry.responder}
+                            </div>
+                          )}
                         </td>
                         <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
