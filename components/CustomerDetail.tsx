@@ -534,7 +534,7 @@ export default function CustomerDetail() {
                 <tr>
                   {isDeleteMode && <th className="border border-gray-300 px-1 py-1 text-[10px] text-gray-600 w-[40px]">選択</th>}
                   <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">担当者</th>
-                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">対応日</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[110px]">対応日</th>
                   <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[70px]">開始</th>
                   <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[70px]">終了</th>
                   <th className="border border-gray-300 px-2 py-1 text-left text-xs font-bold text-gray-700 w-[90px]">対応者</th>
