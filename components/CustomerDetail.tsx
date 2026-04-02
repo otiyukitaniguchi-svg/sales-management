@@ -367,7 +367,7 @@ export default function CustomerDetail() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden tracking-wider">
       {/* 上部アクションバー */}
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -436,7 +436,7 @@ export default function CustomerDetail() {
                       placeholder={isSearchMode ? item.placeholder : ""}
                       value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                       onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
-                      className="w-full border border-gray-300 px-3 py-2 text-base h-10"
+                      className="w-full border border-gray-300 px-3 py-2 text-base h-10 tracking-wider"
                     />
                   </div>
                 ))}
@@ -464,7 +464,7 @@ export default function CustomerDetail() {
                     type="text"
                     value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                     onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
-                    className="w-full border border-gray-300 px-3 py-2 text-base h-10"
+                    className="w-full border border-gray-300 px-3 py-2 text-base h-10 tracking-wider"
                   />
                 </div>
               ))}
@@ -612,7 +612,7 @@ export default function CustomerDetail() {
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.operator || '' : editingCallHistoryAll[idx]?.operator || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, operator: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'operator', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             />
                           ) : entry.operator}
                         </td>
@@ -623,7 +623,7 @@ export default function CustomerDetail() {
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.startTime || '' : editingCallHistoryAll[idx]?.startTime || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, startTime: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'startTime', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             />
                           ) : entry.startTime}
                         </td>
@@ -633,7 +633,7 @@ export default function CustomerDetail() {
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.endTime || '' : editingCallHistoryAll[idx]?.endTime || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, endTime: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'endTime', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             />
                           ) : entry.endTime}
                         </td>
@@ -643,7 +643,7 @@ export default function CustomerDetail() {
                               type="text" 
                               value={isCallActive && idx === 0 ? editingCallData?.responder || '' : editingCallHistoryAll[idx]?.responder || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, responder: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'responder', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             />
                           ) : entry.responder}
                         </td>
@@ -652,7 +652,7 @@ export default function CustomerDetail() {
                             <select 
                               value={isCallActive && idx === 0 ? editingCallData?.gender || '' : editingCallHistoryAll[idx]?.gender || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, gender: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'gender', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             >
                               <option value="">-</option>
                               <option value="男性">男性</option>
@@ -665,7 +665,7 @@ export default function CustomerDetail() {
                             <select 
                               value={isCallActive && idx === 0 ? editingCallData?.progress || '' : editingCallHistoryAll[idx]?.progress || ''}
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-sm"
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             >
                               <option value="">-</option>
                               <option value="受注">受注</option>
@@ -689,7 +689,7 @@ export default function CustomerDetail() {
                               className="w-full border border-gray-300 px-1 py-0.5 text-sm resize-none" style={{ height: '28px' }}
                             />
                           ) : (
-                            <div className={`text-sm whitespace-pre-wrap break-words ${expandedHistoryIndices.includes(idx) ? '' : 'line-clamp-1'}`}>
+                            <div className={`text-sm whitespace-pre-wrap break-words tracking-wider ${expandedHistoryIndices.includes(idx) ? '' : 'line-clamp-1'}`}>
                               {entry.note}
                             </div>
                           )}
