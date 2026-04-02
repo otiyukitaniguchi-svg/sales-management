@@ -1,10 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin, TABLES } from '@/lib/supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// DBのlist_type → 日本語名変換
+const LIST_TYPE_TO_NAME: Record<string, string> = {
+  'list1': '新規リスト',
+  'list2': 'ハルエネリスト',
+  'list3': 'モバイルリスト',
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +14,8 @@ export async function GET(request: NextRequest) {
     const listType = searchParams.get('list_type')
     const no = searchParams.get('no')
 
-    let query = supabase
-      .from('架電履歴_全記録')
+    let query = supabaseAdmin
+      .from(TABLES.CALL_HISTORY)
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -79,15 +81,15 @@ function convertToCSV(data: any[]): string {
     '担当オペレーター',
   ]
 
-  // データ行を作成
+  // DBのlist_typeを日本語名に変換してデータ行を作成
   const rows = data.map((row) => [
-    row.timestamp || '',
+    row.created_at ? new Date(row.created_at).toLocaleString('ja-JP') : '',
     row.no || '',
-    row.list_type || '',
-    row.company_name || '',
-    row.phone || '',
-    row.address || '',
-    row.operator_name || '',
+    LIST_TYPE_TO_NAME[row.list_type] || row.list_type || '',
+    '',  // 企業名（架電履歴テーブルにはないため空白）
+    '',  // 電話番号（架電履歴テーブルにはないため空白）
+    '',  // 住所（架電履歴テーブルにはないため空白）
+    '',  // 担当者名（架電履歴テーブルにはないため空白）
     row.date || '',
     row.start_time || '',
     row.end_time || '',

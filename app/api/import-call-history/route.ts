@@ -1,11 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import Papa from 'papaparse'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// スプレッドシートのリスト名 → DBのlist_type変換
+const LIST_NAME_TO_TYPE: Record<string, string> = {
+  '新規リスト': 'list1',
+  'ハルエネリスト': 'list2',
+  'モバイルリスト': 'list3',
+  'list1': 'list1',
+  'list2': 'list2',
+  'list3': 'list3',
+}
 
 interface CallHistoryRow {
   タイムスタンプ: string
@@ -49,45 +54,69 @@ export async function POST(request: NextRequest): Promise<Response> {
           try {
             const rows = results.data as CallHistoryRow[]
 
-            // データを変換してインポート
-            const importData = rows.map((row) => ({
-              timestamp: row.タイムスタンプ ? new Date(row.タイムスタンプ).toISOString() : new Date().toISOString(),
-              no: row.No,
-              list_type: row.リスト,
-              company_name: row.企業名,
-              phone: row.電話番号,
-              address: row.住所,
-              operator_name: row.担当者名,
-              date: row.架電日,
-              start_time: row.開始時刻,
-              end_time: row.終了時刻,
-              responder: row.対応者,
-              gender: row.性別,
-              progress: row.進捗,
-              note: row.メモ,
-              operator: row.担当オペレーター,
-            }))
-
-            // Supabaseにインポート
-            const { data, error } = await supabase
-              .from('架電履歴_全記録')
-              .insert(importData)
-
-            if (error) {
-              console.error('Supabase insert error:', error)
+            if (rows.length === 0) {
               return resolve(
                 NextResponse.json(
-                  { error: `インポート失敗: ${error.message}` },
-                  { status: 500 }
+                  { error: 'CSVにデータがありません' },
+                  { status: 400 }
                 )
               )
+            }
+
+            // 架電履歴_全記録テーブルのカラムにマッピング
+            // list_typeはスプレッドシートの日本語名をDBのlist1/list2/list3に変換
+            const importData = rows.map((row) => {
+              const listType = LIST_NAME_TO_TYPE[row.リスト?.trim()] || 'list1'
+              return {
+                list_type: listType,
+                no: row.No?.trim() || '',
+                operator: row.担当オペレーター?.trim() || '',
+                date: row.架電日?.trim() || '',
+                start_time: row.開始時刻?.trim() || '',
+                end_time: row.終了時刻?.trim() || '',
+                responder: row.対応者?.trim() || '',
+                gender: row.性別?.trim() || '',
+                progress: row.進捗?.trim() || '',
+                note: row.メモ?.trim() || '',
+              }
+            }).filter(row => row.no) // Noが空の行はスキップ
+
+            if (importData.length === 0) {
+              return resolve(
+                NextResponse.json(
+                  { error: '有効なデータがありません（No列が空）' },
+                  { status: 400 }
+                )
+              )
+            }
+
+            // バッチ処理（500件ずつ）
+            const batchSize = 500
+            let insertedCount = 0
+            let errorCount = 0
+
+            for (let i = 0; i < importData.length; i += batchSize) {
+              const batch = importData.slice(i, i + batchSize)
+              const { data, error } = await supabaseAdmin
+                .from(TABLES.CALL_HISTORY)
+                .insert(batch)
+                .select()
+
+              if (error) {
+                console.error(`Batch ${Math.floor(i / batchSize) + 1} error:`, error)
+                errorCount += batch.length
+              } else {
+                insertedCount += data?.length || 0
+              }
             }
 
             resolve(
               NextResponse.json({
                 success: true,
-                message: `${importData.length}件のデータをインポートしました`,
-                count: importData.length,
+                message: `インポート完了: ${insertedCount}件挿入, ${errorCount}件エラー`,
+                count: insertedCount,
+                errorCount,
+                totalRows: rows.length,
               })
             )
           } catch (error) {

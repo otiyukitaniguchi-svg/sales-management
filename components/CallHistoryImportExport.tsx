@@ -38,7 +38,8 @@ export function CallHistoryImportExport({ listType, onImportComplete }: ImportEx
         return
       }
 
-      setImportMessage(`✅ ${data.count}件のデータをインポートしました`)
+      const errorMsg = data.errorCount > 0 ? `（${data.errorCount}件エラー）` : ''
+      setImportMessage(`✅ ${data.count}件のデータをインポートしました${errorMsg}`)
       onImportComplete?.()
 
       // 3秒後にメッセージをクリア
@@ -65,8 +66,9 @@ export function CallHistoryImportExport({ listType, onImportComplete }: ImportEx
         return
       }
 
-      // データをCSV形式に変換
-      const csv = convertToCSV(data)
+      // データをCSV形式に変換（配列の場合はそのまま、オブジェクトの場合はdataプロパティを使用）
+      const records = Array.isArray(data) ? data : (data.data || [])
+      const csv = convertToCSV(records)
 
       // ファイルをダウンロード
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -125,13 +127,20 @@ export function CallHistoryImportExport({ listType, onImportComplete }: ImportEx
   )
 }
 
+// list_type → 日本語名変換
+const LIST_TYPE_TO_NAME: Record<string, string> = {
+  'list1': '新規リスト',
+  'list2': 'ハルエネリスト',
+  'list3': 'モバイルリスト',
+}
+
 // CSVに変換する関数
 function convertToCSV(data: any[]): string {
   if (data.length === 0) {
-    return 'No data'
+    return 'データがありません'
   }
 
-  // ヘッダーを定義（CSVの列順に合わせる）
+  // ヘッダーを定義（スプレッドシートと完全一致）
   const headers = [
     'タイムスタンプ',
     'No',
@@ -150,15 +159,15 @@ function convertToCSV(data: any[]): string {
     '担当オペレーター',
   ]
 
-  // データ行を作成
+  // DBのlist_typeを日本語名に変換してデータ行を作成
   const rows = data.map((row) => [
-    row.timestamp || '',
+    row.created_at ? new Date(row.created_at).toLocaleString('ja-JP') : '',
     row.no || '',
-    row.list_type || '',
-    row.company_name || '',
-    row.phone || '',
-    row.address || '',
-    row.operator_name || '',
+    LIST_TYPE_TO_NAME[row.list_type] || row.list_type || '',
+    '',  // 企業名（架電履歴テーブルにはない）
+    '',  // 電話番号（架電履歴テーブルにはない）
+    '',  // 住所（架電履歴テーブルにはない）
+    '',  // 担当者名（架電履歴テーブルにはない）
     row.date || '',
     row.start_time || '',
     row.end_time || '',
@@ -169,8 +178,9 @@ function convertToCSV(data: any[]): string {
     row.operator || '',
   ])
 
-  // CSVを生成
-  const csv = [
+  // BOM付きCSVを生成（Excelで文字化け防止）
+  const bom = '\uFEFF'
+  const csv = bom + [
     headers.map((h) => `"${h}"`).join(','),
     ...rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
   ].join('\n')
