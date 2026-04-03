@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
       }
 
       // 最新履歴が検索条件に一致するものだけを matchedByList に追加
-      for (const [key, row] of latestHistory.entries()) {
+      for (const [key, row] of Array.from(latestHistory.entries())) {
         const listId = row.list_type
 
         // 各条件を最新履歴に対してチェック
