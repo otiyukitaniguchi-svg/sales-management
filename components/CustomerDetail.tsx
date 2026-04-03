@@ -281,6 +281,12 @@ export default function CustomerDetail() {
     }
   }
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && isSearchMode && !isSearching) {
+      handleSearchExecute()
+    }
+  }
+
   const handleSearchExecute = async () => {
     setIsSearching(true)
     try {
@@ -389,6 +395,15 @@ export default function CustomerDetail() {
           >
             {isSearchMode ? '検索キャンセル' : '検索モード開始'}
           </button>
+          {isSearchMode && (
+            <button
+              onClick={handleSearchExecute}
+              disabled={isSearching}
+              className="px-4 py-1 rounded text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              {isSearching ? '検索中...' : '検索実行'}
+            </button>
+          )}
           {saveMessage && (
             <span className={`text-sm font-medium ${saveMessage.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
               {saveMessage}
@@ -428,6 +443,7 @@ export default function CustomerDetail() {
                     placeholder={isSearchMode ? item.placeholder : ""}
                     value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                     onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
                     className={`w-full border border-gray-300 px-3 py-2 ${item.fontSize} ${item.height} ${item.field === 'companyName' ? 'font-bold' : ''}`}
                   />
                 </div>
@@ -444,6 +460,7 @@ export default function CustomerDetail() {
                       placeholder={isSearchMode ? item.placeholder : ""}
                       value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                       onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
                       className="w-full border border-gray-300 px-3 py-2 text-base h-10 tracking-wider"
                     />
                   </div>
@@ -455,6 +472,7 @@ export default function CustomerDetail() {
                   placeholder={isSearchMode ? "備考内容で検索..." : ""}
                   value={isSearchMode ? (searchRecord.memo || '') : (editedRecord?.memo || '')}
                   onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, memo: e.target.value }) : handleFieldChange('memo', e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                   className="w-full border border-gray-300 px-2 py-1 text-sm h-16 resize-none"
                 />
               </div>
@@ -472,6 +490,7 @@ export default function CustomerDetail() {
                     type="text"
                     value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
                     onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, [item.field]: e.target.value }) : handleFieldChange(item.field, e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
                     className="w-full border border-gray-300 px-3 py-2 text-base h-10 tracking-wider"
                   />
                 </div>
@@ -570,6 +589,7 @@ export default function CustomerDetail() {
                         placeholder="担当者"
                         value={searchHistory.operator || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, operator: e.target.value})}
+                        onKeyDown={handleSearchKeyDown}
                         className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
@@ -578,6 +598,7 @@ export default function CustomerDetail() {
                         type="date" 
                         value={searchHistory.date || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, date: e.target.value})}
+                        onKeyDown={handleSearchKeyDown}
                         className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
@@ -586,6 +607,7 @@ export default function CustomerDetail() {
                         type="time" 
                         value={searchHistory.startTime || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, startTime: e.target.value})}
+                        onKeyDown={handleSearchKeyDown}
                         className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
@@ -594,6 +616,7 @@ export default function CustomerDetail() {
                         type="time" 
                         value={searchHistory.endTime || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, endTime: e.target.value})}
+                        onKeyDown={handleSearchKeyDown}
                         className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
@@ -603,6 +626,7 @@ export default function CustomerDetail() {
                         placeholder="対応者"
                         value={searchHistory.responder || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, responder: e.target.value})}
+                        onKeyDown={handleSearchKeyDown}
                         className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
@@ -634,6 +658,7 @@ export default function CustomerDetail() {
                         placeholder="メモ検索"
                         value={searchHistory.note || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, note: e.target.value})}
+                        onKeyDown={handleSearchKeyDown}
                         className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
