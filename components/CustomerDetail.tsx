@@ -466,7 +466,7 @@ export default function CustomerDetail() {
                 { label: '《住所》', field: 'address', placeholder: '住所で検索...', height: 'h-10', fontSize: 'text-lg' },
               ].map((item) => (
                 <div key={item.field}>
-                  <label className="block text-[10px] text-gray-500 mb-1">{item.label}</label>
+                  <label className="block text-xs text-gray-900 font-semibold mb-1">{item.label}</label>
                   <input
                     type="text"
                     placeholder={isSearchMode ? item.placeholder : ""}
@@ -483,7 +483,7 @@ export default function CustomerDetail() {
                   { label: '《担当》', field: 'staffName', placeholder: '担当者名で検索...' },
                 ].map((item) => (
                   <div key={item.field}>
-                    <label className="block text-[10px] text-gray-500 mb-1">{item.label}</label>
+                    <label className="block text-xs text-gray-900 font-semibold mb-1">{item.label}</label>
                     <input
                       type="text"
                       placeholder={isSearchMode ? item.placeholder : ""}
@@ -496,7 +496,7 @@ export default function CustomerDetail() {
                 ))}
               </div>
               <div>
-                <label className="block text-[10px] text-gray-500">備考</label>
+                <label className="block text-xs text-gray-900 font-semibold">備考</label>
                 <textarea
                   placeholder={isSearchMode ? "備考内容で検索..." : ""}
                   value={isSearchMode ? (searchRecord.memo || '') : (editedRecord?.memo || '')}
@@ -514,7 +514,7 @@ export default function CustomerDetail() {
                 { label: '《業種》', field: 'industry' },
               ].map((item) => (
                 <div key={item.field}>
-                  <label className="block text-[10px] text-gray-500 mb-1">{item.label}</label>
+                  <label className="block text-xs text-gray-900 font-semibold mb-1">{item.label}</label>
                   <input
                     type="text"
                     value={isSearchMode ? ((searchRecord as any)[item.field] || '') : ((editedRecord as any)?.[item.field] || '')}
