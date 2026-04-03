@@ -57,37 +57,58 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let matchedCustomerNos: { listId: string, no: string }[] = []
+    // 架電履歴条件にマッチした (listId, no) の一意なセットを格納
+    // Map<listId, Set<no>> で重複を排除する
+    const matchedByList: Map<string, Set<string>> = new Map()
 
     // 1. 架電履歴からの検索（履歴条件があれば）
     if (hasHistorySearch) {
-      let historyQuery = supabaseAdmin.from(TABLES.CALL_HISTORY).select('list_type, no')
-      
-      if (operator) historyQuery = historyQuery.ilike('operator', `%${operator}%`)
-      if (historyDate) {
-        // date カラムは「2026/02/09」形式と「2026-02-09」形式が混在している可能性があるため
-        // スラッシュ形式とハイフン形式の両方で検索
-        const dateSlash = historyDate.replace(/-/g, '/')
-        const dateDash = historyDate.replace(/\//g, '-')
-        historyQuery = historyQuery.or(`date.eq.${dateSlash},date.eq.${dateDash}`)
+      // 全件取得するためページネーション対応（最大10000件）
+      let from = 0
+      const pageSize = 1000
+      let allHistoryMatches: Array<{ list_type: string; no: string }> = []
+
+      while (true) {
+        let historyQuery = supabaseAdmin
+          .from(TABLES.CALL_HISTORY)
+          .select('list_type, no')
+          .range(from, from + pageSize - 1)
+
+        if (operator) historyQuery = historyQuery.ilike('operator', `%${operator}%`)
+        if (historyDate) {
+          const dateSlash = historyDate.replace(/-/g, '/')
+          const dateDash = historyDate.replace(/\//g, '-')
+          historyQuery = historyQuery.or(`date.eq.${dateSlash},date.eq.${dateDash}`)
+        }
+        if (historyStartTime) historyQuery = historyQuery.ilike('start_time', `%${historyStartTime}%`)
+        if (historyEndTime) historyQuery = historyQuery.ilike('end_time', `%${historyEndTime}%`)
+        if (responder) historyQuery = historyQuery.ilike('responder', `%${responder}%`)
+        if (historyGender) historyQuery = historyQuery.eq('gender', historyGender)
+        if (progress) historyQuery = historyQuery.eq('progress', progress)
+        if (historyNote) historyQuery = historyQuery.ilike('note', `%${historyNote}%`)
+
+        const { data: historyMatches, error: historyError } = await historyQuery
+
+        if (historyError) {
+          console.error('History search error:', historyError)
+          break
+        }
+
+        if (!historyMatches || historyMatches.length === 0) break
+
+        allHistoryMatches = allHistoryMatches.concat(historyMatches)
+
+        if (historyMatches.length < pageSize) break
+        from += pageSize
       }
-      if (historyStartTime) historyQuery = historyQuery.ilike('start_time', `%${historyStartTime}%`)
-      if (historyEndTime) historyQuery = historyQuery.ilike('end_time', `%${historyEndTime}%`)
-      if (responder) historyQuery = historyQuery.ilike('responder', `%${responder}%`)
-      if (historyGender) historyQuery = historyQuery.eq('gender', historyGender)
-      if (progress) historyQuery = historyQuery.eq('progress', progress)
-      if (historyNote) historyQuery = historyQuery.ilike('note', `%${historyNote}%`)
-      
-      const { data: historyMatches, error: historyError } = await historyQuery
-      
-      if (historyError) {
-        console.error('History search error:', historyError)
-      } else if (historyMatches) {
-        // list_type が日本語名の場合も listId に変換する
-        matchedCustomerNos = historyMatches.map(m => ({
-          listId: LIST_TYPE_TO_ID[m.list_type] || m.list_type,
-          no: m.no
-        }))
+
+      // list_type を listId に変換し、重複を除去して Map に格納
+      for (const m of allHistoryMatches) {
+        const listId = LIST_TYPE_TO_ID[m.list_type] || m.list_type
+        if (!matchedByList.has(listId)) {
+          matchedByList.set(listId, new Set())
+        }
+        matchedByList.get(listId)!.add(m.no)
       }
     }
 
@@ -95,6 +116,17 @@ export async function GET(request: NextRequest) {
 
     // 2. 各リスト（新規、ハルエネ、モバイル）を横断検索
     for (const [listId, tableName] of Object.entries(LIST_TYPE_MAP)) {
+      // 履歴条件があるが、このリストに該当がない場合はスキップ
+      if (hasHistorySearch && !matchedByList.has(listId)) {
+        continue
+      }
+
+      // 履歴条件でヒットした No の一意なリスト
+      const uniqueNos = hasHistorySearch
+        ? Array.from(matchedByList.get(listId)!)
+        : null
+
+      // 顧客テーブルへのクエリ
       let query = supabaseAdmin.from(tableName).select('*')
 
       // 基本情報の条件があれば適用
@@ -112,24 +144,19 @@ export async function GET(request: NextRequest) {
       // 再コール日時の検索
       if (hasRecallSearch) {
         if (recallDateParam === '') {
-          // 空欄 = 再コール日が未設定のレコードを検索
           query = query.is('recall_date', null)
         } else if (recallDateParam) {
           query = query.eq('recall_date', recallDateParam)
         }
       }
 
-      // 履歴検索でヒットしたNoがあれば、そのリストに属するものだけに絞り込む
-      const listSpecificMatches = matchedCustomerNos.filter(m => m.listId === listId).map(m => m.no)
-      if (hasHistorySearch) {
-        if (listSpecificMatches.length === 0) {
-          // 履歴条件があるが、このリストに該当がない場合はスキップ
-          continue
-        }
-        query = query.in('no', listSpecificMatches)
+      // 履歴条件でヒットした No のみに絞り込む（重複除去済み）
+      if (uniqueNos !== null) {
+        if (uniqueNos.length === 0) continue
+        query = query.in('no', uniqueNos)
       }
 
-      const { data: records, error } = await query.limit(50)
+      const { data: records, error } = await query.limit(200)
 
       if (error) {
         console.error(`Search error in ${tableName}:`, error)
