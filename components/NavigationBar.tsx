@@ -12,6 +12,7 @@ interface NavigationBarProps {
 
 export default function NavigationBar({ onImport, onSearch }: NavigationBarProps) {
   const user = useAppStore((state) => state.user)
+  const setUser = useAppStore((state) => state.setUser)
   const currentList = useAppStore((state) => state.currentList)
   const currentListIndex = useAppStore((state) => state.currentListIndex)
   const setCurrentListIndex = useAppStore((state) => state.setCurrentListIndex)
@@ -27,6 +28,13 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const currentData = isSearchMode ? searchResults : listData[currentList]
   const currentIndex = isSearchMode ? searchResultIndex : currentListIndex
   const totalCount = currentData?.length || 0
+
+  const handleLogout = () => {
+    if (confirm('ログアウトしますか？')) {
+      setUser(null)
+      localStorage.removeItem('user')
+    }
+  }
 
   const handleJumpToNo = () => {
     if (!jumpNo.trim()) return
@@ -119,10 +127,14 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
         移動
       </button>
 
-
-
-      <div className="ml-auto text-lg">
-        ログイン中: <span className="font-bold">{user?.display_name}</span>
+      <div className="ml-auto flex items-center gap-3">
+        <span className="text-lg">ログイン中: <span className="font-bold">{user?.display_name}</span></span>
+        <button
+          onClick={handleLogout}
+          className="px-3 py-1.5 border border-red-400 bg-gradient-to-b from-red-50 to-red-100 text-red-700 cursor-pointer rounded text-sm font-bold hover:from-red-100 hover:to-red-200"
+        >
+          ログアウト
+        </button>
       </div>
     </div>
   )
