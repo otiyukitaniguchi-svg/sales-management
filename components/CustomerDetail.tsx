@@ -281,6 +281,27 @@ export default function CustomerDetail() {
     }
   }
 
+  const handleClearSearch = async () => {
+    setIsSearchMode(false)
+    setSearchRecord({})
+    setSearchHistory({})
+    // 元のリストデータを再読み込みして通常表示に戻す
+    try {
+      const result = await ApiClient.getListData(currentList)
+      if (result.success && result.data) {
+        setListData(currentList, result.data)
+        setCurrentListIndex(0)
+      }
+    } catch (error) {
+      console.error('Reload failed:', error)
+    }
+    if (record) {
+      const cacheKey = `${currentList}-${record.no}`
+      setEditedRecord(editCache[cacheKey] || { ...record })
+      loadCallHistory()
+    }
+  }
+
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && isSearchMode && !isSearching) {
       handleSearchExecute()
@@ -402,6 +423,14 @@ export default function CustomerDetail() {
               className="px-4 py-1 rounded text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               {isSearching ? '検索中...' : '検索実行'}
+            </button>
+          )}
+          {!isSearchMode && (
+            <button
+              onClick={handleClearSearch}
+              className="px-4 py-1 rounded text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+            >
+              検索解除
             </button>
           )}
           {saveMessage && (
