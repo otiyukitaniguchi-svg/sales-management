@@ -594,7 +594,7 @@ export default function CustomerDetail() {
             </div>
           </div>
           
-          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '180px' }}>
+          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '210px', minHeight: '210px' }}>
             <table className="w-full border-collapse table-fixed">
               <thead className="bg-blue-100 sticky top-0 z-10">
                 <tr>
@@ -694,7 +694,8 @@ export default function CustomerDetail() {
                   </tr>
                 ) : (
                   callHistory.length > 0 ? (
-                    callHistory.map((entry, idx) => (
+                    <>
+                    {callHistory.map((entry, idx) => (
                       <tr key={idx} className={`hover:bg-gray-50 ${selectedDeleteIndices.includes(idx) ? 'bg-red-50' : ''}`}>
                         {isDeleteMode && (
                           <td className="border border-gray-300 px-1 py-1 text-center">
@@ -801,13 +802,50 @@ export default function CustomerDetail() {
                           )}
                         </td>
                       </tr>
-                    ))
+                    ))}
+                    {callHistory.length < 5 && Array.from({ length: 5 - callHistory.length }).map((_, i) => (
+                      <tr key={`pad-${i}`} className="h-[34px]">
+                        {isDeleteMode && <td className="border border-gray-300 px-1 py-1"></td>}
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                      </tr>
+                    ))}
+                    </>
                   ) : (
-                    <tr>
-                      <td colSpan={isDeleteMode ? 9 : 8} className="border border-gray-300 px-2 py-4 text-center text-xs text-gray-400">
-                        履歴はありません
-                      </td>
-                    </tr>
+                    <>
+                      {callHistory.length === 0 && Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={`empty-${i}`} className="h-[34px]">
+                          {isDeleteMode && <td className="border border-gray-300 px-1 py-1"></td>}
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        </tr>
+                      ))}
+                      {callHistory.length > 0 && callHistory.length < 5 && Array.from({ length: 5 - callHistory.length }).map((_, i) => (
+                        <tr key={`pad-${i}`} className="h-[34px]">
+                          {isDeleteMode && <td className="border border-gray-300 px-1 py-1"></td>}
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                          <td className="border border-gray-300 px-2 py-1 text-sm">&nbsp;</td>
+                        </tr>
+                      ))}
+                    </>
                   )
                 )}
               </tbody>
