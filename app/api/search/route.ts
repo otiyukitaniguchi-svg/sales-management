@@ -12,7 +12,7 @@ const LIST_TYPE_TO_ID: Record<string, string> = {
   'list3': 'list3',
 }
 
-// 日付文字列を比較可能な形式に正規化（スラッシュ→ハイフン）
+// 日付文字列を正規化（スラッシュ→ハイフン）
 function normalizeDate(d: string): string {
   return d ? d.replace(/\//g, '-') : ''
 }
@@ -62,37 +62,40 @@ export async function GET(request: NextRequest) {
     }
 
     // 架電履歴条件にマッチした (listId, no) の一意なセットを格納
-    // Map<listId, Set<no>>
     const matchedByList: Map<string, Set<string>> = new Map()
 
     // 1. 架電履歴からの検索（履歴条件があれば）
     if (hasHistorySearch) {
-      // 全履歴を date 降順・start_time 降順で取得し、
-      // 各 (list_type, no) の最初のレコード（= 最新履歴）だけを残す
+      // 全履歴を date DESC, start_time DESC で取得し、
+      // 各 (list_type, no) の最新1件のみを取り出してから条件チェックする
+
+      // まず全件を date DESC, start_time DESC で取得
       let from = 0
       const pageSize = 1000
-      // 最新履歴を格納: key = `${listId}:${no}`, value = 最新履歴レコード
-      const latestHistory: Map<string, {
+
+      // key=(listId:no) → 最新1件の行データ を保持するMap
+      const latestRowByKey: Map<string, {
         list_type: string
         no: string
-        operator: string
-        date: string
-        start_time: string
-        end_time: string
-        responder: string
-        gender: string
-        progress: string
-        note: string
+        operator: string | null
+        date: string | null
+        start_time: string | null
+        end_time: string | null
+        responder: string | null
+        gender: string | null
+        progress: string | null
+        note: string | null
       }> = new Map()
 
-      // 全件ページネーション取得（date降順・start_time降順）
+      // 全件を date DESC, start_time DESC で取得（条件フィルタなし）
+      const baseQuery = supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note')
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false })
+
       while (true) {
-        const { data: page, error } = await supabaseAdmin
-          .from(TABLES.CALL_HISTORY)
-          .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note')
-          .order('date', { ascending: false })
-          .order('start_time', { ascending: false })
-          .range(from, from + pageSize - 1)
+        const { data: page, error } = await baseQuery.range(from, from + pageSize - 1)
 
         if (error) {
           console.error('History fetch error:', error)
@@ -103,9 +106,20 @@ export async function GET(request: NextRequest) {
         for (const row of page) {
           const listId = LIST_TYPE_TO_ID[row.list_type] || row.list_type
           const key = `${listId}:${row.no}`
-          // 最初に出てきたレコード（= 最新履歴）だけを保持
-          if (!latestHistory.has(key)) {
-            latestHistory.set(key, { ...row, list_type: listId })
+          // 最初に出てきたレコード（= date/start_time が最新の1件）だけを保持
+          if (!latestRowByKey.has(key)) {
+            latestRowByKey.set(key, {
+              list_type: listId,
+              no: row.no,
+              operator: row.operator,
+              date: row.date,
+              start_time: row.start_time,
+              end_time: row.end_time,
+              responder: row.responder,
+              gender: row.gender,
+              progress: row.progress,
+              note: row.note,
+            })
           }
         }
 
@@ -113,29 +127,55 @@ export async function GET(request: NextRequest) {
         from += pageSize
       }
 
-      // 最新履歴が検索条件に一致するものだけを matchedByList に追加
-      for (const [key, row] of Array.from(latestHistory.entries())) {
-        const listId = row.list_type
+      // 最新1件に対して検索条件を適用（アプリ側でフィルタリング）
+      for (const [key, row] of Array.from(latestRowByKey.entries())) {
+        let match = true
 
-        // 各条件を最新履歴に対してチェック
-        if (operator && !row.operator.toLowerCase().includes(operator.toLowerCase())) continue
-        if (historyDate) {
-          const normalizedRowDate = normalizeDate(row.date)
-          const normalizedSearchDate = normalizeDate(historyDate)
-          if (normalizedRowDate !== normalizedSearchDate) continue
+        // 担当オペレーター（部分一致）
+        if (operator && !(row.operator || '').toLowerCase().includes(operator.toLowerCase())) {
+          match = false
         }
-        if (historyStartTime && !row.start_time.includes(historyStartTime)) continue
-        if (historyEndTime && !row.end_time.includes(historyEndTime)) continue
-        if (responder && !row.responder.toLowerCase().includes(responder.toLowerCase())) continue
-        if (historyGender && row.gender !== historyGender) continue
-        if (progress && row.progress !== progress) continue
-        if (historyNote && !row.note.toLowerCase().includes(historyNote.toLowerCase())) continue
+        // 対応者（部分一致）
+        if (match && responder && !(row.responder || '').toLowerCase().includes(responder.toLowerCase())) {
+          match = false
+        }
+        // 性別（完全一致）
+        if (match && historyGender && row.gender !== historyGender) {
+          match = false
+        }
+        // 進捗（完全一致）
+        if (match && progress && row.progress !== progress) {
+          match = false
+        }
+        // メモ（部分一致）
+        if (match && historyNote && !(row.note || '').toLowerCase().includes(historyNote.toLowerCase())) {
+          match = false
+        }
+        // 架電日（スラッシュ・ハイフン両対応）
+        if (match && historyDate) {
+          const slashDate = historyDate.replace(/-/g, '/')
+          const hyphenDate = historyDate.replace(/\//g, '-')
+          const rowDate = row.date || ''
+          if (rowDate !== slashDate && rowDate !== hyphenDate) {
+            match = false
+          }
+        }
+        // 開始時刻（部分一致）
+        if (match && historyStartTime && !(row.start_time || '').includes(historyStartTime)) {
+          match = false
+        }
+        // 終了時刻（部分一致）
+        if (match && historyEndTime && !(row.end_time || '').includes(historyEndTime)) {
+          match = false
+        }
 
-        // 条件に一致 → matchedByList に追加
-        if (!matchedByList.has(listId)) {
-          matchedByList.set(listId, new Set())
+        if (match) {
+          const listId = row.list_type
+          if (!matchedByList.has(listId)) {
+            matchedByList.set(listId, new Set())
+          }
+          matchedByList.get(listId)!.add(row.no)
         }
-        matchedByList.get(listId)!.add(row.no)
       }
     }
 
@@ -181,9 +221,12 @@ export async function GET(request: NextRequest) {
         query = query.in('no', uniqueNos)
       }
 
-      // 件数上限なし（Supabaseのデフォルト上限1000件を回避するためページネーション）
+      // 件数上限なし（ページネーション）
       let fromCustomer = 0
       const customerPageSize = 1000
+
+      // このリストの全マッチ顧客Noを収集
+      const matchedRecords: any[] = []
 
       while (true) {
         const { data: records, error } = await query.range(fromCustomer, fromCustomer + customerPageSize - 1)
@@ -194,25 +237,36 @@ export async function GET(request: NextRequest) {
         }
         if (!records || records.length === 0) break
 
-        for (const record of records) {
-          // 架電履歴件数を取得
-          const { count } = await supabaseAdmin
-            .from(TABLES.CALL_HISTORY)
-            .select('*', { count: 'exact', head: true })
-            .or(`list_type.eq.${listId},list_type.eq.${tableName}`)
-            .eq('no', record.no)
-
-          const frontendRecord = toFrontendFormat(record)
-          frontendRecord.callHistoryCount = count || 0
-
-          results.push({
-            listId: listId,
-            record: frontendRecord,
-          })
-        }
+        matchedRecords.push(...records)
 
         if (records.length < customerPageSize) break
         fromCustomer += customerPageSize
+      }
+
+      if (matchedRecords.length === 0) continue
+
+      // 架電履歴件数をバッチ取得（N+1問題を解消）
+      const matchedNos = matchedRecords.map(r => r.no)
+      const { data: historyCounts } = await supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select('no, list_type')
+        .in('no', matchedNos)
+        .or(`list_type.eq.${listId},list_type.eq.${tableName},list_type.eq.${Object.entries(LIST_TYPE_TO_ID).find(([, v]) => v === listId)?.[0] || listId}`)
+
+      // no ごとの件数をカウント
+      const countMap: Record<string, number> = {}
+      for (const h of (historyCounts || [])) {
+        countMap[h.no] = (countMap[h.no] || 0) + 1
+      }
+
+      for (const record of matchedRecords) {
+        const frontendRecord = toFrontendFormat(record)
+        frontendRecord.callHistoryCount = countMap[record.no] || 0
+
+        results.push({
+          listId: listId,
+          record: frontendRecord,
+        })
       }
     }
 
