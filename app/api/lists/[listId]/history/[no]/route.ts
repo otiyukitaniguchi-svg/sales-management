@@ -25,11 +25,13 @@ export async function GET(
     }
 
     // Fetch call history for this record (共通のNoをキーに取得)
+    // 架電日・開始時刻の降順（最新が一番上）でソート
     const { data: history, error } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('*')
       .eq('no', no)
-      .order('created_at', { ascending: false })
+      .order('date', { ascending: false })
+      .order('start_time', { ascending: false })
 
     if (error) {
       throw error

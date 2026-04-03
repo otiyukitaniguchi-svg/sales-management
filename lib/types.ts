@@ -108,6 +108,7 @@ export interface FrontendCustomerRecord {
 }
 
 export interface FrontendCallHistoryEntry {
+  id?: string
   no?: string
   operator?: string
   date?: string
@@ -199,6 +200,7 @@ export function callHistoryToDbFormat(
 
 export function callHistoryToFrontendFormat(record: CallHistoryRecord): FrontendCallHistoryEntry {
   return {
+    id: record.id,
     no: record.no,
     operator: record.operator,
     date: record.date,

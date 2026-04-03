@@ -61,15 +61,8 @@ export default function CustomerDetail() {
     if (!record) return
     try {
       const response = await ApiClient.getCallHistory(currentList, record.no)
-      let history = (response as any).data || []
-      if (Array.isArray(history)) {
-        // 日付と開始時間で降順（最新順）にソート
-        history.sort((a: any, b: any) => {
-          const dateA = new Date(`${a.date} ${a.startTime || '00:00'}`)
-          const dateB = new Date(`${b.date} ${b.startTime || '00:00'}`)
-          return dateB.getTime() - dateA.getTime()
-        })
-      }
+      const history = (response as any).data || []
+      // API側でdate DESC, start_time DESCでソート済みなので、フロントエンドでの再ソートは不要
       setCallHistory(Array.isArray(history) ? history : [])
     } catch (error) {
       console.error('Failed to load call history:', error)

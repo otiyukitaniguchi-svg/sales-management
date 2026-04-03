@@ -18,12 +18,13 @@ export async function PUT(
     const idx = parseInt(index)
     const body = await request.json()
 
-    // 1. 現在の履歴を取得
+    // 1. 現在の履歴を取得（表示順と同じdate DESC, start_time DESC）
     const { data: history, error: fetchError } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('*')
       .eq('no', no)
-      .order('created_at', { ascending: false })
+      .order('date', { ascending: false })
+      .order('start_time', { ascending: false })
 
     if (fetchError) throw fetchError
 
@@ -60,12 +61,13 @@ export async function DELETE(
     const { no, index } = params
     const idx = parseInt(index)
 
-    // 1. 現在の履歴を取得
+    // 1. 現在の履歴を取得（表示順と同じdate DESC, start_time DESC）
     const { data: history, error: fetchError } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('*')
       .eq('no', no)
-      .order('created_at', { ascending: false })
+      .order('date', { ascending: false })
+      .order('start_time', { ascending: false })
 
     if (fetchError) throw fetchError
 
