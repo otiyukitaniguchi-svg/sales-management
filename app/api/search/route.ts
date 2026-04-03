@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, LIST_TYPE_MAP, TABLES } from '@/lib/supabase'
 import { toFrontendFormat } from '@/lib/types'
 
+// list_type の日本語名 → listId のマッピング
+const LIST_TYPE_TO_ID: Record<string, string> = {
+  '新規リスト': 'list1',
+  'ハルエネリスト': 'list2',
+  'モバイルリスト': 'list3',
+  // listId形式もそのまま通す（後方互換）
+  'list1': 'list1',
+  'list2': 'list2',
+  'list3': 'list3',
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -53,9 +64,15 @@ export async function GET(request: NextRequest) {
       let historyQuery = supabaseAdmin.from(TABLES.CALL_HISTORY).select('list_type, no')
       
       if (operator) historyQuery = historyQuery.ilike('operator', `%${operator}%`)
-      if (historyDate) historyQuery = historyQuery.eq('date', historyDate)
-      if (historyStartTime) historyQuery = historyQuery.eq('start_time', historyStartTime)
-      if (historyEndTime) historyQuery = historyQuery.eq('end_time', historyEndTime)
+      if (historyDate) {
+        // date カラムは「2026/02/09」形式と「2026-02-09」形式が混在している可能性があるため
+        // スラッシュ形式とハイフン形式の両方で検索
+        const dateSlash = historyDate.replace(/-/g, '/')
+        const dateDash = historyDate.replace(/\//g, '-')
+        historyQuery = historyQuery.or(`date.eq.${dateSlash},date.eq.${dateDash}`)
+      }
+      if (historyStartTime) historyQuery = historyQuery.ilike('start_time', `%${historyStartTime}%`)
+      if (historyEndTime) historyQuery = historyQuery.ilike('end_time', `%${historyEndTime}%`)
       if (responder) historyQuery = historyQuery.ilike('responder', `%${responder}%`)
       if (historyGender) historyQuery = historyQuery.eq('gender', historyGender)
       if (progress) historyQuery = historyQuery.eq('progress', progress)
@@ -66,7 +83,11 @@ export async function GET(request: NextRequest) {
       if (historyError) {
         console.error('History search error:', historyError)
       } else if (historyMatches) {
-        matchedCustomerNos = historyMatches.map(m => ({ listId: m.list_type, no: m.no }))
+        // list_type が日本語名の場合も listId に変換する
+        matchedCustomerNos = historyMatches.map(m => ({
+          listId: LIST_TYPE_TO_ID[m.list_type] || m.list_type,
+          no: m.no
+        }))
       }
     }
 
@@ -96,7 +117,6 @@ export async function GET(request: NextRequest) {
         } else if (recallDateParam) {
           query = query.eq('recall_date', recallDateParam)
         }
-        // recallTimeは日付と組み合わせて使う（日付のみ指定の場合は時刻は無視）
       }
 
       // 履歴検索でヒットしたNoがあれば、そのリストに属するものだけに絞り込む
@@ -118,11 +138,11 @@ export async function GET(request: NextRequest) {
 
       if (records && records.length > 0) {
         for (const record of records) {
-          // 各レコードの架電履歴件数を取得
+          // 架電履歴件数を取得（list_typeが日本語名で保存されているため両方で検索）
           const { count } = await supabaseAdmin
             .from(TABLES.CALL_HISTORY)
             .select('*', { count: 'exact', head: true })
-            .eq('list_type', listId)
+            .or(`list_type.eq.${listId},list_type.eq.${tableName}`)
             .eq('no', record.no)
 
           const frontendRecord = toFrontendFormat(record)
