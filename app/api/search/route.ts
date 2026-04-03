@@ -7,16 +7,20 @@ const LIST_TYPE_TO_ID: Record<string, string> = {
   '新規リスト': 'list1',
   'ハルエネリスト': 'list2',
   'モバイルリスト': 'list3',
-  // listId形式もそのまま通す（後方互換）
   'list1': 'list1',
   'list2': 'list2',
   'list3': 'list3',
 }
 
+// 日付文字列を比較可能な形式に正規化（スラッシュ→ハイフン）
+function normalizeDate(d: string): string {
+  return d ? d.replace(/\//g, '-') : ''
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    
+
     // 顧客基本情報の検索条件
     const no = searchParams.get('no')
     const companyName = searchParams.get('companyName')
@@ -29,7 +33,7 @@ export async function GET(request: NextRequest) {
     const email = searchParams.get('email')
     const industry = searchParams.get('industry')
 
-    // 架電履歴の検索条件（全項目）
+    // 架電履歴の検索条件（最新履歴1件のみ参照）
     const operator = searchParams.get('operator')
     const historyDate = searchParams.get('historyDate')
     const historyStartTime = searchParams.get('historyStartTime')
@@ -58,57 +62,80 @@ export async function GET(request: NextRequest) {
     }
 
     // 架電履歴条件にマッチした (listId, no) の一意なセットを格納
-    // Map<listId, Set<no>> で重複を排除する
+    // Map<listId, Set<no>>
     const matchedByList: Map<string, Set<string>> = new Map()
 
     // 1. 架電履歴からの検索（履歴条件があれば）
     if (hasHistorySearch) {
-      // 全件取得するためページネーション対応（最大10000件）
+      // 全履歴を date 降順・start_time 降順で取得し、
+      // 各 (list_type, no) の最初のレコード（= 最新履歴）だけを残す
       let from = 0
       const pageSize = 1000
-      let allHistoryMatches: Array<{ list_type: string; no: string }> = []
+      // 最新履歴を格納: key = `${listId}:${no}`, value = 最新履歴レコード
+      const latestHistory: Map<string, {
+        list_type: string
+        no: string
+        operator: string
+        date: string
+        start_time: string
+        end_time: string
+        responder: string
+        gender: string
+        progress: string
+        note: string
+      }> = new Map()
 
+      // 全件ページネーション取得（date降順・start_time降順）
       while (true) {
-        let historyQuery = supabaseAdmin
+        const { data: page, error } = await supabaseAdmin
           .from(TABLES.CALL_HISTORY)
-          .select('list_type, no')
+          .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note')
+          .order('date', { ascending: false })
+          .order('start_time', { ascending: false })
           .range(from, from + pageSize - 1)
 
-        if (operator) historyQuery = historyQuery.ilike('operator', `%${operator}%`)
-        if (historyDate) {
-          const dateSlash = historyDate.replace(/-/g, '/')
-          const dateDash = historyDate.replace(/\//g, '-')
-          historyQuery = historyQuery.or(`date.eq.${dateSlash},date.eq.${dateDash}`)
-        }
-        if (historyStartTime) historyQuery = historyQuery.ilike('start_time', `%${historyStartTime}%`)
-        if (historyEndTime) historyQuery = historyQuery.ilike('end_time', `%${historyEndTime}%`)
-        if (responder) historyQuery = historyQuery.ilike('responder', `%${responder}%`)
-        if (historyGender) historyQuery = historyQuery.eq('gender', historyGender)
-        if (progress) historyQuery = historyQuery.eq('progress', progress)
-        if (historyNote) historyQuery = historyQuery.ilike('note', `%${historyNote}%`)
-
-        const { data: historyMatches, error: historyError } = await historyQuery
-
-        if (historyError) {
-          console.error('History search error:', historyError)
+        if (error) {
+          console.error('History fetch error:', error)
           break
         }
+        if (!page || page.length === 0) break
 
-        if (!historyMatches || historyMatches.length === 0) break
+        for (const row of page) {
+          const listId = LIST_TYPE_TO_ID[row.list_type] || row.list_type
+          const key = `${listId}:${row.no}`
+          // 最初に出てきたレコード（= 最新履歴）だけを保持
+          if (!latestHistory.has(key)) {
+            latestHistory.set(key, { ...row, list_type: listId })
+          }
+        }
 
-        allHistoryMatches = allHistoryMatches.concat(historyMatches)
-
-        if (historyMatches.length < pageSize) break
+        if (page.length < pageSize) break
         from += pageSize
       }
 
-      // list_type を listId に変換し、重複を除去して Map に格納
-      for (const m of allHistoryMatches) {
-        const listId = LIST_TYPE_TO_ID[m.list_type] || m.list_type
+      // 最新履歴が検索条件に一致するものだけを matchedByList に追加
+      for (const [key, row] of latestHistory.entries()) {
+        const listId = row.list_type
+
+        // 各条件を最新履歴に対してチェック
+        if (operator && !row.operator.toLowerCase().includes(operator.toLowerCase())) continue
+        if (historyDate) {
+          const normalizedRowDate = normalizeDate(row.date)
+          const normalizedSearchDate = normalizeDate(historyDate)
+          if (normalizedRowDate !== normalizedSearchDate) continue
+        }
+        if (historyStartTime && !row.start_time.includes(historyStartTime)) continue
+        if (historyEndTime && !row.end_time.includes(historyEndTime)) continue
+        if (responder && !row.responder.toLowerCase().includes(responder.toLowerCase())) continue
+        if (historyGender && row.gender !== historyGender) continue
+        if (progress && row.progress !== progress) continue
+        if (historyNote && !row.note.toLowerCase().includes(historyNote.toLowerCase())) continue
+
+        // 条件に一致 → matchedByList に追加
         if (!matchedByList.has(listId)) {
           matchedByList.set(listId, new Set())
         }
-        matchedByList.get(listId)!.add(m.no)
+        matchedByList.get(listId)!.add(row.no)
       }
     }
 
@@ -121,15 +148,15 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      // 履歴条件でヒットした No の一意なリスト
       const uniqueNos = hasHistorySearch
         ? Array.from(matchedByList.get(listId)!)
         : null
 
-      // 顧客テーブルへのクエリ
+      if (uniqueNos !== null && uniqueNos.length === 0) continue
+
+      // 顧客テーブルへのクエリ（件数上限なし）
       let query = supabaseAdmin.from(tableName).select('*')
 
-      // 基本情報の条件があれば適用
       if (no) query = query.ilike('no', `%${no}%`)
       if (companyName) query = query.or(`company_name.ilike.%${companyName}%,company_kana.ilike.%${companyName}%`)
       if (address) query = query.ilike('address', `%${address}%`)
@@ -141,7 +168,6 @@ export async function GET(request: NextRequest) {
       if (email) query = query.ilike('email', `%${email}%`)
       if (industry) query = query.ilike('industry', `%${industry}%`)
 
-      // 再コール日時の検索
       if (hasRecallSearch) {
         if (recallDateParam === '') {
           query = query.is('recall_date', null)
@@ -150,22 +176,26 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // 履歴条件でヒットした No のみに絞り込む（重複除去済み）
+      // 最新履歴が条件に一致した No のみに絞り込む
       if (uniqueNos !== null) {
-        if (uniqueNos.length === 0) continue
         query = query.in('no', uniqueNos)
       }
 
-      const { data: records, error } = await query.limit(200)
+      // 件数上限なし（Supabaseのデフォルト上限1000件を回避するためページネーション）
+      let fromCustomer = 0
+      const customerPageSize = 1000
 
-      if (error) {
-        console.error(`Search error in ${tableName}:`, error)
-        continue
-      }
+      while (true) {
+        const { data: records, error } = await query.range(fromCustomer, fromCustomer + customerPageSize - 1)
 
-      if (records && records.length > 0) {
+        if (error) {
+          console.error(`Search error in ${tableName}:`, error)
+          break
+        }
+        if (!records || records.length === 0) break
+
         for (const record of records) {
-          // 架電履歴件数を取得（list_typeが日本語名で保存されているため両方で検索）
+          // 架電履歴件数を取得
           const { count } = await supabaseAdmin
             .from(TABLES.CALL_HISTORY)
             .select('*', { count: 'exact', head: true })
@@ -180,6 +210,9 @@ export async function GET(request: NextRequest) {
             record: frontendRecord,
           })
         }
+
+        if (records.length < customerPageSize) break
+        fromCustomer += customerPageSize
       }
     }
 
