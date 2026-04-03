@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { ApiClient } from '@/lib/api-client'
 import { FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'
+import { PROGRESS_OPTIONS, GENDER_OPTIONS } from '@/lib/labels'
 
 export default function CustomerDetail() {
   const currentList = useAppStore((state) => state.currentList)
@@ -296,9 +297,16 @@ export default function CustomerDetail() {
       if (searchRecord.industry) params.append('industry', searchRecord.industry)
       
       if (searchHistory.operator) params.append('operator', searchHistory.operator)
+      if (searchHistory.date) params.append('historyDate', searchHistory.date)
+      if (searchHistory.startTime) params.append('historyStartTime', searchHistory.startTime)
+      if (searchHistory.endTime) params.append('historyEndTime', searchHistory.endTime)
       if (searchHistory.responder) params.append('responder', searchHistory.responder)
+      if (searchHistory.gender) params.append('historyGender', searchHistory.gender)
       if (searchHistory.progress) params.append('progress', searchHistory.progress)
       if (searchHistory.note) params.append('historyNote', searchHistory.note)
+      // 再コール日時の検索（空欄検索含む）
+      if (searchRecord.recallDate !== undefined) params.append('recallDate', searchRecord.recallDate || '')
+      if (searchRecord.recallTime !== undefined) params.append('recallTime', searchRecord.recallTime || '')
 
       const response = await fetch(`/api/search?${params.toString()}`)
       const data = await response.json()
@@ -502,21 +510,31 @@ export default function CustomerDetail() {
             </div>
             
             {/* 再コール日時設定セクション */}
-            {!isSearchMode && (
-              <div className="flex items-center space-x-2 bg-white p-1 rounded border border-gray-200">
-                <span className="text-[10px] font-bold text-gray-600 px-1">再コール日時</span>
-                <input 
-                  type="date" 
-                  value={editedRecord?.recallDate || ''} 
-                  onChange={(e) => handleFieldChange('recallDate', e.target.value)}
-                  className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
-                />
-                <input 
-                  type="time" 
-                  value={editedRecord?.recallTime || ''} 
-                  onChange={(e) => handleFieldChange('recallTime', e.target.value)}
-                  className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
-                />
+            <div className="flex items-center space-x-2 bg-white p-1 rounded border border-gray-200">
+              <span className="text-[10px] font-bold text-gray-600 px-1">
+                {isSearchMode ? '再コール日時検索' : '再コール日時'}
+              </span>
+              <input 
+                type="date" 
+                value={isSearchMode ? (searchRecord.recallDate ?? '') : (editedRecord?.recallDate || '')} 
+                onChange={(e) => isSearchMode 
+                  ? setSearchRecord({...searchRecord, recallDate: e.target.value})
+                  : handleFieldChange('recallDate', e.target.value)
+                }
+                className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
+              />
+              <input 
+                type="time" 
+                value={isSearchMode ? (searchRecord.recallTime ?? '') : (editedRecord?.recallTime || '')} 
+                onChange={(e) => isSearchMode
+                  ? setSearchRecord({...searchRecord, recallTime: e.target.value})
+                  : handleFieldChange('recallTime', e.target.value)
+                }
+                className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
+              />
+              {isSearchMode ? (
+                <span className="text-[9px] text-gray-400">空欄のまま検索→未設定を検索</span>
+              ) : (
                 <button 
                   onClick={handleSetRecall}
                   disabled={isSaving}
@@ -524,8 +542,8 @@ export default function CustomerDetail() {
                 >
                   設定
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           
           <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '180px' }}>
@@ -549,47 +567,74 @@ export default function CustomerDetail() {
                     <td className="border border-gray-300 p-1">
                       <input 
                         type="text" 
-                        placeholder="担当者検索"
+                        placeholder="担当者"
                         value={searchHistory.operator || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, operator: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
-                    <td colSpan={2} className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
-                    <td className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
+                    <td className="border border-gray-300 p-1">
+                      <input 
+                        type="date" 
+                        value={searchHistory.date || ''}
+                        onChange={(e) => setSearchHistory({...searchHistory, date: e.target.value})}
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <input 
+                        type="time" 
+                        value={searchHistory.startTime || ''}
+                        onChange={(e) => setSearchHistory({...searchHistory, startTime: e.target.value})}
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <input 
+                        type="time" 
+                        value={searchHistory.endTime || ''}
+                        onChange={(e) => setSearchHistory({...searchHistory, endTime: e.target.value})}
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                      />
+                    </td>
                     <td className="border border-gray-300 p-1">
                       <input 
                         type="text" 
-                        placeholder="対応者検索"
+                        placeholder="対応者"
                         value={searchHistory.responder || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, responder: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
-                    <td className="border border-gray-300 p-1 text-center text-xs text-gray-400">-</td>
+                    <td className="border border-gray-300 p-1">
+                      <select 
+                        value={searchHistory.gender || ''}
+                        onChange={(e) => setSearchHistory({...searchHistory, gender: e.target.value})}
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
+                      >
+                        {GENDER_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.value === '' ? '性別' : opt.label}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="border border-gray-300 p-1">
                       <select 
                         value={searchHistory.progress || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, progress: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       >
-                        <option value="">進捗検索</option>
-                        <option value="受注">受注</option>
-                        <option value="見込みA">見込みA</option>
-                        <option value="見込みB">見込みB</option>
-                        <option value="見込みC">見込みC</option>
-                        <option value="留守">留守</option>
-                        <option value="拒否">拒否</option>
-                        <option value="時期尚早">時期尚早</option>
+                        {PROGRESS_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.value === '' ? '進捗' : opt.label}</option>
+                        ))}
                       </select>
                     </td>
                     <td className="border border-gray-300 p-1">
                       <input 
                         type="text" 
-                        placeholder="履歴の内容で検索..."
+                        placeholder="メモ検索"
                         value={searchHistory.note || ''}
                         onChange={(e) => setSearchHistory({...searchHistory, note: e.target.value})}
-                        className="w-full border border-gray-200 px-1 py-0.5 text-sm"
+                        className="w-full border border-gray-200 px-1 py-0.5 text-xs"
                       />
                     </td>
                   </tr>
