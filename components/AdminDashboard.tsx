@@ -201,6 +201,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             >
               📥 架電履歴インポート
             </button>
+            <button
+              onClick={async () => {
+                if (confirm('全ての架電履歴を日付・時間順に再配置しますか？\n(表示順が最新順に整えられます)')) {
+                  try {
+                    const res = await fetch('/api/admin/reorder-history', { method: 'POST' })
+                    const result = await res.json()
+                    alert(result.message)
+                  } catch (e) {
+                    alert('エラーが発生しました')
+                  }
+                }
+              }}
+              className="px-6 py-4 bg-orange-500 text-white rounded-lg font-bold text-lg hover:bg-orange-600 transition"
+            >
+              🔄 架電履歴の再配置
+            </button>
           </div>
 
           <button
