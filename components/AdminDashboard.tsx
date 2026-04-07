@@ -43,8 +43,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         totalCalls += callHistory.length
 
         callHistory.forEach((call: any) => {
-          const progress = call.progress || '(未設定)'
-          progressCounts[progress] = (progressCounts[progress] || 0) + 1
+          const progressValue = call.progress || '(未設定)'
+          progressCounts[progressValue] = (progressCounts[progressValue] || 0) + 1
 
           const progress = call.progress || ''
           if (['受注', '前回受注'].includes(progress)) totalOrders++
