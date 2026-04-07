@@ -23,6 +23,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
   const setIsLoading = useAppStore((state) => state.setIsLoading)
   const setListData = useAppStore((state) => state.setListData)
+  const isReportMode = useAppStore((state) => state.isReportMode)
   const [jumpNo, setJumpNo] = useState('')
 
   const currentData = isSearchMode ? searchResults : listData[currentList]
@@ -91,41 +92,49 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
 
   return (
     <div className="bg-gradient-to-b from-gray-100 to-gray-300 border-b border-gray-600 px-3 py-2 flex items-center gap-2">
-      <button
-        onClick={handlePrevious}
-        disabled={currentIndex === 0}
-        className="w-9 h-9 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer flex items-center justify-center text-lg rounded hover:from-gray-200 hover:to-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-      >
-        ◀
-      </button>
+      {!isReportMode ? (
+        <>
+          <button
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+            className="w-9 h-9 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer flex items-center justify-center text-lg rounded hover:from-gray-200 hover:to-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ◀
+          </button>
 
-      <button
-        onClick={handleNext}
-        disabled={currentIndex >= totalCount - 1}
-        className="w-9 h-9 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer flex items-center justify-center text-lg rounded hover:from-gray-200 hover:to-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-      >
-        ▶
-      </button>
+          <button
+            onClick={handleNext}
+            disabled={currentIndex >= totalCount - 1}
+            className="w-9 h-9 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer flex items-center justify-center text-lg rounded hover:from-gray-200 hover:to-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ▶
+          </button>
 
-      <div className="px-3 text-lg font-bold">
-        {totalCount > 0 ? `${currentIndex + 1} / ${totalCount}` : '0 / 0'}
-      </div>
+          <div className="px-3 text-lg font-bold">
+            {totalCount > 0 ? `${currentIndex + 1} / ${totalCount}` : '0 / 0'}
+          </div>
 
-      <input
-        type="text"
-        placeholder="No. を入力"
-        value={jumpNo}
-        onChange={(e) => setJumpNo(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && handleJumpToNo()}
-        className="px-3 py-2 border border-gray-600 rounded text-lg ml-2 w-24"
-      />
+          <input
+            type="text"
+            placeholder="No. を入力"
+            value={jumpNo}
+            onChange={(e) => setJumpNo(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleJumpToNo()}
+            className="px-3 py-2 border border-gray-600 rounded text-lg ml-2 w-24"
+          />
 
-      <button
-        onClick={handleJumpToNo}
-        className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
-      >
-        移動
-      </button>
+          <button
+            onClick={handleJumpToNo}
+            className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
+          >
+            移動
+          </button>
+        </>
+      ) : (
+        <div className="px-3 text-lg font-bold">
+          📊 レポート表示モード
+        </div>
+      )}
 
       <div className="ml-auto flex items-center gap-3">
         <span className="text-lg">ログイン中: <span className="font-bold">{user?.display_name}</span></span>

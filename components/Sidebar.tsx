@@ -21,8 +21,15 @@ export default function Sidebar() {
 
   const ADMIN_PASSWORD = 'admin123' // 本来はSupabaseの環境変数から取得すべき
 
+  const setIsReportMode = useAppStore((state) => state.setIsReportMode)
+
   const handleListClick = (listId: 'list1' | 'list2' | 'list3') => {
+    setIsReportMode(false)
     setCurrentList(listId)
+  }
+
+  const handleReportClick = () => {
+    setIsReportMode(true)
   }
 
   const handleAdminLogin = () => {
@@ -47,9 +54,20 @@ export default function Sidebar() {
     return <AdminDashboard onLogout={handleAdminLogout} />
   }
 
+  const isReportMode = useAppStore((state) => state.isReportMode)
+
   return (
     <div className="w-[160px] bg-[#d0d0d0] border-r border-gray-600 overflow-y-auto flex flex-col">
       <div className="flex-1 overflow-y-auto">
+        <div
+          onClick={handleReportClick}
+          className={`
+            px-4 py-3 text-lg cursor-pointer border-b border-gray-600 whitespace-nowrap
+            ${isReportMode ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
+          `}
+        >
+          <div className="whitespace-nowrap">📊 レポート</div>
+        </div>
         {Object.entries(LIST_NAMES).map(([listId, listName]) => {
           const isActive = currentList === listId
           const count = listData[listId as keyof typeof listData]?.length || 0

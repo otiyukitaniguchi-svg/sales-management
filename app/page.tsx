@@ -7,6 +7,7 @@ import LoginScreen from '@/components/LoginScreen'
 import NavigationBar from '@/components/NavigationBar'
 import Sidebar from '@/components/Sidebar'
 import CustomerDetail from '@/components/CustomerDetail'
+import ReportView from '@/components/ReportView'
 import { CallHistoryImportExport } from '@/components/CallHistoryImportExport'
 import SearchModal from '@/components/SearchModal'
 
@@ -16,6 +17,7 @@ export default function Home() {
   const currentList = useAppStore((state) => state.currentList)
   const listData = useAppStore((state) => state.listData)
   const setListData = useAppStore((state) => state.setListData)
+  const isReportMode = useAppStore((state) => state.isReportMode)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
 
@@ -87,7 +89,9 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 overflow-auto bg-white">
-          {hasData ? (
+          {isReportMode ? (
+            <ReportView />
+          ) : hasData ? (
             <CustomerDetail />
           ) : (
             <div className="text-center text-gray-500 mt-20">

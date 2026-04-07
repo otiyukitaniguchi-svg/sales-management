@@ -40,6 +40,10 @@ interface AppState {
   isLoading: boolean
   setIsLoading: (loading: boolean) => void
 
+  // Report mode
+  isReportMode: boolean
+  setIsReportMode: (isReport: boolean) => void
+
   // Current call (for call history input)
   currentCall: FrontendCallHistoryEntry
   setCurrentCall: (call: FrontendCallHistoryEntry) => void
@@ -94,7 +98,11 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Loading
   isLoading: false,
-  setIsLoading: (loading) => set({ isLoading: loading }),
+  setIsLoading: (loading: boolean) => set({ isLoading: loading }),
+
+  // Report
+  isReportMode: false,
+  setIsReportMode: (isReport) => set({ isReportMode: isReport }),
 
   // Current call
   currentCall: initialCallState,
