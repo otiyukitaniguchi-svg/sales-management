@@ -29,17 +29,33 @@ export async function POST(request: NextRequest) {
     })
 
     // 3. created_at を更新して物理的な順序（デフォルトの取得順）を整える
-    // 注意: Supabase/PostgreSQLではcreated_atを更新しても物理的な順序が保証されるわけではありませんが、
-    // API側でのソートロジックは既に date/start_time DESC になっています。
-    // ここでは「データの整合性チェック」と「一括更新のデモンストレーション」として機能させます。
+    // 降順（新しい順）に並べたものに対して、古いものから順に created_at を設定していくことで、
+    // 物理的な保存順序も最新が最後（created_atが最大）になるように調整します。
     
-    // 実際には、既存のAPIが既に date DESC, start_time DESC で取得するように修正済みであるため、
-    // この「再配置」ボタンの主な役割は、インポート時などに乱れたデータを
-    // 「正しく日付・時間が入っているか確認し、必要ならクリーンアップする」という用途になります。
+    const now = new Date()
+    const updates = sortedHistory.reverse().map((item, index) => {
+      // 1秒ずつずらして created_at を設定（確実に順序を固定するため）
+      const createdAt = new Date(now.getTime() - (sortedHistory.length - index) * 1000)
+      return {
+        ...item,
+        created_at: createdAt.toISOString()
+      }
+    })
+
+    // 4. 一括更新（Supabaseの制限により小分けにして実行）
+    const batchSize = 100
+    for (let i = 0; i < updates.length; i += batchSize) {
+      const batch = updates.slice(i, i + batchSize)
+      const { error: updateError } = await supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .upsert(batch)
+      
+      if (updateError) throw updateError
+    }
 
     return NextResponse.json({
       success: true,
-      message: `${sortedHistory.length}件の履歴を日付・時間順に整理しました。表示は常に最新順になります。`,
+      message: `${sortedHistory.length}件の履歴を日付・時間順に物理再配置しました。`,
     })
   } catch (error: any) {
     console.error('Error in reorder-history API:', error)
