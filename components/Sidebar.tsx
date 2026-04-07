@@ -28,12 +28,9 @@ export default function Sidebar() {
     setCurrentList(listId)
   }
 
-  const handleReportClick = () => {
-    setIsReportMode(true)
-  }
-
   const handleAdminLogin = () => {
-    if (adminPassword === ADMIN_PASSWORD) {
+    // パスワードの前後空白を削除して比較
+    if (adminPassword.trim() === ADMIN_PASSWORD) {
       setIsAdminAuthenticated(true)
       setIsAdminModalOpen(false)
       setAdminPassword('')
@@ -59,15 +56,6 @@ export default function Sidebar() {
   return (
     <div className="w-[160px] bg-[#d0d0d0] border-r border-gray-600 overflow-y-auto flex flex-col">
       <div className="flex-1 overflow-y-auto">
-        <div
-          onClick={handleReportClick}
-          className={`
-            px-4 py-3 text-lg cursor-pointer border-b border-gray-600 whitespace-nowrap
-            ${isReportMode ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
-          `}
-        >
-          <div className="whitespace-nowrap">📊 レポート</div>
-        </div>
         {Object.entries(LIST_NAMES).map(([listId, listName]) => {
           const isActive = currentList === listId
           const count = listData[listId as keyof typeof listData]?.length || 0

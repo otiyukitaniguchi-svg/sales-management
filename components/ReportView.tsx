@@ -37,8 +37,7 @@ export default function ReportView() {
 
   return (
     <div className="p-6 bg-white h-full overflow-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">架電レポート</h2>
+      <div className="flex justify-end items-center mb-6">
         <div className="flex space-x-2">
           <button
             onClick={() => setReportType('daily')}

@@ -40,8 +40,17 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const handleJumpToNo = () => {
     if (!jumpNo.trim()) return
     const targetNo = jumpNo.trim()
-    const foundIndex = currentData?.findIndex((record: any) => String(record.no) === targetNo)
-    if (foundIndex !== undefined && foundIndex >= 0) {
+    
+    let foundIndex = -1
+    if (isSearchMode) {
+      // 検索モード時は searchResults の各要素の record.no を確認
+      foundIndex = searchResults.findIndex((item: any) => String(item.record.no) === targetNo)
+    } else {
+      // 通常モード時は現在のリストの no を確認
+      foundIndex = listData[currentList]?.findIndex((record: any) => String(record.no) === targetNo)
+    }
+
+    if (foundIndex >= 0) {
       if (isSearchMode) {
         setSearchResultIndex(foundIndex)
       } else {

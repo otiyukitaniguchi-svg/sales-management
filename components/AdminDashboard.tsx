@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useAppStore } from '@/lib/store'
 import { ApiClient } from '@/lib/api-client'
 import { FrontendCustomerRecord } from '@/lib/types'
+import ReportView from './ReportView'
 
 interface AdminDashboardProps {
   onLogout: () => void
@@ -286,11 +287,29 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     )
   }
 
-  // レポート画面（既存のダッシュボード）
+  // レポート画面（新しいReportViewを表示）
+  if (adminMode === 'report') {
+    return (
+      <div className="flex flex-col gap-4 p-4 bg-white min-h-screen">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">効果報告レポート</h2>
+          <button
+            onClick={() => setAdminMode('menu')}
+            className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600"
+          >
+            ← メニューに戻る
+          </button>
+        </div>
+        <ReportView />
+      </div>
+    )
+  }
+
+  // デフォルトのダッシュボード（サマリー表示など）
   return (
     <div className="flex flex-col gap-4 p-4 bg-white min-h-screen">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">効果報告レポート</h2>
+        <h2 className="text-2xl font-bold">管理者ダッシュボード</h2>
         <button
           onClick={() => setAdminMode('menu')}
           className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600"
