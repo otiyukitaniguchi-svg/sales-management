@@ -21,6 +21,8 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const searchResults = useAppStore((state) => state.searchResults)
   const searchResultIndex = useAppStore((state) => state.searchResultIndex)
   const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
+  const setSearchMode = useAppStore((state) => state.setSearchMode)
+  const setCurrentList = useAppStore((state) => state.setCurrentList)
   const setIsLoading = useAppStore((state) => state.setIsLoading)
   const setListData = useAppStore((state) => state.setListData)
   const isReportMode = useAppStore((state) => state.isReportMode)
@@ -41,12 +43,11 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
     if (!jumpNo.trim()) return
     const targetNo = jumpNo.trim()
     
+    // 1. まず現在の表示データ（検索結果または現在のリスト）から探す
     let foundIndex = -1
     if (isSearchMode) {
-      // 検索モード時は searchResults の各要素の record.no を確認
       foundIndex = searchResults.findIndex((item: any) => String(item.record.no) === targetNo)
     } else {
-      // 通常モード時は現在のリストの no を確認
       foundIndex = listData[currentList]?.findIndex((record: any) => String(record.no) === targetNo)
     }
 
@@ -57,9 +58,24 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
         setCurrentListIndex(foundIndex)
       }
       setJumpNo('')
-    } else {
-      alert(`No. ${targetNo} が見つかりません`)
+      return
     }
+
+    // 2. 見つからない場合、全リストから探す
+    for (const listId of ['list1', 'list2', 'list3'] as const) {
+      const idx = listData[listId]?.findIndex((record: any) => String(record.no) === targetNo)
+      if (idx !== undefined && idx >= 0) {
+        if (confirm(`No. ${targetNo} は「${listId === 'list1' ? '新規リスト' : listId === 'list2' ? 'ハルエネリスト' : 'モバイルリスト'}」に見つかりました。移動しますか？`)) {
+          setSearchMode(false) // 検索モードを解除
+          setCurrentList(listId) // リストを切り替え
+          setCurrentListIndex(idx) // インデックスをセット
+          setJumpNo('')
+        }
+        return
+      }
+    }
+
+    alert(`No. ${targetNo} が見つかりません`)
   }
 
   const handlePrevious = () => {
