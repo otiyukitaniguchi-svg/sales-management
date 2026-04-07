@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
       }
 
       stats[key].total += 1
-      if (row.progress === '成約' || row.progress === '前向き') {
+      if (row.progress === '受注' || row.progress === '見込みA' || row.progress === '見込みC' || row.progress === '前回受注' || row.progress === '前回採択') {
         stats[key].success += 1
-      } else if (row.progress === '不在' || row.progress === '再コール') {
+      } else if (row.progress === '留守' || row.progress === '担当不在' || row.progress === 'いつの日か' || row.progress === '現アナ') {
         stats[key].pending += 1
       } else {
         stats[key].failure += 1

@@ -46,9 +46,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           const progress = call.progress || '(未設定)'
           progressCounts[progress] = (progressCounts[progress] || 0) + 1
 
-          if (call.progress === '受注') totalOrders++
+          if (call.progress === '受注' || call.progress === '前回受注') totalOrders++
           else if (call.progress?.includes('見込み')) totalProspects++
-          else if (call.progress === 'アポ') totalAppointments++
+          else if (call.progress === '前回採択') totalAppointments++
 
           // 通話時間を秒単位で計算（簡易版）
           if (call.startTime && call.endTime) {
@@ -114,9 +114,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           }
         }
         stats[operator].totalCalls++
-        if (call.progress === '受注') stats[operator].totalOrders++
+        if (call.progress === '受注' || call.progress === '前回受注') stats[operator].totalOrders++
         else if (call.progress?.includes('見込み')) stats[operator].totalProspects++
-        else if (call.progress === 'アポ') stats[operator].totalAppointments++
+        else if (call.progress === '前回採択') stats[operator].totalAppointments++
       })
     })
 

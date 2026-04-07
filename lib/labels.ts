@@ -55,12 +55,17 @@ export const LIST_LABELS = {
 
 export const PROGRESS_OPTIONS = [
   { value: '', label: '-' },
-  { value: '見込みA', label: '見込みA' },
-  { value: '見込みB', label: '見込みB' },
-  { value: '見込みC', label: '見込みC' },
   { value: '受注', label: '受注' },
-  { value: '不在', label: '不在' },
-  { value: '再コール', label: '再コール' },
+  { value: '見込みA', label: '見込みA' },
+  { value: '見込みC', label: '見込みC' },
+  { value: 'いつの日か', label: 'いつの日か' },
+  { value: '留守', label: '留守' },
+  { value: '担当不在', label: '担当不在' },
+  { value: '前回受注', label: '前回受注' },
+  { value: '現アナ', label: '現アナ' },
+  { value: '前回NG', label: '前回NG' },
+  { value: '前回採択', label: '前回採択' },
+  { value: '閉業', label: '閉業' },
 ] as const
 
 export const GENDER_OPTIONS = [
