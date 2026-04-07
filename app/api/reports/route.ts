@@ -45,11 +45,12 @@ export async function GET(request: NextRequest) {
       }
 
       stats[key].total += 1
-      if (row.progress === '受注' || row.progress === '見込みA' || row.progress === '見込みC' || row.progress === '前回受注' || row.progress === '前回採択') {
+      const progress = row.progress || ''
+      if (['受注', '見込みA', '見込みC', '前回受注', '前回採択'].includes(progress)) {
         stats[key].success += 1
-      } else if (row.progress === '留守' || row.progress === '担当不在' || row.progress === 'いつの日か' || row.progress === '現アナ') {
+      } else if (['留守', '担当不在', 'いつの日か', '現アナ'].includes(progress)) {
         stats[key].pending += 1
-      } else {
+      } else if (['前回NG', '閉業'].includes(progress)) {
         stats[key].failure += 1
       }
     })

@@ -774,14 +774,9 @@ export default function CustomerDetail() {
                               onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
                               className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
                             >
-                              <option value="">-</option>
-                              <option value="受注">受注</option>
-                              <option value="見込みA">見込みA</option>
-                              <option value="見込みB">見込みB</option>
-                              <option value="見込みC">見込みC</option>
-                              <option value="留守">留守</option>
-                              <option value="拒否">拒否</option>
-                              <option value="時期尚早">時期尚早</option>
+                              {PROGRESS_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
                             </select>
                           ) : entry.progress}
                         </td>

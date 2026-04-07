@@ -46,9 +46,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           const progress = call.progress || '(未設定)'
           progressCounts[progress] = (progressCounts[progress] || 0) + 1
 
-          if (call.progress === '受注' || call.progress === '前回受注') totalOrders++
-          else if (call.progress?.includes('見込み')) totalProspects++
-          else if (call.progress === '前回採択') totalAppointments++
+          const progress = call.progress || ''
+          if (['受注', '前回受注'].includes(progress)) totalOrders++
+          else if (['見込みA', '見込みC'].includes(progress)) totalProspects++
+          else if (progress === '前回採択') totalAppointments++
 
           // 通話時間を秒単位で計算（簡易版）
           if (call.startTime && call.endTime) {
@@ -114,9 +115,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           }
         }
         stats[operator].totalCalls++
-        if (call.progress === '受注' || call.progress === '前回受注') stats[operator].totalOrders++
-        else if (call.progress?.includes('見込み')) stats[operator].totalProspects++
-        else if (call.progress === '前回採択') stats[operator].totalAppointments++
+        const progress = call.progress || ''
+        if (['受注', '前回受注'].includes(progress)) stats[operator].totalOrders++
+        else if (['見込みA', '見込みC'].includes(progress)) stats[operator].totalProspects++
+        else if (progress === '前回採択') stats[operator].totalAppointments++
       })
     })
 
@@ -425,8 +427,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <th className="border border-gray-300 px-3 py-2 text-center">架電数</th>
               <th className="border border-gray-300 px-3 py-2 text-center">受注</th>
               <th className="border border-gray-300 px-3 py-2 text-center">見込A</th>
-              <th className="border border-gray-300 px-3 py-2 text-center">見込B</th>
               <th className="border border-gray-300 px-3 py-2 text-center">見込C</th>
+              <th className="border border-gray-300 px-3 py-2 text-center">前回採択</th>
               <th className="border border-gray-300 px-3 py-2 text-center">アポ率</th>
             </tr>
           </thead>
@@ -437,8 +439,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <td className="border border-gray-300 px-3 py-2 text-center">{staff.totalCalls}</td>
                 <td className="border border-gray-300 px-3 py-2 text-center">{staff.totalOrders}</td>
                 <td className="border border-gray-300 px-3 py-2 text-center">-</td>
-                <td className="border border-gray-300 px-3 py-2 text-center">-</td>
                 <td className="border border-gray-300 px-3 py-2 text-center">{staff.totalProspects}</td>
+                <td className="border border-gray-300 px-3 py-2 text-center">{staff.totalAppointments}</td>
                 <td className="border border-gray-300 px-3 py-2 text-center">{staff.appointmentRate.toFixed(1)}%</td>
               </tr>
             ))}
