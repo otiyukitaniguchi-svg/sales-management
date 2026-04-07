@@ -107,16 +107,22 @@ export default function CustomerDetail() {
   const handleCallStart = () => {
     setIsCallActive(true)
     const now = new Date()
+    // 日本時間の現在時刻を取得
+    const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000))
+    const dateStr = jstNow.toISOString().split('T')[0].replace(/-/g, '/')
+    const timeStr = jstNow.toISOString().split('T')[1].slice(0, 5)
+
     const newEntry: FrontendCallHistoryEntry = {
       operator: user?.display_name || 'オペレーター',
-      date: now.toISOString().split('T')[0],
-      startTime: now.toTimeString().slice(0, 5),
+      date: dateStr,
+      startTime: timeStr,
       endTime: '',
       responder: '',
       gender: '',
       progress: '',
       note: '',
     }
+    // 既存の履歴の先頭に追加して表示
     setCallHistory([newEntry, ...callHistory])
     setEditingCallIndex(0)
     setEditingCallData(newEntry)
@@ -127,26 +133,27 @@ export default function CustomerDetail() {
     if (!record || editingCallIndex === null || !editingCallData) return
     
     const now = new Date()
-    const endTime = now.toTimeString().slice(0, 5)
+    const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000))
+    const endTime = jstNow.toISOString().split('T')[1].slice(0, 5)
     const finalEntry = { ...editingCallData, endTime }
     
     setEditingCallData(finalEntry)
     
-    setTimeout(async () => {
-      setIsCallActive(false)
-      setEditingCallIndex(null)
-      setEditingCallData(null)
-      
-      try {
-        const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
-        if (success) {
-          setCurrentCall({})
-          await loadCallHistory()
-        }
-      } catch (error) {
-        console.error('Failed to save call history:', error)
+    // 保存処理
+    setIsCallActive(false)
+    setEditingCallIndex(null)
+    setEditingCallData(null)
+    
+    try {
+      const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
+      if (success) {
+        setCurrentCall({})
+        // 保存後に最新の履歴を再読み込み
+        await loadCallHistory()
       }
-    }, 300)
+    } catch (error) {
+      console.error('Failed to save call history:', error)
+    }
   }
 
   const handleEditAllRows = () => {
