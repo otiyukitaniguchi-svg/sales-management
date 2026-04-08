@@ -104,7 +104,7 @@ export default function CustomerDetail() {
         if (isSearchModeGlobal) {
           const updatedResults = [...searchResults]
           updatedResults[searchResultIndex] = { ...updatedResults[searchResultIndex], record: editedRecord }
-          useAppStore.getState().setSearchResults(updatedResults)
+          useAppStore.getState().updateSearchResultsOnly(updatedResults)
         } else {
           const updatedRecords = [...records]
           updatedRecords[currentListIndex] = editedRecord
@@ -397,7 +397,7 @@ export default function CustomerDetail() {
         if (isSearchModeGlobal) {
           const updatedResults = [...searchResults]
           updatedResults[searchResultIndex] = { ...updatedResults[searchResultIndex], record: editedRecord }
-          useAppStore.getState().setSearchResults(updatedResults)
+          useAppStore.getState().updateSearchResultsOnly(updatedResults)
         } else {
           const updatedRecords = [...records]
           updatedRecords[currentListIndex] = editedRecord

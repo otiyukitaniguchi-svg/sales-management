@@ -34,6 +34,7 @@ interface AppState {
   searchResultIndex: number
   setSearchMode: (isSearch: boolean) => void
   setSearchResults: (results: Array<{ listId: string; record: FrontendCustomerRecord }>) => void
+  updateSearchResultsOnly: (results: Array<{ listId: string; record: FrontendCustomerRecord }>) => void
   setSearchResultIndex: (index: number) => void
 
   // Loading state
@@ -94,6 +95,7 @@ export const useAppStore = create<AppState>((set) => ({
   searchResultIndex: 0,
   setSearchMode: (isSearch) => set({ isSearchMode: isSearch }),
   setSearchResults: (results) => set({ searchResults: results, searchResultIndex: 0 }),
+  updateSearchResultsOnly: (results) => set({ searchResults: results }),
   setSearchResultIndex: (index) => set({ searchResultIndex: index }),
 
   // Loading
