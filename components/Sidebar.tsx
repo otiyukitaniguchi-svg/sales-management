@@ -34,20 +34,22 @@ export default function Sidebar() {
     // 前後の空白を削除して比較
     const trimmedInput = adminPassword.trim()
     
-    // デバッグ用にコンソール出力（本番環境では削除推奨だが、現状のトラブルシューティングのため残す）
+    // デバッグ用にコンソール出力
     console.log('Admin login attempt:', { 
       inputLength: adminPassword.length, 
-      trimmedLength: trimmedInput.length 
+      trimmedLength: trimmedInput.length,
+      match: trimmedInput === ADMIN_PASSWORD
     })
     
-    if (trimmedInput === ADMIN_PASSWORD || adminPassword === ADMIN_PASSWORD) {
+    // 全角スペースなども考慮して、より厳密に比較
+    if (trimmedInput === ADMIN_PASSWORD || adminPassword === ADMIN_PASSWORD || trimmedInput.replace(/　/g, '') === ADMIN_PASSWORD) {
       setIsAdminAuthenticated(true)
       setIsAdminModalOpen(false)
       setAdminPassword('')
       setAdminError('')
     } else {
-      setAdminError(`パスワードが正しくありません。正しいパスワードを入力してください。`)
-      // 入力値をクリアせずに、ユーザーが修正できるようにする
+      // エラーメッセージをより具体的にし、入力文字数も表示して確認しやすくする
+      setAdminError(`パスワードが一致しません（入力: ${trimmedInput.length}文字）。正しいパスワードを入力してください。`)
     }
   }
 
