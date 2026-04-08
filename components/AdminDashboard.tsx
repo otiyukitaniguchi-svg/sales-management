@@ -66,7 +66,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const prospectRate = totalCalls > 0 ? (totalProspects / totalCalls) * 100 : 0
     const orderRate = totalCalls > 0 ? (totalOrders / totalCalls) * 100 : 0
     const avgCallDuration = totalCalls > 0 ? totalCallDuration / totalCalls : 0
-    const avgDailyCallCount = totalCalls > 0 ? (totalCalls / 43).toFixed(1) : 0
+    const avgDailyCallCount = totalCalls > 0 ? (totalCalls / 43).toFixed(1) : '0'
 
     return {
       totalRecords,
