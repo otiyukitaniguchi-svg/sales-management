@@ -66,21 +66,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const prospectRate = totalCalls > 0 ? (totalProspects / totalCalls) * 100 : 0
     const orderRate = totalCalls > 0 ? (totalOrders / totalCalls) * 100 : 0
     const avgCallDuration = totalCalls > 0 ? totalCallDuration / totalCalls : 0
-    const avgDailyCallCount = totalCalls > 0 ? (totalCalls / 43).toFixed(1) : '0'
+    const avgDailyCallCount = totalCalls > 0 ? (totalCalls / 43).toFixed(1) : '0.0'
 
     return {
-      totalRecords,
-      totalCalls,
-      totalAppointments,
-      totalProspects,
-      totalOrders,
-      callRate: callRate.toFixed(1),
-      appointmentRate: appointmentRate.toFixed(1),
-      prospectRate: prospectRate.toFixed(1),
-      orderRate: orderRate.toFixed(1),
-      avgCallDuration: formatDuration(avgCallDuration),
-      avgDailyCallCount,
-      progressCounts,
+      totalRecords: totalRecords || 0,
+      totalCalls: totalCalls || 0,
+      totalAppointments: totalAppointments || 0,
+      totalProspects: totalProspects || 0,
+      totalOrders: totalOrders || 0,
+      callRate: (callRate || 0).toFixed(1),
+      appointmentRate: (appointmentRate || 0).toFixed(1),
+      prospectRate: (prospectRate || 0).toFixed(1),
+      orderRate: (orderRate || 0).toFixed(1),
+      avgCallDuration: formatDuration(avgCallDuration || 0),
+      avgDailyCallCount: avgDailyCallCount || '0.0',
+      progressCounts: progressCounts || {},
     }
   }, [listData])
 
