@@ -26,6 +26,14 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const setIsLoading = useAppStore((state) => state.setIsLoading)
   const setListData = useAppStore((state) => state.setListData)
   const isReportMode = useAppStore((state) => state.isReportMode)
+  const isLoading = useAppStore((state) => state.isLoading)
+  const isCallActive = useAppStore((state) => {
+    // CustomerDetailの内部状態にアクセスできないため、
+    // 本来はstoreで管理すべきですが、現状はisLoadingなどで代用するか、
+    // 必要に応じてstoreを拡張します。
+    // ここでは簡易的にisLoadingなどでボタンを無効化します。
+    return state.isLoading;
+  })
   const [jumpNo, setJumpNo] = useState('')
 
   const currentData = isSearchMode ? searchResults : listData[currentList]
@@ -121,7 +129,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
         <>
           <button
             onClick={handlePrevious}
-            disabled={currentIndex === 0}
+            disabled={currentIndex === 0 || isLoading}
             className="w-9 h-9 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer flex items-center justify-center text-lg rounded hover:from-gray-200 hover:to-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             ◀
@@ -129,7 +137,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
 
           <button
             onClick={handleNext}
-            disabled={currentIndex >= totalCount - 1}
+            disabled={currentIndex >= totalCount - 1 || isLoading}
             className="w-9 h-9 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer flex items-center justify-center text-lg rounded hover:from-gray-200 hover:to-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             ▶
@@ -149,14 +157,16 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
             type="text"
             placeholder="No. を入力"
             value={jumpNo}
+            disabled={isLoading}
             onChange={(e) => setJumpNo(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleJumpToNo()}
-            className="px-3 py-2 border border-gray-600 rounded text-lg ml-2 w-24"
+            className="px-3 py-2 border border-gray-600 rounded text-lg ml-2 w-24 disabled:opacity-50"
           />
 
           <button
             onClick={handleJumpToNo}
-            className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
+            disabled={isLoading}
+            className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             移動
           </button>

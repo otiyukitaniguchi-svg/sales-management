@@ -31,6 +31,9 @@ export default function CustomerDetail() {
   const [isSaving, setIsSaving] = useState(false)
   const [isCallActive, setIsCallActive] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  
+  // 操作ロック状態の判定
+  const isLocked = isSaving || isCallActive || isEditingAllRows || isDeleteMode || isSearching;
   const [currentCall, setCurrentCall] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [isRecallEdited, setIsRecallEdited] = useState(false)
@@ -93,9 +96,11 @@ export default function CustomerDetail() {
     }
   }
 
+  const setIsLoading = useAppStore((state) => state.setIsLoading)
   const handleSave = async () => {
-    if (!editedRecord || !record) return
+    if (!editedRecord || !record || isSaving) return
     setIsSaving(true)
+    setIsLoading(true)
     try {
       const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
       const success = await ApiClient.updateCustomer(actualListId, record.no, editedRecord)
@@ -118,10 +123,12 @@ export default function CustomerDetail() {
       console.error('Failed to save:', error)
     } finally {
       setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
   const handleCallStart = () => {
+    if (isLocked) return
     setIsCallActive(true)
     const now = new Date()
     // 日本時間の現在時刻を取得
@@ -160,6 +167,7 @@ export default function CustomerDetail() {
     setIsCallActive(false)
     setEditingCallIndex(null)
     setEditingCallData(null)
+    setIsLoading(true)
     
     try {
       const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
@@ -171,6 +179,8 @@ export default function CustomerDetail() {
       }
     } catch (error) {
       console.error('Failed to save call history:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -178,6 +188,7 @@ export default function CustomerDetail() {
     if (isEditingAllRows) {
       handleSaveAllRows()
     } else {
+      if (isLocked) return
       setIsEditingAllRows(true)
       setEditingCallHistoryAll([...callHistory])
     }
@@ -186,6 +197,7 @@ export default function CustomerDetail() {
   const handleSaveAllRows = async () => {
     if (!record) return
     setIsSaving(true)
+    setIsLoading(true)
     try {
       for (let i = 0; i < editingCallHistoryAll.length; i++) {
         const entry = editingCallHistoryAll[i]
@@ -222,6 +234,7 @@ export default function CustomerDetail() {
     } finally {
       setIsSaving(false)
       setIsEditingAllRows(false)
+      setIsLoading(false)
     }
   }
 
@@ -241,6 +254,7 @@ export default function CustomerDetail() {
       if (!confirm(`${selectedDeleteIndices.length}件の履歴を削除しますか？`)) return
       
       setIsSaving(true)
+      setIsLoading(true)
       try {
         // インデックスが大きい順に削除して、インデックスのズレを防ぐ
         const sortedIndices = [...selectedDeleteIndices].sort((a, b) => b - a)
@@ -273,6 +287,7 @@ export default function CustomerDetail() {
         setIsSaving(false)
       }
     } else {
+      if (isLocked) return
       setIsDeleteMode(true)
       setSelectedDeleteIndices([])
     }
@@ -412,6 +427,7 @@ export default function CustomerDetail() {
       console.error('Failed to set recall:', error)
     } finally {
       setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
@@ -472,10 +488,10 @@ export default function CustomerDetail() {
             {!isSearchMode && (
               <button 
                 onClick={handleSave}
-                disabled={isSaving}
-                className="bg-blue-600 text-white px-4 py-1 rounded text-xs hover:bg-blue-700 disabled:opacity-50"
+                disabled={isLocked}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-bold text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? '保存中...' : '保存'}
+                {isSaving ? '保存中...' : '顧客情報を保存'}
               </button>
             )}
           </div>
@@ -557,19 +573,22 @@ export default function CustomerDetail() {
                 <>
                   <button 
                     onClick={isCallActive ? handleCallEnd : handleCallStart}
-                    className={`px-3 py-1 rounded text-xs font-medium text-white ${isCallActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                    disabled={isLocked && !isCallActive}
+                    className={`px-3 py-1 rounded text-xs font-medium text-white ${isCallActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isCallActive ? '終了' : '開始'}
                   </button>
                   <button 
                     onClick={handleEditAllRows}
-                    className={`px-3 py-1 rounded text-xs font-medium ${isEditingAllRows ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    disabled={isLocked && !isEditingAllRows}
+                    className={`px-3 py-1 rounded text-xs font-medium ${isEditingAllRows ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isEditingAllRows ? '保存' : '編集'}
                   </button>
                   <button 
                     onClick={handleDeleteModeToggle}
-                    className={`px-3 py-1 rounded text-xs font-medium ${isDeleteMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    disabled={isLocked && !isDeleteMode}
+                    className={`px-3 py-1 rounded text-xs font-medium ${isDeleteMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isDeleteMode ? (selectedDeleteIndices.length > 0 ? '実行' : '解除') : '削除'}
                   </button>

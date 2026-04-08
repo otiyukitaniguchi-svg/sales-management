@@ -23,7 +23,9 @@ export default function Sidebar() {
 
   const setIsReportMode = useAppStore((state) => state.setIsReportMode)
 
+  const isLoading = useAppStore((state) => state.isLoading)
   const handleListClick = (listId: 'list1' | 'list2' | 'list3') => {
+    if (isLoading) return
     setIsReportMode(false)
     setCurrentList(listId)
   }
@@ -75,6 +77,7 @@ export default function Sidebar() {
               className={`
                 px-4 py-3 text-lg cursor-pointer border-b border-gray-600 whitespace-nowrap
                 ${isActive ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
+                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               <div className="whitespace-nowrap">{listName}</div>
@@ -84,8 +87,9 @@ export default function Sidebar() {
         })}
       </div>
       <button
-        onClick={() => setIsAdminModalOpen(true)}
-        className="px-4 py-3 text-lg font-bold border-t border-gray-600 bg-blue-300 hover:bg-blue-400 cursor-pointer"
+        onClick={() => !isLoading && setIsAdminModalOpen(true)}
+        disabled={isLoading}
+        className="px-4 py-3 text-lg font-bold border-t border-gray-600 bg-blue-300 hover:bg-blue-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         管理者
       </button>

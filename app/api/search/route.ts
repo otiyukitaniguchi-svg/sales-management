@@ -131,12 +131,12 @@ export async function GET(request: NextRequest) {
       for (const [key, row] of Array.from(latestRowByKey.entries())) {
         let match = true
 
-        // 担当オペレーター（部分一致）
-        if (operator && !(row.operator || '').toLowerCase().includes(operator.toLowerCase())) {
+        // 担当オペレーター（完全一致）
+        if (operator && (row.operator || '') !== operator) {
           match = false
         }
-        // 対応者（部分一致）
-        if (match && responder && !(row.responder || '').toLowerCase().includes(responder.toLowerCase())) {
+        // 対応者（完全一致）
+        if (match && responder && (row.responder || '') !== responder) {
           match = false
         }
         // 性別（完全一致）
@@ -147,11 +147,11 @@ export async function GET(request: NextRequest) {
         if (match && progress && row.progress !== progress) {
           match = false
         }
-        // メモ（部分一致）
-        if (match && historyNote && !(row.note || '').toLowerCase().includes(historyNote.toLowerCase())) {
+        // メモ（完全一致）
+        if (match && historyNote && (row.note || '') !== historyNote) {
           match = false
         }
-        // 架電日（スラッシュ・ハイフン両対応）
+        // 架電日（スラッシュ・ハイフン両対応、完全一致）
         if (match && historyDate) {
           const slashDate = historyDate.replace(/-/g, '/')
           const hyphenDate = historyDate.replace(/\//g, '-')
@@ -160,12 +160,12 @@ export async function GET(request: NextRequest) {
             match = false
           }
         }
-        // 開始時刻（部分一致）
-        if (match && historyStartTime && !(row.start_time || '').includes(historyStartTime)) {
+        // 開始時刻（完全一致）
+        if (match && historyStartTime && (row.start_time || '') !== historyStartTime) {
           match = false
         }
-        // 終了時刻（部分一致）
-        if (match && historyEndTime && !(row.end_time || '').includes(historyEndTime)) {
+        // 終了時刻（完全一致）
+        if (match && historyEndTime && (row.end_time || '') !== historyEndTime) {
           match = false
         }
 
