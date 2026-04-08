@@ -31,25 +31,21 @@ export default function Sidebar() {
   }
 
   const handleAdminLogin = () => {
-    // 前後の空白を削除して比較
-    const trimmedInput = adminPassword.trim()
+    // 入力値をそのまま、およびトリミングした値で比較
+    const input = adminPassword;
+    const trimmed = adminPassword.trim();
+    const target = 'any123';
     
-    // デバッグ用にコンソール出力
-    console.log('Admin login attempt:', { 
-      inputLength: adminPassword.length, 
-      trimmedLength: trimmedInput.length,
-      match: trimmedInput === ADMIN_PASSWORD
-    })
+    // デバッグ用
+    console.log('Login attempt:', { input, trimmed, target });
     
-    // 全角スペースなども考慮して、より厳密に比較
-    if (trimmedInput === ADMIN_PASSWORD || adminPassword === ADMIN_PASSWORD || trimmedInput.replace(/　/g, '') === ADMIN_PASSWORD) {
-      setIsAdminAuthenticated(true)
-      setIsAdminModalOpen(false)
-      setAdminPassword('')
-      setAdminError('')
+    if (input === target || trimmed === target) {
+      setIsAdminAuthenticated(true);
+      setIsAdminModalOpen(false);
+      setAdminPassword('');
+      setAdminError('');
     } else {
-      // エラーメッセージをより具体的にし、入力文字数も表示して確認しやすくする
-      setAdminError(`パスワードが一致しません（入力: ${trimmedInput.length}文字）。正しいパスワードを入力してください。`)
+      setAdminError(`パスワードが一致しません。入力された文字数は ${trimmed.length} 文字です。`);
     }
   }
 
