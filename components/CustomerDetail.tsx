@@ -733,7 +733,16 @@ export default function CustomerDetail() {
                             />
                           ) : entry.operator}
                         </td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">{entry.date}</td>
+                        <td className="border border-gray-300 px-2 py-1 text-sm">
+                          {isEditingAllRows || (isCallActive && idx === 0) ? (
+                            <input 
+                              type="text" 
+                              value={isCallActive && idx === 0 ? editingCallData?.date || '' : editingCallHistoryAll[idx]?.date || ''}
+                              onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, date: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'date', e.target.value)}
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
+                            />
+                          ) : entry.date}
+                        </td>
                         <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
                             <input 
