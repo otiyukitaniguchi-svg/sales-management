@@ -41,66 +41,45 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     }))
   }
 
-  const handleSearch = () => {
-    const records = listData[currentList] || []
-    
-    // 検索条件に合致するレコードをフィルタリング
-    const results = records.filter((record: FrontendCustomerRecord) => {
-      // 基本情報の検索
-      const basicMatch = (
-        (!searchFields.companyName || record.companyName?.includes(searchFields.companyName)) &&
-        (!searchFields.companyKana || record.companyKana?.includes(searchFields.companyKana)) &&
-        (!searchFields.address || record.address?.includes(searchFields.address)) &&
-        (!searchFields.fixedNo || record.fixedNo?.includes(searchFields.fixedNo)) &&
-        (!searchFields.otherContact || record.otherContact?.includes(searchFields.otherContact)) &&
-        (!searchFields.email || record.email?.includes(searchFields.email)) &&
-        (!searchFields.repName || record.repName?.includes(searchFields.repName)) &&
-        (!searchFields.staffName || record.staffName?.includes(searchFields.staffName))
-      )
-
-      // 基本情報がマッチしなければスキップ
-      if (!basicMatch) return false
-
-      // 架電履歴の検索条件があるかチェック
-      const hasCallFilter = searchFields.callOperator || searchFields.callResponder || searchFields.callProgress || searchFields.callNote || searchFields.recallDate
+  const handleSearch = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (searchFields.companyName) params.append('companyName', searchFields.companyName)
+      if (searchFields.address) params.append('address', searchFields.address)
+      if (searchFields.fixedNo) params.append('fixedNo', searchFields.fixedNo)
+      if (searchFields.otherContact) params.append('otherContact', searchFields.otherContact)
+      if (searchFields.email) params.append('email', searchFields.email)
+      if (searchFields.repName) params.append('repName', searchFields.repName)
+      if (searchFields.staffName) params.append('staffName', searchFields.staffName)
       
-      // 架電履歴の検索条件がなければ、基本情報のみでマッチ
-      if (!hasCallFilter) return true
+      if (searchFields.callOperator) params.append('operator', searchFields.callOperator)
+      if (searchFields.callResponder) params.append('responder', searchFields.callResponder)
+      if (searchFields.callProgress) params.append('progress', searchFields.callProgress)
+      if (searchFields.callNote) params.append('historyNote', searchFields.callNote)
+      if (searchFields.recallDate) params.append('historyDate', searchFields.recallDate)
 
-      // 架電履歴がある場合、条件に合致する履歴があるかチェック
-      const callHistory = record.callHistory || []
-      return callHistory.some((call: any) => {
-        return (
-          (!searchFields.callOperator || call.operator?.includes(searchFields.callOperator)) &&
-          (!searchFields.callResponder || call.responder?.includes(searchFields.callResponder)) &&
-          (!searchFields.callProgress || call.progress?.includes(searchFields.callProgress)) &&
-          (!searchFields.callNote || call.note?.includes(searchFields.callNote)) &&
-          (!searchFields.recallDate || call.date?.includes(searchFields.recallDate))
-        )
-      })
-    })
+      const response = await fetch(`/api/search?${params.toString()}`)
+      const data = await response.json()
 
-    if (results.length === 0) {
-      alert('HITなし')
-      return
+      if (!data.success) {
+        alert('検索エラー: ' + (data.message || '不明なエラー'))
+        return
+      }
+
+      if (!data.results || data.results.length === 0) {
+        alert('HITなし')
+        return
+      }
+
+      // 検索結果をストアに保存
+      setSearchResults(data.results)
+      setSearchResultIndex(0)
+      setSearchMode(true)
+      onClose()
+    } catch (error) {
+      console.error('Search failed:', error)
+      alert('検索に失敗しました')
     }
-
-    // 検索結果をNo.順でソート
-    const sortedResults = [...results].sort((a, b) => {
-      const noA = parseInt(a.no || '0', 10)
-      const noB = parseInt(b.no || '0', 10)
-      return noA - noB
-    })
-
-    // 検索結果をストアに保存
-    const formattedResults = sortedResults.map((record) => ({
-      listId: currentList,
-      record,
-    }))
-    setSearchResults(formattedResults)
-    setSearchResultIndex(0)
-    setSearchMode(true)
-    onClose()
   }
 
   const handleClear = () => {

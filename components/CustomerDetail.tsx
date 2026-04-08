@@ -15,8 +15,12 @@ export default function CustomerDetail() {
   const setCurrentListIndex = useAppStore((state) => state.setCurrentListIndex)
   const user = useAppStore((state) => state.user)
 
-  const records = listData[currentList] || []
-  const record = records[currentListIndex]
+  const isSearchModeGlobal = useAppStore((state) => state.isSearchMode)
+  const searchResults = useAppStore((state) => state.searchResults)
+  const searchResultIndex = useAppStore((state) => state.searchResultIndex)
+
+  const records = isSearchModeGlobal ? searchResults.map(r => r.record) : (listData[currentList] || [])
+  const record = isSearchModeGlobal ? searchResults[searchResultIndex]?.record : records[currentListIndex]
 
   const [editedRecord, setEditedRecord] = useState<FrontendCustomerRecord | null>(null)
   const [callHistory, setCallHistory] = useState<FrontendCallHistoryEntry[]>([])
@@ -45,8 +49,11 @@ export default function CustomerDetail() {
 
   useEffect(() => {
     if (record && !isSearchMode) {
+      // 検索モード（グローバル）の場合は、検索結果の listId を使用する
+      const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
+      
       // キャッシュがあればそれを使用、なければレコードから初期化
-      const cacheKey = `${currentList}-${record.no}`
+      const cacheKey = `${actualListId}-${record.no}`
       if (editCache[cacheKey]) {
         setEditedRecord(editCache[cacheKey])
       } else {
@@ -55,12 +62,13 @@ export default function CustomerDetail() {
       loadCallHistory()
       setExpandedHistoryIndices([]) // レコード切り替え時に展開状態をリセット
     }
-  }, [record, isSearchMode])
+  }, [record, isSearchMode, isSearchModeGlobal, searchResultIndex])
 
   const loadCallHistory = async () => {
     if (!record) return
     try {
-      const response = await ApiClient.getCallHistory(currentList, record.no)
+      const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
+      const response = await ApiClient.getCallHistory(actualListId, record.no)
       const history = (response as any).data || []
       // API側でdate DESC, start_time DESCでソート済みなので、フロントエンドでの再ソートは不要
       setCallHistory(Array.isArray(history) ? history : [])
@@ -87,12 +95,19 @@ export default function CustomerDetail() {
     if (!editedRecord || !record) return
     setIsSaving(true)
     try {
-      const success = await ApiClient.updateCustomer(currentList, record.no, editedRecord)
+      const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
+      const success = await ApiClient.updateCustomer(actualListId, record.no, editedRecord)
       if (success) {
         // 保存成功時にストアのデータも更新して同期をとる
-        const updatedRecords = [...records]
-        updatedRecords[currentListIndex] = editedRecord
-        setListData(currentList, updatedRecords)
+        if (isSearchModeGlobal) {
+          const updatedResults = [...searchResults]
+          updatedResults[searchResultIndex] = { ...updatedResults[searchResultIndex], record: editedRecord }
+          useAppStore.getState().setSearchResults(updatedResults)
+        } else {
+          const updatedRecords = [...records]
+          updatedRecords[currentListIndex] = editedRecord
+          setListData(currentList, updatedRecords)
+        }
         
         setSaveMessage('✓ 顧客情報を保存しました')
         setTimeout(() => setSaveMessage(''), 2000)
@@ -145,7 +160,8 @@ export default function CustomerDetail() {
     setEditingCallData(null)
     
     try {
-      const success = await ApiClient.createCallHistory(currentList, record.no, finalEntry)
+      const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
+      const success = await ApiClient.createCallHistory(actualListId, record.no, finalEntry)
       if (success) {
         setCurrentCall({})
         // 保存後に最新の履歴を再読み込み
@@ -183,9 +199,10 @@ export default function CustomerDetail() {
           const result = await response.json()
           success = response.ok && (result.success || !result.error)
         } else {
-          // IDがない場合はインデックスベースの更新APIを使用する
-          success = await ApiClient.updateCallHistory(currentList, record.no, i, entry)
-        }
+        // IDがない場合はインデックスベースの更新APIを使用する
+        const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
+        success = await ApiClient.updateCallHistory(actualListId, record.no, i, entry)
+      }
         
         if (!success) {
           throw new Error(`履歴の保存に失敗しました (Index: ${i})`)
@@ -234,7 +251,8 @@ export default function CustomerDetail() {
             const result = await response.json()
             success = response.ok && (result.success || !result.error)
           } else {
-            success = await ApiClient.deleteCallHistory(currentList, record.no, index)
+            const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
+            success = await ApiClient.deleteCallHistory(actualListId, record.no, index)
           }
           
           if (!success) {
@@ -285,6 +303,11 @@ export default function CustomerDetail() {
     setIsSearchMode(false)
     setSearchRecord({})
     setSearchHistory({})
+    
+    // グローバルな検索モードも解除
+    useAppStore.getState().setSearchMode(false)
+    useAppStore.getState().setSearchResults([])
+    
     // 元のリストデータを再読み込みして通常表示に戻す
     try {
       const result = await ApiClient.getListData(currentList)
@@ -294,11 +317,6 @@ export default function CustomerDetail() {
       }
     } catch (error) {
       console.error('Reload failed:', error)
-    }
-    if (record) {
-      const cacheKey = `${currentList}-${record.no}`
-      setEditedRecord(editCache[cacheKey] || { ...record })
-      loadCallHistory()
     }
   }
 
@@ -339,22 +357,14 @@ export default function CustomerDetail() {
       const data = await response.json()
 
       if (data.success && data.results.length > 0) {
-        const groupedByList: { [key: string]: any[] } = {}
-        data.results.forEach((r: any) => {
-          const listId = r.listId || currentList
-          if (!groupedByList[listId]) {
-            groupedByList[listId] = []
-          }
-          groupedByList[listId].push(r.record)
-        })
+        // 検索結果をグローバルストアの検索結果としてセット
+        useAppStore.getState().setSearchResults(data.results)
+        useAppStore.getState().setSearchMode(true)
         
-        Object.entries(groupedByList).forEach(([listId, records]) => {
-          setListData(listId, records)
-        })
-        
+        // 最初の結果を表示
         const firstResult = data.results[0]
         setCurrentList(firstResult.listId)
-        setCurrentListIndex(0)
+        useAppStore.getState().setSearchResultIndex(0)
         
         setIsSearchMode(false)
         setSaveMessage(`✓ ${data.results.length}件ヒットしました`)
@@ -374,16 +384,23 @@ export default function CustomerDetail() {
     if (!editedRecord || !record) return
     setIsSaving(true)
     try {
-      const success = await ApiClient.updateCustomer(currentList, record.no, {
+      const actualListId = isSearchModeGlobal ? searchResults[searchResultIndex]?.listId : currentList
+      const success = await ApiClient.updateCustomer(actualListId, record.no, {
         ...editedRecord,
         recallDate: editedRecord.recallDate,
         recallTime: editedRecord.recallTime
       })
       if (success) {
         // 保存成功時にストアのデータも更新
-        const updatedRecords = [...records]
-        updatedRecords[currentListIndex] = editedRecord
-        setListData(currentList, updatedRecords)
+        if (isSearchModeGlobal) {
+          const updatedResults = [...searchResults]
+          updatedResults[searchResultIndex] = { ...updatedResults[searchResultIndex], record: editedRecord }
+          useAppStore.getState().setSearchResults(updatedResults)
+        } else {
+          const updatedRecords = [...records]
+          updatedRecords[currentListIndex] = editedRecord
+          setListData(currentList, updatedRecords)
+        }
         
         setSaveMessage('✓ 再コール日時を設定しました')
         setTimeout(() => setSaveMessage(''), 2000)
