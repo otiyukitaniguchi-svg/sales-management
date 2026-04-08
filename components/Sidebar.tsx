@@ -19,7 +19,7 @@ export default function Sidebar() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
   const [adminError, setAdminError] = useState('')
 
-  const ADMIN_PASSWORD = 'admin123' // 本来はSupabaseの環境変数から取得すべき
+  const ADMIN_PASSWORD = 'any123' // 本来はSupabaseの環境変数から取得すべき
 
   const setIsReportMode = useAppStore((state) => state.setIsReportMode)
 
