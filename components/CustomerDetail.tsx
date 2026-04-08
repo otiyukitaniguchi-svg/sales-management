@@ -33,6 +33,7 @@ export default function CustomerDetail() {
   const [saveMessage, setSaveMessage] = useState('')
   const [currentCall, setCurrentCall] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearchMode, setIsSearchMode] = useState(false)
+  const [isRecallEdited, setIsRecallEdited] = useState(false)
   const [searchRecord, setSearchRecord] = useState<Partial<FrontendCustomerRecord>>({})
   const [searchHistory, setSearchHistory] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearching, setIsSearching] = useState(false)
@@ -61,6 +62,7 @@ export default function CustomerDetail() {
       }
       loadCallHistory()
       setExpandedHistoryIndices([]) // レコード切り替え時に展開状態をリセット
+      setIsRecallEdited(false) // レコード切り替え時に編集状態をリセット
     }
   }, [record, isSearchMode, isSearchModeGlobal, searchResultIndex])
 
@@ -402,6 +404,7 @@ export default function CustomerDetail() {
           setListData(currentList, updatedRecords)
         }
         
+        setIsRecallEdited(false)
         setSaveMessage('✓ 再コール日時を設定しました')
         setTimeout(() => setSaveMessage(''), 2000)
       }
@@ -582,19 +585,27 @@ export default function CustomerDetail() {
               <input 
                 type="date" 
                 value={isSearchMode ? (searchRecord.recallDate ?? '') : (editedRecord?.recallDate || '')} 
-                onChange={(e) => isSearchMode 
-                  ? setSearchRecord({...searchRecord, recallDate: e.target.value})
-                  : handleFieldChange('recallDate', e.target.value)
-                }
+                onChange={(e) => {
+                  if (isSearchMode) {
+                    setSearchRecord({...searchRecord, recallDate: e.target.value})
+                  } else {
+                    handleFieldChange('recallDate', e.target.value)
+                    setIsRecallEdited(true)
+                  }
+                }}
                 className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
               />
               <input 
                 type="time" 
                 value={isSearchMode ? (searchRecord.recallTime ?? '') : (editedRecord?.recallTime || '')} 
-                onChange={(e) => isSearchMode
-                  ? setSearchRecord({...searchRecord, recallTime: e.target.value})
-                  : handleFieldChange('recallTime', e.target.value)
-                }
+                onChange={(e) => {
+                  if (isSearchMode) {
+                    setSearchRecord({...searchRecord, recallTime: e.target.value})
+                  } else {
+                    handleFieldChange('recallTime', e.target.value)
+                    setIsRecallEdited(true)
+                  }
+                }}
                 className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
               />
               {isSearchMode ? (
@@ -603,9 +614,9 @@ export default function CustomerDetail() {
                 <button 
                   onClick={handleSetRecall}
                   disabled={isSaving}
-                  className="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] hover:bg-green-700 disabled:opacity-50"
+                  className={`${isRecallEdited ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-0.5 rounded text-[10px] disabled:opacity-50 transition-colors`}
                 >
-                  設定
+                  {isRecallEdited ? '保存' : '設定'}
                 </button>
               )}
             </div>
