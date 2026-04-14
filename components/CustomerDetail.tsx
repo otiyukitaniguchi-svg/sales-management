@@ -379,8 +379,6 @@ export default function CustomerDetail() {
         useAppStore.getState().setSearchMode(true)
         
         // 最初の結果を表示
-        const firstResult = data.results[0]
-        setCurrentList(firstResult.listId)
         useAppStore.getState().setSearchResultIndex(0)
         
         setIsSearchMode(false)
