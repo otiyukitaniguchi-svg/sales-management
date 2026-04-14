@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     const { password } = await request.json();
 
     // 環境変数からパスワードを取得することを推奨
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'any123'; 
+    const ADMIN_PASSWORD = 'any123'; 
 
     if (password === ADMIN_PASSWORD) {
       return NextResponse.json({ authenticated: true });
