@@ -19,7 +19,7 @@ export default function Sidebar() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false)
   const [adminError, setAdminError] = useState('')
 
-  const ADMIN_PASSWORD = 'any123' // 本来はSupabaseの環境変数から取得すべき
+
 
   const setIsReportMode = useAppStore((state) => state.setIsReportMode)
 
@@ -31,21 +31,30 @@ export default function Sidebar() {
   }
 
   const handleAdminLogin = () => {
-    // 入力値をそのまま、およびトリミングした値で比較
-    const input = adminPassword;
-    const trimmed = adminPassword.trim();
-    const target = 'any123';
-    
-    // デバッグ用
-    console.log('Login attempt:', { input, trimmed, target });
-    
-    if (input === target || trimmed === target) {
-      setIsAdminAuthenticated(true);
-      setIsAdminModalOpen(false);
-      setAdminPassword('');
-      setAdminError('');
-    } else {
-      setAdminError(`パスワードが一致しません。入力された文字数は ${trimmed.length} 文字です。`);
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.authenticated) {
+          setIsAdminAuthenticated(true);
+          setIsAdminModalOpen(false);
+          setAdminPassword('');
+          setAdminError('');
+        } else {
+          setAdminError('パスワードが一致しません。');
+        }
+      } else {
+        const errorData = await response.json();
+        setAdminError(errorData.error || 'ログインに失敗しました。');
+      }
+    } catch (error) {
+      console.error('Admin login failed:', error);
+      setAdminError('ログイン中にエラーが発生しました。');
     }
   }
 
