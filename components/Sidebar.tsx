@@ -30,7 +30,7 @@ export default function Sidebar() {
     setCurrentList(listId)
   }
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     try {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
