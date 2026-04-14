@@ -132,40 +132,40 @@ export async function GET(request: NextRequest) {
         let match = true
 
         // 担当オペレーター（完全一致）
-        if (operator && (row.operator || '') !== operator) {
+        if (operator && (row.operator || '').trim() !== operator.trim()) {
           match = false
         }
         // 対応者（完全一致）
-        if (match && responder && (row.responder || '') !== responder) {
+        if (match && responder && (row.responder || '').trim() !== responder.trim()) {
           match = false
         }
         // 性別（完全一致）
-        if (match && historyGender && row.gender !== historyGender) {
+        if (match && historyGender && (row.gender || '').trim() !== historyGender.trim()) {
           match = false
         }
         // 進捗（完全一致）
-        if (match && progress && row.progress !== progress) {
+        if (match && progress && (row.progress || '').trim() !== progress.trim()) {
           match = false
         }
         // メモ（完全一致）
-        if (match && historyNote && (row.note || '') !== historyNote) {
+        if (match && historyNote && (row.note || '').trim() !== historyNote.trim()) {
           match = false
         }
         // 架電日（スラッシュ・ハイフン両対応、完全一致）
         if (match && historyDate) {
-          const slashDate = historyDate.replace(/-/g, '/')
-          const hyphenDate = historyDate.replace(/\//g, '-')
-          const rowDate = row.date || ''
+          const slashDate = historyDate.replace(/-/g, '/').trim()
+          const hyphenDate = historyDate.replace(/\//g, '-').trim()
+          const rowDate = (row.date || '').trim()
           if (rowDate !== slashDate && rowDate !== hyphenDate) {
             match = false
           }
         }
         // 開始時刻（完全一致）
-        if (match && historyStartTime && (row.start_time || '') !== historyStartTime) {
+        if (match && historyStartTime && (row.start_time || '').trim() !== historyStartTime.trim()) {
           match = false
         }
         // 終了時刻（完全一致）
-        if (match && historyEndTime && (row.end_time || '') !== historyEndTime) {
+        if (match && historyEndTime && (row.end_time || '').trim() !== historyEndTime.trim()) {
           match = false
         }
 
