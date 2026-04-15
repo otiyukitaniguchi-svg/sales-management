@@ -2,8 +2,11 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
+  console.log('Admin login API called');
   try {
-    const { password } = await request.json();
+    const body = await request.json();
+    console.log('Request body received:', body);
+    const { password } = body;
 
     // 環境変数からパスワードを取得することを推奨
     const ADMIN_PASSWORD = 'any123'; 
