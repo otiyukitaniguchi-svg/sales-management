@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Admin login API error:', error);
-    return NextResponse.json({ authenticated: false, error: 'Internal Server Error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ authenticated: false, error: errorMessage }, { status: 500 });
   }
 }
