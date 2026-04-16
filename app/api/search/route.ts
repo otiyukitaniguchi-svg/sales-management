@@ -3,6 +3,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, LIST_TYPE_MAP, TABLES } from '@/lib/supabase'
 import { toFrontendFormat } from '@/lib/types'
 
+/**
+ * 日付文字列を YYYY-MM-DD 形式に正規化する
+ */
+function normalizeDate(dateStr: string | null): string {
+  if (!dateStr) return ""
+  const d = dateStr.replace(/\//g, '-').trim()
+  const parts = d.split('-')
+  if (parts.length === 3) {
+    const y = parts[0]
+    const m = parts[1].padStart(2, '0')
+    const day = parts[2].padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+  return d
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -49,67 +65,44 @@ export async function GET(request: NextRequest) {
     const matchedByList: Map<string, Set<string>> = new Map()
 
     if (hasHistorySearch) {
-      // SQLを使用して、各 (list_type, no) の最新1行のみを抽出し、その行が条件に一致するか判定する
-      // date, start_time, created_at の順で最新を定義
-      const { data: matchedHistory, error: historyError } = await supabaseAdmin.rpc('search_latest_call_history', {
-        p_operator: operator || null,
-        p_date: historyDate || null,
-        p_start_time: historyStartTime || null,
-        p_end_time: historyEndTime || null,
-        p_responder: responder || null,
-        p_gender: historyGender || null,
-        p_progress: progress || null,
-        p_note: historyNote || null
-      })
+      // フォールバックロジックを常に使用（RPCが日付正規化に対応していない可能性があるため）
+      // 全履歴を取得して最新行を特定
+      const { data: allHistory, error: fetchError } = await supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false })
+        .order('created_at', { ascending: false })
 
-      // RPCが未定義の場合はフォールバックとして従来の（ただし修正された）ロジックを使用
-      if (historyError) {
-        console.warn('RPC search_latest_call_history failed, falling back to manual filtering:', historyError)
+      if (fetchError) throw fetchError
+
+      const latestMap = new Map<string, any>()
+      for (const row of (allHistory || [])) {
+        const key = `${row.list_type}:${row.no}`
+        if (!latestMap.has(key)) {
+          latestMap.set(key, row)
+        }
+      }
+
+      const normalizedSearchDate = normalizeDate(historyDate)
+      const latestRows = Array.from(latestMap.values())
+      
+      for (const row of latestRows) {
+        let match = true
+        if (operator && (row.operator || '').trim() !== operator.trim()) match = false
+        if (match && responder && (row.responder || '').trim() !== responder.trim()) match = false
+        if (match && historyGender && (row.gender || '').trim() !== historyGender.trim()) match = false
+        if (match && progress && (row.progress || '').trim() !== progress.trim()) match = false
+        if (match && historyNote && (row.note || '').trim() !== historyNote.trim()) match = false
         
-        // フォールバック: 全履歴を取得して最新行を特定（パフォーマンス上の懸念はあるが正確性を優先）
-        const { data: allHistory, error: fetchError } = await supabaseAdmin
-          .from(TABLES.CALL_HISTORY)
-          .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
-          .order('date', { ascending: false })
-          .order('start_time', { ascending: false })
-          .order('created_at', { ascending: false })
-
-        if (fetchError) throw fetchError
-
-        const latestMap = new Map<string, any>()
-        for (const row of (allHistory || [])) {
-          const key = `${row.list_type}:${row.no}`
-          if (!latestMap.has(key)) {
-            latestMap.set(key, row)
-          }
+        if (match && historyDate) {
+          const rowDateNormalized = normalizeDate(row.date)
+          if (normalizedSearchDate !== rowDateNormalized) match = false
         }
-
-        // TypeScriptの反復処理エラー回避のため Array.from() を使用
-        const latestRows = Array.from(latestMap.values())
-        for (const row of latestRows) {
-          let match = true
-          if (operator && (row.operator || '').trim() !== operator.trim()) match = false
-          if (match && responder && (row.responder || '').trim() !== responder.trim()) match = false
-          if (match && historyGender && (row.gender || '').trim() !== historyGender.trim()) match = false
-          if (match && progress && (row.progress || '').trim() !== progress.trim()) match = false
-          if (match && historyNote && (row.note || '').trim() !== historyNote.trim()) match = false
-          if (match && historyDate) {
-            const d = historyDate.replace(/\//g, '-').trim()
-            const rd = (row.date || '').replace(/\//g, '-').trim()
-            if (d !== rd) match = false
-          }
-          if (match && historyStartTime && (row.start_time || '').trim() !== historyStartTime.trim()) match = false
-          
-          if (match) {
-            const listId = row.list_type === '新規リスト' ? 'list1' : 
-                           row.list_type === 'ハルエネリスト' ? 'list2' : 
-                           row.list_type === 'モバイルリスト' ? 'list3' : row.list_type
-            if (!matchedByList.has(listId)) matchedByList.set(listId, new Set())
-            matchedByList.get(listId)!.add(row.no)
-          }
-        }
-      } else {
-        for (const row of (matchedHistory || [])) {
+        
+        if (match && historyStartTime && (row.start_time || '').trim() !== historyStartTime.trim()) match = false
+        
+        if (match) {
           const listId = row.list_type === '新規リスト' ? 'list1' : 
                          row.list_type === 'ハルエネリスト' ? 'list2' : 
                          row.list_type === 'モバイルリスト' ? 'list3' : row.list_type
@@ -155,7 +148,7 @@ export async function GET(request: NextRequest) {
         const { data: historyCounts } = await supabaseAdmin
           .from(TABLES.CALL_HISTORY)
           .select('no, list_type')
-          .eq('list_type', tableName) // 日本語名で絞り込み
+          .eq('list_type', tableName)
           .in('no', matchedNos)
 
         const countMap: Record<string, number> = {}
