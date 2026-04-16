@@ -2,40 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, LIST_TYPE_MAP, TABLES } from '@/lib/supabase'
 import { toFrontendFormat } from '@/lib/types'
 
-// list_type の日本語名 → listId のマッピング
-const LIST_TYPE_TO_ID: Record<string, string> = {
-  '新規リスト': 'list1',
-  'ハルエネリスト': 'list2',
-  'モバイルリスト': 'list3',
-  'list1': 'list1',
-  'list2': 'list2',
-  'list3': 'list3',
-}
-
-// 日付と時間を比較可能な形式に変換する（パディング付き）
-function getSortableDateTime(dateStr: string | null, timeStr: string | null): string {
-  if (!dateStr) return '0000-00-00 00:00'
-  
-  // スラッシュをハイフンに統一し、各要素をパディングする
-  const parts = dateStr.replace(/\//g, '-').split('-')
-  if (parts.length !== 3) return '0000-00-00 00:00'
-  
-  const y = parts[0].padStart(4, '0')
-  const m = parts[1].padStart(2, '0')
-  const d = parts[2].padStart(2, '0')
-  
-  // 時間のパディング
-  let hh = '00'
-  let mm = '00'
-  if (timeStr) {
-    const tParts = timeStr.trim().split(':')
-    hh = tParts[0].padStart(2, '0')
-    if (tParts.length > 1) mm = tParts[1].padStart(2, '0')
-  }
-  
-  return `${y}-${m}-${d} ${hh}:${mm}`
-}
-
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -52,7 +18,7 @@ export async function GET(request: NextRequest) {
     const email = searchParams.get('email')
     const industry = searchParams.get('industry')
 
-    // 架電履歴の検索条件（最新履歴1件のみ参照）
+    // 架電履歴の検索条件
     const operator = searchParams.get('operator')
     const historyDate = searchParams.get('historyDate')
     const historyStartTime = searchParams.get('historyStartTime')
@@ -82,68 +48,68 @@ export async function GET(request: NextRequest) {
     const matchedByList: Map<string, Set<string>> = new Map()
 
     if (hasHistorySearch) {
-      // key=(listId:no) → 最新1件の行データ を保持するMap
-      const latestRowByKey: Map<string, any> = new Map()
+      // SQLを使用して、各 (list_type, no) の最新1行のみを抽出し、その行が条件に一致するか判定する
+      // date, start_time, created_at の順で最新を定義
+      const { data: matchedHistory, error: historyError } = await supabaseAdmin.rpc('search_latest_call_history', {
+        p_operator: operator || null,
+        p_date: historyDate || null,
+        p_start_time: historyStartTime || null,
+        p_end_time: historyEndTime || null,
+        p_responder: responder || null,
+        p_gender: historyGender || null,
+        p_progress: progress || null,
+        p_note: historyNote || null
+      })
 
-      // ページネーションで全履歴を取得
-      let from = 0
-      const pageSize = 2000
-      
-      while (true) {
-        const { data: historyPage, error: historyError } = await supabaseAdmin
+      // RPCが未定義の場合はフォールバックとして従来の（ただし修正された）ロジックを使用
+      if (historyError) {
+        console.warn('RPC search_latest_call_history failed, falling back to manual filtering:', historyError)
+        
+        // フォールバック: 全履歴を取得して最新行を特定（パフォーマンス上の懸念はあるが正確性を優先）
+        const { data: allHistory, error: fetchError } = await supabaseAdmin
           .from(TABLES.CALL_HISTORY)
           .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
-          .range(from, from + pageSize - 1)
+          .order('date', { ascending: false })
+          .order('start_time', { ascending: false })
+          .order('created_at', { ascending: false })
 
-        if (historyError) throw historyError
-        if (!historyPage || historyPage.length === 0) break
+        if (fetchError) throw fetchError
 
-        for (const row of historyPage) {
-          const listId = LIST_TYPE_TO_ID[row.list_type] || row.list_type
-          const key = `${listId}:${row.no}`
-          
-          const currentDateTime = getSortableDateTime(row.date, row.start_time)
-          const existingRow = latestRowByKey.get(key)
-          
-          if (!existingRow) {
-            latestRowByKey.set(key, { ...row, list_type: listId, sortKey: currentDateTime })
-          } else {
-            const existingDateTime = existingRow.sortKey
-            if (currentDateTime > existingDateTime) {
-              latestRowByKey.set(key, { ...row, list_type: listId, sortKey: currentDateTime })
-            } else if (currentDateTime === existingDateTime) {
-              if ((row.created_at || '') > (existingRow.created_at || '')) {
-                latestRowByKey.set(key, { ...row, list_type: listId, sortKey: currentDateTime })
-              }
-            }
+        const latestMap = new Map<string, any>()
+        for (const row of (allHistory || [])) {
+          const key = `${row.list_type}:${row.no}`
+          if (!latestMap.has(key)) {
+            latestMap.set(key, row)
           }
         }
-        
-        if (historyPage.length < pageSize) break
-        from += pageSize
-      }
 
-      // 最新1件に対して検索条件を適用
-      for (const [key, row] of Array.from(latestRowByKey.entries())) {
-        let match = true
-
-        if (operator && (row.operator || '').trim() !== operator.trim()) match = false
-        if (match && responder && (row.responder || '').trim() !== responder.trim()) match = false
-        if (match && historyGender && (row.gender || '').trim() !== historyGender.trim()) match = false
-        if (match && progress && (row.progress || '').trim() !== progress.trim()) match = false
-        if (match && historyNote && (row.note || '').trim() !== historyNote.trim()) match = false
-        
-        if (match && historyDate) {
-          const slashDate = historyDate.replace(/-/g, '/').trim()
-          const hyphenDate = historyDate.replace(/\//g, '-').trim()
-          const rowDate = (row.date || '').trim()
-          if (rowDate !== slashDate && rowDate !== hyphenDate) match = false
+        for (const row of latestMap.values()) {
+          let match = true
+          if (operator && (row.operator || '').trim() !== operator.trim()) match = false
+          if (match && responder && (row.responder || '').trim() !== responder.trim()) match = false
+          if (match && historyGender && (row.gender || '').trim() !== historyGender.trim()) match = false
+          if (match && progress && (row.progress || '').trim() !== progress.trim()) match = false
+          if (match && historyNote && (row.note || '').trim() !== historyNote.trim()) match = false
+          if (match && historyDate) {
+            const d = historyDate.replace(/\//g, '-').trim()
+            const rd = (row.date || '').replace(/\//g, '-').trim()
+            if (d !== rd) match = false
+          }
+          if (match && historyStartTime && (row.start_time || '').trim() !== historyStartTime.trim()) match = false
+          
+          if (match) {
+            const listId = row.list_type === '新規リスト' ? 'list1' : 
+                           row.list_type === 'ハルエネリスト' ? 'list2' : 
+                           row.list_type === 'モバイルリスト' ? 'list3' : row.list_type
+            if (!matchedByList.has(listId)) matchedByList.set(listId, new Set())
+            matchedByList.get(listId)!.add(row.no)
+          }
         }
-        if (match && historyStartTime && (row.start_time || '').trim() !== historyStartTime.trim()) match = false
-        if (match && historyEndTime && (row.end_time || '').trim() !== historyEndTime.trim()) match = false
-
-        if (match) {
-          const listId = row.list_type
+      } else {
+        for (const row of (matchedHistory || [])) {
+          const listId = row.list_type === '新規リスト' ? 'list1' : 
+                         row.list_type === 'ハルエネリスト' ? 'list2' : 
+                         row.list_type === 'モバイルリスト' ? 'list3' : row.list_type
           if (!matchedByList.has(listId)) matchedByList.set(listId, new Set())
           matchedByList.get(listId)!.add(row.no)
         }
@@ -178,37 +144,27 @@ export async function GET(request: NextRequest) {
 
       if (uniqueNos !== null) query = query.in('no', uniqueNos)
 
-      let fromCustomer = 0
-      const customerPageSize = 1000
-      const matchedRecords: any[] = []
+      const { data: records, error } = await query
+      if (error) continue
 
-      while (true) {
-        const { data: records, error } = await query.range(fromCustomer, fromCustomer + customerPageSize - 1)
-        if (error) break
-        if (!records || records.length === 0) break
-        matchedRecords.push(...records)
-        if (records.length < customerPageSize) break
-        fromCustomer += customerPageSize
-      }
+      if (records && records.length > 0) {
+        const matchedNos = records.map(r => r.no)
+        const { data: historyCounts } = await supabaseAdmin
+          .from(TABLES.CALL_HISTORY)
+          .select('no, list_type')
+          .eq('list_type', tableName) // 日本語名で絞り込み
+          .in('no', matchedNos)
 
-      if (matchedRecords.length === 0) continue
+        const countMap: Record<string, number> = {}
+        for (const h of (historyCounts || [])) {
+          countMap[h.no] = (countMap[h.no] || 0) + 1
+        }
 
-      const matchedNos = matchedRecords.map(r => r.no)
-      const { data: historyCounts } = await supabaseAdmin
-        .from(TABLES.CALL_HISTORY)
-        .select('no, list_type')
-        .eq('list_type', listId)
-        .in('no', matchedNos)
-
-      const countMap: Record<string, number> = {}
-      for (const h of (historyCounts || [])) {
-        countMap[h.no] = (countMap[h.no] || 0) + 1
-      }
-
-      for (const record of matchedRecords) {
-        const frontendRecord = toFrontendFormat(record)
-        frontendRecord.callHistoryCount = countMap[record.no] || 0
-        results.push({ listId: listId, record: frontendRecord })
+        for (const record of records) {
+          const frontendRecord = toFrontendFormat(record)
+          frontendRecord.callHistoryCount = countMap[record.no] || 0
+          results.push({ listId: listId, record: frontendRecord })
+        }
       }
     }
 
