@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { sendOrderToSlack } from '@/lib/slack'
 import { FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'

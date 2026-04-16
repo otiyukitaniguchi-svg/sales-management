@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, LIST_TYPE_MAP, TABLES } from '@/lib/supabase'
 import { toFrontendFormat } from '@/lib/types'
@@ -83,7 +84,9 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        for (const row of latestMap.values()) {
+        // TypeScriptの反復処理エラー回避のため Array.from() を使用
+        const latestRows = Array.from(latestMap.values())
+        for (const row of latestRows) {
           let match = true
           if (operator && (row.operator || '').trim() !== operator.trim()) match = false
           if (match && responder && (row.responder || '').trim() !== responder.trim()) match = false

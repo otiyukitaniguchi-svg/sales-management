@@ -32,8 +32,6 @@ export default function CustomerDetail() {
   const [isCallActive, setIsCallActive] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   
-  // 操作ロック状態の判定
-  const isLocked = isSaving || isCallActive || isEditingAllRows || isDeleteMode || isSearching;
   const [currentCall, setCurrentCall] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [isRecallEdited, setIsRecallEdited] = useState(false)
@@ -43,6 +41,9 @@ export default function CustomerDetail() {
   
   // 削除モード用の状態
   const [isDeleteMode, setIsDeleteMode] = useState(false)
+  
+  // 操作ロック状態の判定
+  const isLocked = isSaving || isCallActive || isEditingAllRows || isDeleteMode || isSearching;
   const [selectedDeleteIndices, setSelectedDeleteIndices] = useState<number[]>([])
 
   // レコードごとの編集状態を保持するためのキャッシュ

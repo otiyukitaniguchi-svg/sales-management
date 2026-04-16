@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getTableName } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'
