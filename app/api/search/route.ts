@@ -12,14 +12,28 @@ const LIST_TYPE_TO_ID: Record<string, string> = {
   'list3': 'list3',
 }
 
-// 日付と時間を比較可能な形式に変換する
+// 日付と時間を比較可能な形式に変換する（パディング付き）
 function getSortableDateTime(dateStr: string | null, timeStr: string | null): string {
   if (!dateStr) return '0000-00-00 00:00'
-  // スラッシュをハイフンに統一
-  const normalizedDate = dateStr.replace(/\//g, '-')
-  // 時間が空の場合は 00:00 に
-  const normalizedTime = (timeStr || '00:00').trim()
-  return `${normalizedDate} ${normalizedTime}`
+  
+  // スラッシュをハイフンに統一し、各要素をパディングする
+  const parts = dateStr.replace(/\//g, '-').split('-')
+  if (parts.length !== 3) return '0000-00-00 00:00'
+  
+  const y = parts[0].padStart(4, '0')
+  const m = parts[1].padStart(2, '0')
+  const d = parts[2].padStart(2, '0')
+  
+  // 時間のパディング
+  let hh = '00'
+  let mm = '00'
+  if (timeStr) {
+    const tParts = timeStr.trim().split(':')
+    hh = tParts[0].padStart(2, '0')
+    if (tParts.length > 1) mm = tParts[1].padStart(2, '0')
+  }
+  
+  return `${y}-${m}-${d} ${hh}:${mm}`
 }
 
 export async function GET(request: NextRequest) {
@@ -68,22 +82,23 @@ export async function GET(request: NextRequest) {
     const matchedByList: Map<string, Set<string>> = new Map()
 
     if (hasHistorySearch) {
-      let from = 0
-      const pageSize = 1000
-
       // key=(listId:no) → 最新1件の行データ を保持するMap
       const latestRowByKey: Map<string, any> = new Map()
 
-      // 全履歴を取得してメモリ上で正確に最新1件を特定する
-      // (DBのorderだけでは日付形式の混在に対応しきれないため)
-      const { data: allHistory, error: historyError } = await supabaseAdmin
-        .from(TABLES.CALL_HISTORY)
-        .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
+      // ページネーションで全履歴を取得
+      let from = 0
+      const pageSize = 2000
+      
+      while (true) {
+        const { data: historyPage, error: historyError } = await supabaseAdmin
+          .from(TABLES.CALL_HISTORY)
+          .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
+          .range(from, from + pageSize - 1)
 
-      if (historyError) throw historyError
+        if (historyError) throw historyError
+        if (!historyPage || historyPage.length === 0) break
 
-      if (allHistory) {
-        for (const row of allHistory) {
+        for (const row of historyPage) {
           const listId = LIST_TYPE_TO_ID[row.list_type] || row.list_type
           const key = `${listId}:${row.no}`
           
@@ -94,17 +109,18 @@ export async function GET(request: NextRequest) {
             latestRowByKey.set(key, { ...row, list_type: listId, sortKey: currentDateTime })
           } else {
             const existingDateTime = existingRow.sortKey
-            // 日付・時間で比較
             if (currentDateTime > existingDateTime) {
               latestRowByKey.set(key, { ...row, list_type: listId, sortKey: currentDateTime })
             } else if (currentDateTime === existingDateTime) {
-              // 日付・時間が同じなら created_at で比較
               if ((row.created_at || '') > (existingRow.created_at || '')) {
                 latestRowByKey.set(key, { ...row, list_type: listId, sortKey: currentDateTime })
               }
             }
           }
         }
+        
+        if (historyPage.length < pageSize) break
+        from += pageSize
       }
 
       // 最新1件に対して検索条件を適用
