@@ -24,14 +24,16 @@ export async function GET(
       )
     }
 
-    // Fetch call history for this record (共通のNoをキーに取得)
-    // 架電日・開始時刻の降順（最新が一番上）でソート
+    // Fetch call history for this record (list_type と no をキーに取得)
+    // 架電日・開始時刻・作成日時の降順（最新が一番上）でソート
     const { data: history, error } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('*')
+      .eq('list_type', listId)
       .eq('no', no)
       .order('date', { ascending: false })
       .order('start_time', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) {
       throw error
