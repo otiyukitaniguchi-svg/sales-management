@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "next": "14.2.0",
     "papaparse": "^5.5.3",
     "react": "^18.2.0",
@@ -18,7 +18,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20.11.0",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^18.2.55",
