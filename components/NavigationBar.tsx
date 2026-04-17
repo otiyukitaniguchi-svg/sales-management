@@ -27,13 +27,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const setListData = useAppStore((state) => state.setListData)
   const isReportMode = useAppStore((state) => state.isReportMode)
   const isLoading = useAppStore((state) => state.isLoading)
-  const isCallActive = useAppStore((state) => {
-    // CustomerDetailの内部状態にアクセスできないため、
-    // 本来はstoreで管理すべきですが、現状はisLoadingなどで代用するか、
-    // 必要に応じてstoreを拡張します。
-    // ここでは簡易的にisLoadingなどでボタンを無効化します。
-    return state.isLoading;
-  })
+  const isCallActive = useAppStore((state) => state.isLoading)
   const [jumpNo, setJumpNo] = useState('')
 
   const currentData = isSearchMode ? searchResults : listData[currentList]
@@ -83,7 +77,35 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
       }
     }
 
-    alert(`No. ${targetNo} が見つかりません`)
+    // 3. メモリ上に見つからない場合、サーバーに問い合わせる
+    setIsLoading(true)
+    try {
+      const response = await ApiClient.searchByNo(targetNo)
+      if (response.success && response.results && response.results.length > 0) {
+        const firstMatch = response.results[0]
+        const listId = firstMatch.listId as 'list1' | 'list2' | 'list3'
+        
+        if (confirm(`No. ${targetNo} は「${listId === 'list1' ? '新規リスト' : listId === 'list2' ? 'ハルエネリスト' : 'モバイルリスト'}」に存在します。データを読み込んで移動しますか？`)) {
+          // データを再読み込み
+          const listResult = await ApiClient.getListData(listId)
+          if (listResult.success && listResult.data) {
+            setListData(listId, listResult.data)
+            const newIdx = listResult.data.findIndex((r: any) => String(r.no) === targetNo)
+            setSearchMode(false)
+            setCurrentList(listId)
+            setCurrentListIndex(newIdx >= 0 ? newIdx : 0)
+            setJumpNo('')
+          }
+        }
+      } else {
+        alert(`No. ${targetNo} が見つかりません`)
+      }
+    } catch (error) {
+      console.error('Jump search failed:', error)
+      alert('検索中にエラーが発生しました')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePrevious = () => {
@@ -157,16 +179,14 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
             type="text"
             placeholder="No. を入力"
             value={jumpNo}
-            disabled={isLoading}
             onChange={(e) => setJumpNo(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleJumpToNo()}
-            className="px-3 py-2 border border-gray-600 rounded text-lg ml-2 w-24 disabled:opacity-50"
+            className="px-3 py-2 border border-gray-600 rounded text-lg ml-2 w-24"
           />
 
           <button
             onClick={handleJumpToNo}
-            disabled={isLoading}
-            className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer rounded text-lg font-bold hover:from-gray-200 hover:to-gray-300"
           >
             移動
           </button>
