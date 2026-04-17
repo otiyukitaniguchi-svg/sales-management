@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import { callHistoryToDbFormat } from '@/lib/types'
 
-// キャッシュ制御ヘッダー
 const cacheHeaders = {
   'Cache-Control': 'no-cache, no-store, must-revalidate',
   'Pragma': 'no-cache',
@@ -19,13 +18,21 @@ export async function PUT(
     const idx = parseInt(index)
     const body = await request.json()
 
-    // 1. 現在の履歴を取得（表示順と同じdate DESC, start_time DESC）
+    const listTypeNames = {
+      'list1': ['list1', '新規リスト'],
+      'list2': ['list2', 'ハルエネリスト'],
+      'list3': ['list3', 'モバイルリスト']
+    }
+    const allowedTypes = listTypeNames[listId as keyof typeof listTypeNames] || [listId]
+
     const { data: history, error: fetchError } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('*')
       .eq('no', no)
+      .in('list_type', allowedTypes)
       .order('date', { ascending: false })
       .order('start_time', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (fetchError) throw fetchError
 
@@ -33,11 +40,10 @@ export async function PUT(
       return NextResponse.json({ success: false, message: '指定された履歴が見つかりません' }, { status: 404 })
     }
 
-    // 2. 対象の履歴を更新
     const targetId = history[idx].id
-    const dbEntry = callHistoryToDbFormat(body, listId as any, no)
+    const dbListType = listTypeNames[listId as keyof typeof listTypeNames]?.[1] || listId
+    const dbEntry = callHistoryToDbFormat(body, dbListType as any, no)
     
-    // 更新不可フィールドを除外
     const { id, created_at, updated_at, ...updateData } = dbEntry as any
 
     const { error: updateError } = await supabaseAdmin
@@ -59,16 +65,24 @@ export async function DELETE(
   { params }: { params: { listId: string; no: string; index: string } }
 ) {
   try {
-    const { no, index } = params
+    const { listId, no, index } = params
     const idx = parseInt(index)
 
-    // 1. 現在の履歴を取得（表示順と同じdate DESC, start_time DESC）
+    const listTypeNames = {
+      'list1': ['list1', '新規リスト'],
+      'list2': ['list2', 'ハルエネリスト'],
+      'list3': ['list3', 'モバイルリスト']
+    }
+    const allowedTypes = listTypeNames[listId as keyof typeof listTypeNames] || [listId]
+
     const { data: history, error: fetchError } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
       .select('*')
       .eq('no', no)
+      .in('list_type', allowedTypes)
       .order('date', { ascending: false })
       .order('start_time', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (fetchError) throw fetchError
 
@@ -76,7 +90,6 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: '指定された履歴が見つかりません' }, { status: 404 })
     }
 
-    // 2. 対象の履歴を削除
     const targetId = history[idx].id
     const { error: deleteError } = await supabaseAdmin
       .from(TABLES.CALL_HISTORY)
