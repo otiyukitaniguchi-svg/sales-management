@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       while (true) {
         const { data, error } = await supabaseAdmin
           .from(TABLES.CALL_HISTORY)
-          .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note')
+          .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
           .range(from, from + pageSize - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -106,18 +106,32 @@ export async function GET(request: NextRequest) {
         from += pageSize
       }
 
-      // historyScope=latest の場合は、(list_type, no) ごとに最新の1件のみを残す
+      // list_typeの表記ゆれ（'list1' と '新規リスト' 等）を正規化する
+      const normalizeListType = (lt: string | null | undefined): string => {
+        const s = String(lt || '').trim()
+        if (s === 'list1' || s === '新規リスト') return '新規リスト'
+        if (s === 'list2' || s === 'ハルエネリスト') return 'ハルエネリスト'
+        if (s === 'list3' || s === 'モバイルリスト') return 'モバイルリスト'
+        return s
+      }
+
+      // historyScope=latest の場合は、(normalized_list_type, no) ごとに最新の1件のみを残す
+      // 並び順はフロント(history/[no]/route.ts)のSupabaseと同等: date DESC, start_time DESC, created_at DESC
+      // ★重要★ フロント側はPostgRESTの文字列ソートを利用しており、日付形式を正規化しない
+      // （YYYY/MM/DD と YYYY-MM-DD の並び順が '/' の方が大きいため混在時には画面といろいろが起きる）
+      // これに合わせるため、ここでも生のDB值を並べて降順最大を検出する
       let candidateRows = allHistory
       if (historyScope === 'latest') {
         type Row = typeof allHistory[number]
         const latestMap = new Map<string, Row>()
         for (const row of allHistory) {
-          const key = `${row.list_type}__${row.no}`
+          const normLT = normalizeListType(row.list_type)
+          const key = `${normLT}__${row.no}`
           const prev = latestMap.get(key)
           if (!prev) { latestMap.set(key, row); continue }
-          // 日付(YYYY-MM-DD) + 開始時刻(HH:MM) で降順最新を選ぶ
-          const cur = `${normalizeDate(row.date)}T${normalizeTime(row.start_time)}`
-          const pv = `${normalizeDate(prev.date)}T${normalizeTime(prev.start_time)}`
+          // 画面と同じ文字列ソート（生のDB値をそのまま比較）
+          const cur = `${row.date || ''}|${row.start_time || ''}|${row.created_at || ''}`
+          const pv = `${prev.date || ''}|${prev.start_time || ''}|${prev.created_at || ''}`
           if (cur > pv) latestMap.set(key, row)
         }
         candidateRows = Array.from(latestMap.values())
@@ -128,34 +142,65 @@ export async function GET(request: NextRequest) {
       const normalizedEnd = historyEndTime ? normalizeTime(historyEndTime) : ''
       const noteLower = historyNote ? historyNote.toLowerCase() : ''
 
+      const isLatestMode = historyScope === 'latest'
+
       for (const row of candidateRows) {
         let match = true
 
-        if (operator && (row.operator || '').trim() !== operator.trim()) match = false
-        if (match && responder && !(row.responder || '').includes(responder.trim())) match = false
-        if (match && historyGender && (row.gender || '').trim() !== historyGender.trim()) match = false
-        if (match && progress && (row.progress || '').trim() !== progress.trim()) match = false
+        // latestモードでは「最新行の該当フィールドが空白」の場合はヒット対象外
+        // allモードは従来通り「条件に一致する履歴が1件でもあればOK」
+        if (operator) {
+          const v = (row.operator || '').trim()
+          if (!v) match = false
+          else if (v !== operator.trim()) match = false
+        }
+        if (match && responder) {
+          const v = (row.responder || '').trim()
+          if (!v) match = false
+          else if (!v.includes(responder.trim())) match = false
+        }
+        if (match && historyGender) {
+          const v = (row.gender || '').trim()
+          if (!v) match = false
+          else if (v !== historyGender.trim()) match = false
+        }
+        if (match && progress) {
+          const v = (row.progress || '').trim()
+          if (!v) match = false
+          else if (v !== progress.trim()) match = false
+        }
 
         if (match && noteLower) {
-          if (!(row.note || '').toLowerCase().includes(noteLower)) match = false
+          const v = (row.note || '')
+          if (!v.trim()) match = false
+          else if (!v.toLowerCase().includes(noteLower)) match = false
         }
 
         if (match && normalizedSearchDate) {
-          if (normalizeDate(row.date) !== normalizedSearchDate) match = false
+          const v = normalizeDate(row.date)
+          if (!v) match = false
+          else if (v !== normalizedSearchDate) match = false
         }
 
         if (match && normalizedStart) {
-          if (normalizeTime(row.start_time) !== normalizedStart) match = false
+          const v = normalizeTime(row.start_time)
+          if (!v) match = false
+          else if (v !== normalizedStart) match = false
         }
         if (match && normalizedEnd) {
-          if (normalizeTime(row.end_time) !== normalizedEnd) match = false
+          const v = normalizeTime(row.end_time)
+          if (!v) match = false
+          else if (v !== normalizedEnd) match = false
         }
+        // isLatestMode変数は将来的にall固有ロジックのため保持
+        void isLatestMode
 
         if (match) {
+          const rawLt = String(row.list_type || '').trim()
           const listId =
-            row.list_type === '新規リスト' ? 'list1' :
-            row.list_type === 'ハルエネリスト' ? 'list2' :
-            row.list_type === 'モバイルリスト' ? 'list3' : row.list_type
+            rawLt === '新規リスト' || rawLt === 'list1' ? 'list1' :
+            rawLt === 'ハルエネリスト' || rawLt === 'list2' ? 'list2' :
+            rawLt === 'モバイルリスト' || rawLt === 'list3' ? 'list3' : rawLt
           if (!matchedByList.has(listId)) matchedByList.set(listId, new Set())
           matchedByList.get(listId)!.add(String(row.no))
         }

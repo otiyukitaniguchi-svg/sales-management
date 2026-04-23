@@ -367,9 +367,9 @@ export default function CustomerDetail() {
       if (searchHistory.gender) params.append('historyGender', searchHistory.gender)
       if (searchHistory.progress) params.append('progress', searchHistory.progress)
       if (searchHistory.note) params.append('historyNote', searchHistory.note)
-      // 再コール日時の検索（空欄検索含む）
-      if (searchRecord.recallDate !== undefined) params.append('recallDate', searchRecord.recallDate || '')
-      if (searchRecord.recallTime !== undefined) params.append('recallTime', searchRecord.recallTime || '')
+      // 再コール日時の検索（値が入力されている場合のみ送信）
+      if (searchRecord.recallDate) params.append('recallDate', searchRecord.recallDate)
+      if (searchRecord.recallTime) params.append('recallTime', searchRecord.recallTime)
 
       // 履歴検索範囲（最新履歴のみ / 過去全件）
       params.append('historyScope', historyScope)
