@@ -42,7 +42,9 @@ export default function CustomerDetail() {
   const [searchRecord, setSearchRecord] = useState<Partial<FrontendCustomerRecord>>({})
   const [searchHistory, setSearchHistory] = useState<Partial<FrontendCallHistoryEntry>>({})
   const [isSearching, setIsSearching] = useState(false)
-  
+  // 履歴検索の範囲（'latest' = 最新履歴のみ / 'all' = 過去履歴すべて）
+  const [historyScope, setHistoryScope] = useState<'latest' | 'all'>('latest')
+
   // 削除モード用の状態
   const [isDeleteMode, setIsDeleteMode] = useState(false)
   
@@ -369,6 +371,9 @@ export default function CustomerDetail() {
       if (searchRecord.recallDate !== undefined) params.append('recallDate', searchRecord.recallDate || '')
       if (searchRecord.recallTime !== undefined) params.append('recallTime', searchRecord.recallTime || '')
 
+      // 履歴検索範囲（最新履歴のみ / 過去全件）
+      params.append('historyScope', historyScope)
+
       const response = await fetch(`/api/search?${params.toString()}`)
       const data = await response.json()
 
@@ -456,6 +461,26 @@ export default function CustomerDetail() {
             >
               {isSearching ? '検索中...' : '検索実行'}
             </button>
+          )}
+          {isSearchMode && (
+            <div className="flex items-center border border-gray-300 rounded overflow-hidden text-xs" role="group" aria-label="履歴検索範囲">
+              <button
+                type="button"
+                onClick={() => setHistoryScope('latest')}
+                className={`px-3 py-1 font-medium transition-colors ${historyScope === 'latest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                title="各顧客の最新履歴1件のみを検索対象にします"
+              >
+                最新履歴のみ
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryScope('all')}
+                className={`px-3 py-1 font-medium border-l border-gray-300 transition-colors ${historyScope === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                title="過去の全履歴を検索対象にします（どれか1件でも一致すればヒット）"
+              >
+                全履歴
+              </button>
+            </div>
           )}
           {!isSearchMode && (
             <button

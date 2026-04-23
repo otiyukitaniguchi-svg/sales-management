@@ -33,6 +33,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     callNote: '',
     recallDate: '',
   })
+  // 履歴検索の範囲（'latest' = 最新履歴のみ / 'all' = 過去全件）
+  const [historyScope, setHistoryScope] = useState<'latest' | 'all'>('latest')
 
   const handleSearchFieldChange = (field: string, value: string) => {
     setSearchFields((prev) => ({
@@ -59,6 +61,9 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
       if (searchFields.callNote) params.append('historyNote', searchFields.callNote)
       // 「対応日」: 架電履歴の日付検索
       if (searchFields.recallDate) params.append('historyDate', searchFields.recallDate)
+
+      // 履歴検索範囲
+      params.append('historyScope', historyScope)
 
       const response = await fetch(`/api/search?${params.toString()}`)
       const data = await response.json()
@@ -113,8 +118,31 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6">顧客検索</h2>
-        
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">顧客検索</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600">履歴検索範囲:</span>
+            <div className="flex items-center border border-gray-300 rounded overflow-hidden text-xs" role="group">
+              <button
+                type="button"
+                onClick={() => setHistoryScope('latest')}
+                className={`px-3 py-1 font-medium transition-colors ${historyScope === 'latest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                title="各顧客の最新履歴1件のみを検索対象にします"
+              >
+                最新履歴のみ
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryScope('all')}
+                className={`px-3 py-1 font-medium border-l border-gray-300 transition-colors ${historyScope === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+                title="過去の全履歴を検索対象にします"
+              >
+                全履歴
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block font-semibold text-gray-700 mb-2">企業名</label>

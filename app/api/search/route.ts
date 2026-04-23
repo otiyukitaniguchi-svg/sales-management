@@ -58,6 +58,9 @@ export async function GET(request: NextRequest) {
     const progress = searchParams.get('progress')
     const historyNote = searchParams.get('historyNote')
 
+    // 履歴検索の範囲: latest = 各顧客の最新履歴のみ / all = 過去履歴すべて（デフォルト: latest）
+    const historyScope = (searchParams.get('historyScope') || 'latest').toLowerCase() === 'all' ? 'all' : 'latest'
+
     // --- 再コール日時の検索条件 ---
     // recallDate="" (空文字列) は「未設定(空欄)を検索」を意味する
     const recallDateParam = searchParams.get('recallDate')
@@ -87,6 +90,7 @@ export async function GET(request: NextRequest) {
 
     if (hasHistorySearch) {
       // 全履歴をページングで取得（Supabase の上限1000件を超える可能性があるため）
+      // latestモードでも最新履歴を判定するため全件取得が必要
       const allHistory: any[] = []
       const pageSize = 1000
       let from = 0
@@ -102,12 +106,29 @@ export async function GET(request: NextRequest) {
         from += pageSize
       }
 
+      // historyScope=latest の場合は、(list_type, no) ごとに最新の1件のみを残す
+      let candidateRows = allHistory
+      if (historyScope === 'latest') {
+        type Row = typeof allHistory[number]
+        const latestMap = new Map<string, Row>()
+        for (const row of allHistory) {
+          const key = `${row.list_type}__${row.no}`
+          const prev = latestMap.get(key)
+          if (!prev) { latestMap.set(key, row); continue }
+          // 日付(YYYY-MM-DD) + 開始時刻(HH:MM) で降順最新を選ぶ
+          const cur = `${normalizeDate(row.date)}T${normalizeTime(row.start_time)}`
+          const pv = `${normalizeDate(prev.date)}T${normalizeTime(prev.start_time)}`
+          if (cur > pv) latestMap.set(key, row)
+        }
+        candidateRows = Array.from(latestMap.values())
+      }
+
       const normalizedSearchDate = historyDate ? normalizeDate(historyDate) : ''
       const normalizedStart = historyStartTime ? normalizeTime(historyStartTime) : ''
       const normalizedEnd = historyEndTime ? normalizeTime(historyEndTime) : ''
       const noteLower = historyNote ? historyNote.toLowerCase() : ''
 
-      for (const row of allHistory) {
+      for (const row of candidateRows) {
         let match = true
 
         if (operator && (row.operator || '').trim() !== operator.trim()) match = false
