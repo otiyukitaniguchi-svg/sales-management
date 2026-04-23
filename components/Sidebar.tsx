@@ -22,10 +22,22 @@ export default function Sidebar() {
 
 
   const setIsReportMode = useAppStore((state) => state.setIsReportMode)
+  const isSearchMode = useAppStore((state) => state.isSearchMode)
+  const setSearchMode = useAppStore((state) => state.setSearchMode)
+  const setSearchResults = useAppStore((state) => state.setSearchResults)
+  const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
+  const setCurrentListIndex = useAppStore((state) => state.setCurrentListIndex)
 
   const isLoading = useAppStore((state) => state.isLoading)
   const handleListClick = (listId: 'list1' | 'list2' | 'list3') => {
     if (isLoading) return
+    // 検索モード中は検索を解除してからリスト切替
+    if (isSearchMode) {
+      setSearchMode(false)
+      setSearchResults([])
+      setSearchResultIndex(0)
+    }
+    setCurrentListIndex(0)
     setIsReportMode(false)
     setCurrentList(listId)
   }

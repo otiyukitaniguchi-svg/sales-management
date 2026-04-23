@@ -45,17 +45,19 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     try {
       const params = new URLSearchParams()
       if (searchFields.companyName) params.append('companyName', searchFields.companyName)
+      if (searchFields.companyKana) params.append('companyKana', searchFields.companyKana)
       if (searchFields.address) params.append('address', searchFields.address)
       if (searchFields.fixedNo) params.append('fixedNo', searchFields.fixedNo)
       if (searchFields.otherContact) params.append('otherContact', searchFields.otherContact)
       if (searchFields.email) params.append('email', searchFields.email)
       if (searchFields.repName) params.append('repName', searchFields.repName)
       if (searchFields.staffName) params.append('staffName', searchFields.staffName)
-      
+
       if (searchFields.callOperator) params.append('operator', searchFields.callOperator)
       if (searchFields.callResponder) params.append('responder', searchFields.callResponder)
       if (searchFields.callProgress) params.append('progress', searchFields.callProgress)
       if (searchFields.callNote) params.append('historyNote', searchFields.callNote)
+      // 「対応日」: 架電履歴の日付検索
       if (searchFields.recallDate) params.append('historyDate', searchFields.recallDate)
 
       const response = await fetch(`/api/search?${params.toString()}`)

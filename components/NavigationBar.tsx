@@ -41,7 +41,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
     }
   }
 
-  const handleJumpToNo = () => {
+  const handleJumpToNo = async () => {
     if (!jumpNo.trim()) return
     const targetNo = jumpNo.trim()
     
@@ -80,7 +80,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
     // 3. メモリ上に見つからない場合、サーバーに問い合わせる
     setIsLoading(true)
     try {
-      const response = await ApiClient.searchByNo(targetNo)
+      const response: any = await ApiClient.searchByNo(targetNo)
       if (response.success && response.results && response.results.length > 0) {
         const firstMatch = response.results[0]
         const listId = firstMatch.listId as 'list1' | 'list2' | 'list3'
