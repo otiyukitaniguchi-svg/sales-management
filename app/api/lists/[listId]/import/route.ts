@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getTableName } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'
+import { requireAdmin } from '@/lib/auth'
 
 interface ImportRequestBody {
   data: FrontendCustomerRecord[]
@@ -12,6 +13,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { listId: string } }
 ) {
+  const adminError = requireAdmin(request)
+  if (adminError) return adminError
+
   try {
     const { listId } = params
     const body: ImportRequestBody = await request.json()

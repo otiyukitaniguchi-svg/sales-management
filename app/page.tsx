@@ -52,11 +52,23 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user')
-    if (savedUser) {
-      try { setUser(JSON.parse(savedUser)) }
-      catch (e) { localStorage.removeItem('user') }
+    const restoreSession = async () => {
+      try {
+        const result = await ApiClient.getMe()
+        if (result.success && result.user) {
+          setUser(result.user)
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error)
+      }
     }
+    restoreSession()
+  }, [setUser])
+
+  useEffect(() => {
+    const handleUnauthorized = () => setUser(null)
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
   }, [setUser])
 
   useEffect(() => {

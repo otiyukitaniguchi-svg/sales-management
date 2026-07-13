@@ -2,12 +2,20 @@ import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginRes
 
 const API_BASE = '/api'
 
+async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init)
+  if (response.status === 401 && typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth:unauthorized'))
+  }
+  return response
+}
+
 export class ApiClient {
   /**
    * Fetch list data
    */
   static async getListData(listId: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE}/lists/${listId}`)
+    const response = await apiFetch(`${API_BASE}/lists/${listId}`)
     return response.json()
   }
 
@@ -15,7 +23,7 @@ export class ApiClient {
    * Fetch call history for a specific record
    */
   static async getCallHistory(listId: string, no: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE}/lists/${listId}/history/${no}`)
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/history/${no}`)
     return response.json()
   }
 
@@ -27,7 +35,7 @@ export class ApiClient {
     no: string,
     record: FrontendCustomerRecord
   ): Promise<boolean> {
-    const response = await fetch(`${API_BASE}/lists/${listId}/update/${no}`, {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/update/${no}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,7 +56,7 @@ export class ApiClient {
     no: string,
     entry: FrontendCallHistoryEntry
   ): Promise<boolean> {
-    const response = await fetch(`${API_BASE}/lists/${listId}/history/${no}`, {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/history/${no}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -68,7 +76,7 @@ export class ApiClient {
     index: number,
     entry: FrontendCallHistoryEntry
   ): Promise<boolean> {
-    const response = await fetch(`${API_BASE}/lists/${listId}/history/${no}/${index}`, {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/history/${no}/${index}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +95,7 @@ export class ApiClient {
     no: string,
     index: number
   ): Promise<boolean> {
-    const response = await fetch(`${API_BASE}/lists/${listId}/history/${no}/${index}`, {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/history/${no}/${index}`, {
       method: 'DELETE',
     })
     const result = await response.json()
@@ -104,7 +112,7 @@ export class ApiClient {
     newCallHistoryEntries?: FrontendCallHistoryEntry[],
     operatorName?: string
   ): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE}/lists/${listId}/update/${no}`, {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/update/${no}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -126,7 +134,7 @@ export class ApiClient {
     data: FrontendCustomerRecord[],
     mode: 'append' | 'replace' = 'append'
   ): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE}/lists/${listId}/import`, {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/import`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -140,7 +148,7 @@ export class ApiClient {
    * Search records by No
    */
   static async searchByNo(no: string): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE}/search?no=${encodeURIComponent(no)}`)
+    const response = await apiFetch(`${API_BASE}/search?no=${encodeURIComponent(no)}`)
     return response.json()
   }
 
@@ -159,13 +167,28 @@ export class ApiClient {
   }
 
   /**
+   * Logout (clears the server-side session cookie)
+   */
+  static async logout(): Promise<void> {
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST' })
+  }
+
+  /**
+   * Restore the current session from the HttpOnly cookie
+   */
+  static async getMe(): Promise<LoginResponse> {
+    const response = await fetch(`${API_BASE}/auth/me`)
+    return response.json()
+  }
+
+  /**
    * Send Slack notification
    */
   static async sendSlackNotification(
     record: FrontendCustomerRecord,
     callEntry: FrontendCallHistoryEntry
   ): Promise<ApiResponse> {
-    const response = await fetch(`${API_BASE}/slack/notify`, {
+    const response = await apiFetch(`${API_BASE}/slack/notify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

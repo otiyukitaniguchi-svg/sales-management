@@ -1,8 +1,12 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
+import { requireAdmin } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
+  const adminError = requireAdmin(request)
+  if (adminError) return adminError
+
   try {
     const searchParams = request.nextUrl.searchParams
     const startDate = searchParams.get('startDate')

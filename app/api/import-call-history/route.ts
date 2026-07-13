@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import Papa from 'papaparse'
+import { requireAdmin } from '@/lib/auth'
 
 // スプレッドシートのリスト名 → DBのlist_type変換
 const LIST_NAME_TO_TYPE: Record<string, string> = {
@@ -32,6 +33,9 @@ interface CallHistoryRow {
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
+  const adminError = requireAdmin(request)
+  if (adminError) return adminError
+
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File

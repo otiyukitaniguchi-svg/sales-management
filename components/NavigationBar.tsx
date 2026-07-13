@@ -34,10 +34,10 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const currentIndex = isSearchMode ? searchResultIndex : currentListIndex
   const totalCount = currentData?.length || 0
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('ログアウトしますか？')) {
+      await ApiClient.logout()
       setUser(null)
-      localStorage.removeItem('user')
     }
   }
 

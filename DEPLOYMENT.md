@@ -45,6 +45,8 @@ SLACK_WEBHOOK_URL=your-slack-webhook-url
 NODE_ENV=production
 ```
 
+**JWT_SECRET**: ログインセッション(HttpOnly Cookie)の署名に使用する秘密鍵。32文字以上のランダムな文字列を設定してください(`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` などで生成可能)。本番用には開発環境と異なる強い値を必ず設定してください。
+
 ### 4. デプロイ
 
 "Deploy" ボタンをクリックしてデプロイを開始。

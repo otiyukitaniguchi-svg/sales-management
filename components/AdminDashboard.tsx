@@ -7,7 +7,7 @@ import { FrontendCustomerRecord } from '@/lib/types'
 import ReportView from './ReportView'
 
 interface AdminDashboardProps {
-  onLogout: () => void
+  onClose: () => void
 }
 
 const LIST_NAMES = {
@@ -18,7 +18,7 @@ const LIST_NAMES = {
 
 type AdminMode = 'menu' | 'report' | 'import'
 
-export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
+export default function AdminDashboard({ onClose }: AdminDashboardProps) {
   const listData = useAppStore((state) => state.listData)
   const setListData = useAppStore((state) => state.setListData)
   const [adminMode, setAdminMode] = useState<AdminMode>('menu')
@@ -222,7 +222,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </div>
 
           <button
-            onClick={onLogout}
+            onClick={onClose}
             className="w-full mt-8 px-6 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition"
           >
             ログアウト
@@ -296,7 +296,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
 
         <button
-          onClick={onLogout}
+          onClick={onClose}
           className="mt-8 px-6 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition"
         >
           ログアウト
@@ -449,7 +449,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       </div>
 
       <button
-        onClick={onLogout}
+        onClick={onClose}
         className="mt-8 px-6 py-2 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600 transition"
       >
         ログアウト

@@ -24,8 +24,6 @@ export default function LoginScreen() {
 
       if (result.success && result.user) {
         setUser(result.user)
-        // Save to localStorage
-        localStorage.setItem('user', JSON.stringify(result.user))
       } else {
         setError(result.message || 'ログインに失敗しました')
       }

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import bcrypt from 'bcryptjs'
+import { createSessionToken, SESSION_COOKIE, SESSION_COOKIE_OPTIONS } from '@/lib/auth'
 
 interface LoginRequestBody {
   username: string
@@ -49,14 +50,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Return user info (without password hash)
-    const { password_hash, ...userInfo } = user
+    const token = await createSessionToken({
+      sub: user.id,
+      username: user.username,
+      displayName: user.display_name,
+      role: user.role || 'staff',
+    })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
-      user: userInfo,
+      user: {
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name,
+        role: user.role || 'staff',
+      },
       message: 'ログイン成功',
     })
+    response.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS)
+    return response
   } catch (error: any) {
     console.error('Error in login:', error)
     return NextResponse.json(

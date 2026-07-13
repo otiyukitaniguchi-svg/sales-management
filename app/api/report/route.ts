@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
+import { requireAdmin } from '@/lib/auth'
 
 // list_type の日本語名変換
 const LIST_TYPE_TO_NAME: Record<string, string> = {
@@ -13,6 +14,9 @@ const LIST_TYPE_TO_NAME: Record<string, string> = {
 }
 
 export async function GET(request: NextRequest) {
+  const adminError = requireAdmin(request)
+  if (adminError) return adminError
+
   try {
     const searchParams = request.nextUrl.searchParams
     const yearMonth = searchParams.get('yearMonth') // 例: "2026-03" または null（全期間）
