@@ -1,68 +1,125 @@
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
+
+interface CallHistoryRow {
+  no: string
+  list_type: string
+  operator: string | null
+  date: string | null
+  start_time: string | null
+  progress: string | null
+  created_at: string | null
+}
+
+interface PeriodStat {
+  operator: string
+  calls: number
+  orders: number
+  orderRate: number
+}
 
 export async function GET(request: NextRequest) {
   const adminError = requireAdmin(request)
   if (adminError) return adminError
 
   try {
-    const searchParams = request.nextUrl.searchParams
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
-    const type = searchParams.get('type') || 'daily' // daily or monthly
+    // 全件をページネーションで取得(Supabaseの1000件上限対策)
+    let from = 0
+    const pageSize = 1000
+    const allHistory: CallHistoryRow[] = []
 
-    let query = supabaseAdmin
-      .from(TABLES.CALL_HISTORY)
-      .select('operator, date, progress')
+    while (true) {
+      const { data: page, error } = await supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select('no, list_type, operator, date, start_time, progress, created_at')
+        .range(from, from + pageSize - 1)
 
-    if (startDate) query = query.gte('date', startDate)
-    if (endDate) query = query.lte('date', endDate)
+      if (error) throw error
+      if (!page || page.length === 0) break
+      allHistory.push(...(page as CallHistoryRow[]))
+      if (page.length < pageSize) break
+      from += pageSize
+    }
 
-    const { data, error } = await query
+    const normalizeDate = (date: string | null) => (date ? date.replace(/\//g, '-') : '')
 
-    if (error) throw error
+    // 顧客(no, list_type)ごとに最新1件を求める
+    const latestByCustomer = new Map<string, CallHistoryRow & { normalizedDate: string }>()
+    for (const row of allHistory) {
+      const key = `${row.no}__${row.list_type}`
+      const normalizedDate = normalizeDate(row.date)
+      const candidate = { ...row, normalizedDate }
+      const current = latestByCustomer.get(key)
+      if (
+        !current ||
+        normalizedDate > current.normalizedDate ||
+        (normalizedDate === current.normalizedDate && (row.start_time || '') > (current.start_time || '')) ||
+        (normalizedDate === current.normalizedDate &&
+          (row.start_time || '') === (current.start_time || '') &&
+          (row.created_at || '') > (current.created_at || ''))
+      ) {
+        latestByCustomer.set(key, candidate)
+      }
+    }
 
-    // 集計処理
-    const stats: Record<string, any> = {}
-
-    data.forEach((row) => {
+    // 分母: 担当者×日付/月ごとの架電数(全履歴)
+    const dailyCalls = new Map<string, number>()
+    const monthlyCalls = new Map<string, number>()
+    for (const row of allHistory) {
       const operator = row.operator || '不明'
-      let period = row.date || '不明'
-      
-      if (type === 'monthly' && period !== '不明') {
-        // YYYY/MM/DD -> YYYY/MM
-        period = period.substring(0, 7)
-      }
+      const date = normalizeDate(row.date)
+      if (!date) continue
+      const month = date.substring(0, 7)
+      const dailyKey = `${operator}|${date}`
+      const monthlyKey = `${operator}|${month}`
+      dailyCalls.set(dailyKey, (dailyCalls.get(dailyKey) || 0) + 1)
+      monthlyCalls.set(monthlyKey, (monthlyCalls.get(monthlyKey) || 0) + 1)
+    }
 
-      const key = `${operator}_${period}`
+    // 分子: 担当者×日付/月ごとの受注数(顧客ごとの最新履歴が「受注」のものだけ)
+    const dailyOrders = new Map<string, number>()
+    const monthlyOrders = new Map<string, number>()
+    for (const row of Array.from(latestByCustomer.values())) {
+      if (row.progress !== '受注') continue
+      const operator = row.operator || '不明'
+      const date = row.normalizedDate
+      if (!date) continue
+      const month = date.substring(0, 7)
+      const dailyKey = `${operator}|${date}`
+      const monthlyKey = `${operator}|${month}`
+      dailyOrders.set(dailyKey, (dailyOrders.get(dailyKey) || 0) + 1)
+      monthlyOrders.set(monthlyKey, (monthlyOrders.get(monthlyKey) || 0) + 1)
+    }
 
-      if (!stats[key]) {
-        stats[key] = {
-          operator,
+    const buildRows = (
+      callsMap: Map<string, number>,
+      ordersMap: Map<string, number>
+    ): Array<PeriodStat & { period: string }> => {
+      const rows: Array<PeriodStat & { period: string }> = []
+      for (const [key, calls] of Array.from(callsMap.entries())) {
+        const [operator, period] = key.split('|')
+        const orders = ordersMap.get(key) || 0
+        rows.push({
           period,
-          total: 0,
-          success: 0, // 進捗が「成約」などの成功系
-          pending: 0,
-          failure: 0,
-        }
+          operator,
+          calls,
+          orders,
+          orderRate: calls > 0 ? (orders / calls) * 100 : 0,
+        })
       }
+      rows.sort((a, b) => b.period.localeCompare(a.period) || a.operator.localeCompare(b.operator))
+      return rows
+    }
 
-      stats[key].total += 1
-      const progress = row.progress || ''
-      if (['受注', '見込みA', '見込みC', '前回受注', '前回採択'].includes(progress)) {
-        stats[key].success += 1
-      } else if (['留守', '担当不在', 'いつの日か', '現アナ'].includes(progress)) {
-        stats[key].pending += 1
-      } else if (['前回NG', '閉業'].includes(progress)) {
-        stats[key].failure += 1
-      }
-    })
+    const daily = buildRows(dailyCalls, dailyOrders)
+    const monthly = buildRows(monthlyCalls, monthlyOrders)
 
     return NextResponse.json({
       success: true,
-      data: Object.values(stats).sort((a, b) => b.period.localeCompare(a.period) || a.operator.localeCompare(b.operator)),
+      daily,
+      monthly,
     })
   } catch (error: any) {
     console.error('Error in reports API:', error)
