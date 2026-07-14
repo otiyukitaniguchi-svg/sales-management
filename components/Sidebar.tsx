@@ -27,6 +27,7 @@ export default function Sidebar() {
   const setCurrentListIndex = useAppStore((state) => state.setCurrentListIndex)
 
   const isLoading = useAppStore((state) => state.isLoading)
+  const isReportMode = useAppStore((state) => state.isReportMode)
   const handleListClick = (listId: 'list1' | 'list2' | 'list3') => {
     if (isLoading) return
     // 検索モード中は検索を解除してからリスト切替
@@ -43,8 +44,6 @@ export default function Sidebar() {
   if (showAdminDashboard && isAdmin) {
     return <AdminDashboard onClose={() => setShowAdminDashboard(false)} />
   }
-
-  const isReportMode = useAppStore((state) => state.isReportMode)
 
   return (
     <div className="w-[160px] bg-[#d0d0d0] border-r border-gray-600 overflow-y-auto flex flex-col">
