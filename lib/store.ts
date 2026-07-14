@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'
 
 interface User {
+  id?: string
   username: string
   display_name: string
   role?: string

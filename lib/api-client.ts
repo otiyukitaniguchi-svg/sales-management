@@ -1,4 +1,4 @@
-import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginResponse } from './types'
+import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginResponse, User } from './types'
 
 const API_BASE = '/api'
 
@@ -178,6 +178,57 @@ export class ApiClient {
    */
   static async getMe(): Promise<LoginResponse> {
     const response = await fetch(`${API_BASE}/auth/me`)
+    return response.json()
+  }
+
+  /**
+   * List all user accounts (admin only)
+   */
+  static async listUsers(): Promise<ApiResponse<User[]>> {
+    const response = await apiFetch(`${API_BASE}/admin/users`)
+    const result = await response.json()
+    return { ...result, data: result.users }
+  }
+
+  /**
+   * Create a user account (admin only)
+   */
+  static async createUser(
+    username: string,
+    displayName: string,
+    password: string,
+    role: string
+  ): Promise<ApiResponse<User>> {
+    const response = await apiFetch(`${API_BASE}/admin/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, displayName, password, role }),
+    })
+    const result = await response.json()
+    return { ...result, data: result.user }
+  }
+
+  /**
+   * Update a user account (admin only)
+   */
+  static async updateUser(
+    id: string,
+    updates: { username?: string; displayName?: string; password?: string; role?: string }
+  ): Promise<ApiResponse<User>> {
+    const response = await apiFetch(`${API_BASE}/admin/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    const result = await response.json()
+    return { ...result, data: result.user }
+  }
+
+  /**
+   * Delete a user account (admin only)
+   */
+  static async deleteUser(id: string): Promise<ApiResponse> {
+    const response = await apiFetch(`${API_BASE}/admin/users/${id}`, { method: 'DELETE' })
     return response.json()
   }
 
