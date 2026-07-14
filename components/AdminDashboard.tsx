@@ -16,7 +16,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
   // メニュー画面
   if (adminMode === 'menu') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 p-4">
+      <div className="flex flex-col items-center justify-center h-full overflow-y-auto bg-gradient-to-b from-blue-50 to-blue-100 p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
           <h1 className="text-3xl font-bold text-center mb-8 text-blue-600">管理者メニュー</h1>
 
@@ -49,7 +49,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
   // アカウント管理画面
   if (adminMode === 'accounts') {
     return (
-      <div className="flex flex-col gap-4 p-4 bg-white min-h-screen">
+      <div className="flex flex-col gap-4 p-4 bg-white h-full overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">アカウント管理</h2>
           <button
@@ -66,7 +66,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
 
   // レポート画面
   return (
-    <div className="flex flex-col gap-4 p-4 bg-white min-h-screen">
+    <div className="flex flex-col gap-4 p-4 bg-white h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold">効果報告レポート</h2>
         <button
