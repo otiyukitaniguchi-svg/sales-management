@@ -1,4 +1,4 @@
-import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginResponse, User, ListDefinition } from './types'
+import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginResponse, User, ListDefinition, VisitResultFeedEntry } from './types'
 
 const API_BASE = '/api'
 
@@ -312,6 +312,39 @@ export class ApiClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ record, callEntry }),
+    })
+    return response.json()
+  }
+
+  /**
+   * Fetch recent order-won (受注) visit results shared across all sales reps
+   */
+  static async getVisitResultFeed(limit = 50): Promise<ApiResponse<VisitResultFeedEntry[]>> {
+    const response = await apiFetch(`${API_BASE}/feed?limit=${limit}`)
+    return response.json()
+  }
+
+  /**
+   * Search companies via the NTA houjin-bangou API (admin only)
+   */
+  static async searchCompany(name: string): Promise<ApiResponse<any[]>> {
+    const response = await apiFetch(`${API_BASE}/admin/company-lookup?name=${encodeURIComponent(name)}`)
+    const result = await response.json()
+    return { ...result, data: result.candidates }
+  }
+
+  /**
+   * Apply a looked-up company's name/address to an existing customer record (admin only)
+   */
+  static async applyCompanyInfo(
+    listId: string,
+    no: string,
+    fields: { companyName?: string; address?: string; zipCode?: string }
+  ): Promise<ApiResponse> {
+    const response = await apiFetch(`${API_BASE}/admin/company-lookup/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listId, no, ...fields }),
     })
     return response.json()
   }

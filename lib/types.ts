@@ -222,6 +222,21 @@ export function callHistoryToFrontendFormat(record: CallHistoryRecord): Frontend
   }
 }
 
+// 受注共有フィード1件分
+export interface VisitResultFeedEntry {
+  id: string
+  no: string
+  listId: string
+  listName: string
+  companyName: string
+  operator: string
+  responder: string
+  date: string
+  startTime: string
+  note: string
+  createdAt: string
+}
+
 // Login response type
 export interface LoginResponse {
   success: boolean

@@ -42,8 +42,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 JWT_SECRET=your-random-secret-string
 SLACK_WEBHOOK_URL=your-slack-webhook-url
+HOUJIN_BANGOU_APP_ID=your-nta-houjin-bangou-application-id
 NODE_ENV=production
 ```
+
+**HOUJIN_BANGOU_APP_ID**: 国税庁「法人番号システムWeb-API」のアプリケーションID。https://www.houjin-bangou.nta.go.jp/webapi/ から無料で登録できます(登録に数日かかる場合があります)。未設定の間は管理者メニューの「企業情報自動更新」機能は「APIキー未設定」というメッセージを表示するだけで、それ以外の機能には影響しません。
 
 **JWT_SECRET**: ログインセッション(HttpOnly Cookie)の署名に使用する秘密鍵。32文字以上のランダムな文字列を設定してください(`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` などで生成可能)。本番用には開発環境と異なる強い値を必ず設定してください。
 
