@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'
+import { FrontendCustomerRecord, FrontendCallHistoryEntry, ListDefinition } from '@/lib/types'
 
 interface User {
   id?: string
@@ -13,16 +13,16 @@ interface AppState {
   user: User | null
   setUser: (user: User | null) => void
 
+  // Available lists (fetched dynamically, replaces the old hardcoded list1/2/3)
+  lists: ListDefinition[]
+  setLists: (lists: ListDefinition[]) => void
+
   // Current list
-  currentList: 'list1' | 'list2' | 'list3'
-  setCurrentList: (listId: 'list1' | 'list2' | 'list3') => void
+  currentList: string
+  setCurrentList: (listId: string) => void
 
   // List data
-  listData: {
-    list1: FrontendCustomerRecord[]
-    list2: FrontendCustomerRecord[]
-    list3: FrontendCustomerRecord[]
-  }
+  listData: Record<string, FrontendCustomerRecord[]>
   setListData: (listId: string, data: FrontendCustomerRecord[]) => void
 
   // Current record index
@@ -68,16 +68,16 @@ export const useAppStore = create<AppState>((set) => ({
   user: null,
   setUser: (user) => set({ user }),
 
+  // Available lists
+  lists: [],
+  setLists: (lists) => set({ lists }),
+
   // Current list
   currentList: 'list1',
   setCurrentList: (listId) => set({ currentList: listId, currentListIndex: 0 }),
 
   // List data
-  listData: {
-    list1: [],
-    list2: [],
-    list3: [],
-  },
+  listData: {},
   setListData: (listId, data) =>
     set((state) => ({
       listData: {

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, TABLES } from '@/lib/supabase'
+import { supabaseAdmin, verifyListExists, TABLES } from '@/lib/supabase'
 import { callHistoryToFrontendFormat, callHistoryToDbFormat, CallHistoryResponse } from '@/lib/types'
 import { FrontendCallHistoryEntry } from '@/lib/types'
 
@@ -11,7 +11,7 @@ export async function GET(
   try {
     const { listId, no } = params
 
-    if (!['list1', 'list2', 'list3'].includes(listId)) {
+    if (!(await verifyListExists(supabaseAdmin, listId))) {
       return NextResponse.json(
         { success: false, message: '無効なリストIDです' },
         { status: 400 }
@@ -77,7 +77,7 @@ export async function POST(
   try {
     const { listId, no } = params
 
-    if (!['list1', 'list2', 'list3'].includes(listId)) {
+    if (!(await verifyListExists(supabaseAdmin, listId))) {
       return NextResponse.json(
         { success: false, message: '無効なリストIDです' },
         { status: 400 }

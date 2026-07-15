@@ -1,6 +1,14 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, LIST_TYPE_MAP, TABLES } from '@/lib/supabase'
+import { supabaseAdmin, TABLES } from '@/lib/supabase'
+
+// 既存3リストは list_type が 'list1' 形式と '新規リスト' 形式で混在しているため、
+// 架電件数カウント時は両方を許容する(新規作成されたリストにはこの表記ゆれはない)
+const LEGACY_LIST_TYPE_ALIASES: Record<string, string[]> = {
+  list1: ['list1', '新規リスト'],
+  list2: ['list2', 'ハルエネリスト'],
+  list3: ['list3', 'モバイルリスト'],
+}
 import { toFrontendFormat } from '@/lib/types'
 
 /**
@@ -215,13 +223,19 @@ export async function GET(request: NextRequest) {
     // --- 顧客テーブル検索 ---
     const results: any[] = []
 
-    for (const [listId, tableName] of Object.entries(LIST_TYPE_MAP)) {
+    const { data: listRows, error: listsError } = await supabaseAdmin
+      .from(TABLES.LISTS)
+      .select('slug')
+    if (listsError) throw listsError
+    const allListIds = (listRows || []).map((l) => l.slug as string)
+
+    for (const listId of allListIds) {
       if (hasHistorySearch && !matchedByList.has(listId)) continue
 
       const uniqueNos = hasHistorySearch ? Array.from(matchedByList.get(listId)!) : null
       if (uniqueNos !== null && uniqueNos.length === 0) continue
 
-      let query = supabaseAdmin.from(tableName).select('*')
+      let query = supabaseAdmin.from(TABLES.CUSTOMERS).select('*').eq('list_slug', listId)
 
       if (no) query = query.ilike('no', `%${no}%`)
       if (companyName) {
@@ -261,7 +275,7 @@ export async function GET(request: NextRequest) {
 
       const { data: records, error } = await query
       if (error) {
-        console.error(`[search] table=${tableName} error:`, error)
+        console.error(`[search] listId=${listId} error:`, error)
         continue
       }
 
@@ -270,7 +284,7 @@ export async function GET(request: NextRequest) {
         const { data: historyCounts } = await supabaseAdmin
           .from(TABLES.CALL_HISTORY)
           .select('no')
-          .eq('list_type', tableName)
+          .in('list_type', LEGACY_LIST_TYPE_ALIASES[listId] || [listId])
           .in('no', matchedNos)
 
         const countMap: Record<string, number> = {}

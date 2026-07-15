@@ -3,12 +3,21 @@
 import { useState } from 'react'
 import ReportView from './ReportView'
 import AccountManagement from './AccountManagement'
+import ListManagement from './ListManagement'
+import DuplicateMerge from './DuplicateMerge'
 
 interface AdminDashboardProps {
   onClose: () => void
 }
 
-type AdminMode = 'menu' | 'report' | 'accounts'
+type AdminMode = 'menu' | 'report' | 'accounts' | 'lists' | 'duplicates'
+
+const SCREENS: Record<Exclude<AdminMode, 'menu'>, { title: string; render: () => JSX.Element }> = {
+  report: { title: '効果報告レポート', render: () => <ReportView /> },
+  accounts: { title: 'アカウント管理', render: () => <AccountManagement /> },
+  lists: { title: 'リスト管理(新規作成・インポート)', render: () => <ListManagement /> },
+  duplicates: { title: '重複データ統合', render: () => <DuplicateMerge /> },
+}
 
 export default function AdminDashboard({ onClose }: AdminDashboardProps) {
   const [adminMode, setAdminMode] = useState<AdminMode>('menu')
@@ -33,6 +42,18 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
             >
               👤 アカウント管理
             </button>
+            <button
+              onClick={() => setAdminMode('lists')}
+              className="px-6 py-4 bg-purple-500 text-white rounded-lg font-bold text-lg hover:bg-purple-600 transition"
+            >
+              📋 リスト管理(新規作成・インポート)
+            </button>
+            <button
+              onClick={() => setAdminMode('duplicates')}
+              className="px-6 py-4 bg-orange-500 text-white rounded-lg font-bold text-lg hover:bg-orange-600 transition"
+            >
+              🔍 重複データ統合
+            </button>
           </div>
 
           <button
@@ -46,29 +67,12 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
     )
   }
 
-  // アカウント管理画面
-  if (adminMode === 'accounts') {
-    return (
-      <div className="flex flex-col gap-4 p-4 bg-white h-full overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">アカウント管理</h2>
-          <button
-            onClick={() => setAdminMode('menu')}
-            className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600"
-          >
-            ← メニューに戻る
-          </button>
-        </div>
-        <AccountManagement />
-      </div>
-    )
-  }
+  const screen = SCREENS[adminMode]
 
-  // レポート画面
   return (
     <div className="flex flex-col gap-4 p-4 bg-white h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">効果報告レポート</h2>
+        <h2 className="text-2xl font-bold">{screen.title}</h2>
         <button
           onClick={() => setAdminMode('menu')}
           className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600"
@@ -76,7 +80,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
           ← メニューに戻る
         </button>
       </div>
-      <ReportView />
+      {screen.render()}
     </div>
   )
 }

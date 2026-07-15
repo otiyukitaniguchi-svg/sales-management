@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, getTableName, TABLES } from '@/lib/supabase'
+import { supabaseAdmin, verifyListExists, TABLES } from '@/lib/supabase'
 import { toDbFormat, callHistoryToDbFormat, FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'
 
 interface UpdateRequestBody {
@@ -17,7 +17,7 @@ export async function POST(
     const { listId, no } = params
     const body: UpdateRequestBody = await request.json()
 
-    if (!['list1', 'list2', 'list3'].includes(listId)) {
+    if (!(await verifyListExists(supabaseAdmin, listId))) {
       return NextResponse.json(
         { success: false, message: '無効なリストIDです' },
         { status: 400 }
@@ -31,18 +31,17 @@ export async function POST(
       )
     }
 
-    const tableName = getTableName(listId as 'list1' | 'list2' | 'list3')
-
     // 1. Update customer record if fields are provided
     if (body.fields && Object.keys(body.fields).length > 0) {
       const dbFields = toDbFormat(body.fields as FrontendCustomerRecord)
-      
+
       // Remove 'no' from update fields to prevent changing the primary identifier
       const { no: _, ...updateFields } = dbFields
 
       const { error: updateError } = await supabaseAdmin
-        .from(tableName)
+        .from(TABLES.CUSTOMERS)
         .update(updateFields)
+        .eq('list_slug', listId)
         .eq('no', no)
 
       if (updateError) {
@@ -54,7 +53,7 @@ export async function POST(
     let addedCount = 0
     if (body.newCallHistoryEntries && body.newCallHistoryEntries.length > 0) {
       const historyRecords = body.newCallHistoryEntries.map((entry) => {
-        return callHistoryToDbFormat(entry, listId as 'list1' | 'list2' | 'list3', no)
+        return callHistoryToDbFormat(entry, listId, no)
       })
 
       // Insert all new call history entries

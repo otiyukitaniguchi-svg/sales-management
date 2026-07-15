@@ -31,7 +31,7 @@ export interface CustomerRecord {
 // Call history record
 export interface CallHistoryRecord {
   id?: string
-  list_type: 'list1' | 'list2' | 'list3'
+  list_type: string
   no: string
   operator?: string
   date?: string
@@ -43,6 +43,15 @@ export interface CallHistoryRecord {
   note?: string
   created_at?: string
   updated_at?: string
+}
+
+// List definition record
+export interface ListDefinition {
+  id: string
+  slug: string
+  name: string
+  sort_order: number
+  created_at?: string
 }
 
 // User record
@@ -181,7 +190,7 @@ export function toFrontendFormat(record: CustomerRecord): FrontendCustomerRecord
 
 export function callHistoryToDbFormat(
   entry: FrontendCallHistoryEntry,
-  listType: 'list1' | 'list2' | 'list3',
+  listType: string,
   no: string
 ): CallHistoryRecord {
   return {

@@ -24,7 +24,7 @@ export default function CustomerDetail() {
   // 検索モード時は、検索結果の listId を実際のリストIDとして扱う
   const actualListId = (isSearchModeGlobal
     ? searchResults[searchResultIndex]?.listId
-    : currentList) as 'list1' | 'list2' | 'list3'
+    : currentList) as string
 
   const [editedRecord, setEditedRecord] = useState<FrontendCustomerRecord | null>(null)
   const [callHistory, setCallHistory] = useState<FrontendCallHistoryEntry[]>([])

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, getTableName } from '@/lib/supabase'
+import { supabaseAdmin, verifyListExists, TABLES } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'
 import { requireAdmin } from '@/lib/auth'
 
@@ -20,7 +20,7 @@ export async function POST(
     const { listId } = params
     const body: ImportRequestBody = await request.json()
 
-    if (!['list1', 'list2', 'list3'].includes(listId)) {
+    if (!(await verifyListExists(supabaseAdmin, listId))) {
       return NextResponse.json(
         { success: false, message: '無効なリストIDです' },
         { status: 400 }
@@ -34,23 +34,22 @@ export async function POST(
       )
     }
 
-    const tableName = getTableName(listId as 'list1' | 'list2' | 'list3')
     const mode = body.mode || 'append'
 
-    // If replace mode, delete all existing records first
+    // If replace mode, delete all existing records for this list only
     if (mode === 'replace') {
       const { error: deleteError } = await supabaseAdmin
-        .from(tableName)
+        .from(TABLES.CUSTOMERS)
         .delete()
-        .neq('no', '') // Delete all records
+        .eq('list_slug', listId)
 
       if (deleteError) {
         throw new Error(`既存データの削除エラー: ${deleteError.message}`)
       }
     }
 
-    // Convert to database format
-    const dbRecords = body.data.map(toDbFormat)
+    // Convert to database format and tag with the target list
+    const dbRecords = body.data.map((record) => ({ ...toDbFormat(record), list_slug: listId }))
 
     // Insert or upsert records in batches (Supabase has a limit of ~1000 rows per request)
     const batchSize = 500
@@ -62,8 +61,8 @@ export async function POST(
 
       try {
         const { data, error } = await supabaseAdmin
-          .from(tableName)
-          .upsert(batch, { onConflict: 'no' })
+          .from(TABLES.CUSTOMERS)
+          .upsert(batch, { onConflict: 'list_slug,no' })
           .select()
 
         if (error) {

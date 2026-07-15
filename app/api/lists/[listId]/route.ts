@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, getTableName, TABLES } from '@/lib/supabase'
+import { supabaseAdmin, verifyListExists, TABLES } from '@/lib/supabase'
 import { toFrontendFormat, ListDataResponse, CustomerRecord, CallHistoryRecord } from '@/lib/types'
 
 export async function GET(
@@ -8,16 +8,14 @@ export async function GET(
   { params }: { params: { listId: string } }
 ) {
   try {
-    const listId = params.listId as 'list1' | 'list2' | 'list3'
-    
-    if (!['list1', 'list2', 'list3'].includes(listId)) {
+    const listId = params.listId
+
+    if (!(await verifyListExists(supabaseAdmin, listId))) {
       return NextResponse.json(
         { success: false, message: '無効なリストIDです' },
         { status: 400 }
       )
     }
-
-    const tableName = getTableName(listId)
 
     // Fetch all records from the list
     // Supabase has a default limit of 1000 rows. We need to fetch in batches using .range()
@@ -28,8 +26,9 @@ export async function GET(
 
     while (hasMore) {
       const { data: records, error: recordsError } = await supabaseAdmin
-        .from(tableName)
+        .from(TABLES.CUSTOMERS)
         .select('*')
+        .eq('list_slug', listId)
         .order('no', { ascending: true })
         .range(offset, offset + pageSize - 1)
 

@@ -1,4 +1,4 @@
-import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginResponse, User } from './types'
+import { FrontendCustomerRecord, FrontendCallHistoryEntry, ApiResponse, LoginResponse, User, ListDefinition } from './types'
 
 const API_BASE = '/api'
 
@@ -229,6 +229,73 @@ export class ApiClient {
    */
   static async deleteUser(id: string): Promise<ApiResponse> {
     const response = await apiFetch(`${API_BASE}/admin/users/${id}`, { method: 'DELETE' })
+    return response.json()
+  }
+
+  /**
+   * List all available customer lists
+   */
+  static async listLists(): Promise<ApiResponse<ListDefinition[]>> {
+    const response = await apiFetch(`${API_BASE}/lists`)
+    const result = await response.json()
+    return { ...result, data: result.lists }
+  }
+
+  /**
+   * Create a new customer list (admin only)
+   */
+  static async createList(name: string): Promise<ApiResponse<ListDefinition>> {
+    const response = await apiFetch(`${API_BASE}/admin/lists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    const result = await response.json()
+    return { ...result, data: result.list }
+  }
+
+  /**
+   * Rename a customer list (admin only)
+   */
+  static async renameList(id: string, name: string): Promise<ApiResponse<ListDefinition>> {
+    const response = await apiFetch(`${API_BASE}/admin/lists/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    const result = await response.json()
+    return { ...result, data: result.list }
+  }
+
+  /**
+   * Delete a customer list (admin only). Pass confirm=true after the caller
+   * has reviewed the customerCount returned by a prior unconfirmed call.
+   */
+  static async deleteList(id: string, confirm = false): Promise<ApiResponse & { requiresConfirmation?: boolean; customerCount?: number }> {
+    const response = await apiFetch(`${API_BASE}/admin/lists/${id}${confirm ? '?confirm=true' : ''}`, {
+      method: 'DELETE',
+    })
+    return response.json()
+  }
+
+  /**
+   * Detect duplicate customers across all lists (admin only, read-only)
+   */
+  static async getDuplicates(): Promise<ApiResponse<any[]>> {
+    const response = await apiFetch(`${API_BASE}/admin/duplicates`)
+    const result = await response.json()
+    return { ...result, data: result.groups }
+  }
+
+  /**
+   * Merge duplicate customers into one record (admin only)
+   */
+  static async mergeDuplicates(primaryId: string, duplicateIds: string[]): Promise<ApiResponse> {
+    const response = await apiFetch(`${API_BASE}/admin/duplicates/merge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ primaryId, duplicateIds }),
+    })
     return response.json()
   }
 

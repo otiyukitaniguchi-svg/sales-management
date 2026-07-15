@@ -17,6 +17,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const currentListIndex = useAppStore((state) => state.currentListIndex)
   const setCurrentListIndex = useAppStore((state) => state.setCurrentListIndex)
   const listData = useAppStore((state) => state.listData)
+  const lists = useAppStore((state) => state.lists)
   const isSearchMode = useAppStore((state) => state.isSearchMode)
   const searchResults = useAppStore((state) => state.searchResults)
   const searchResultIndex = useAppStore((state) => state.searchResultIndex)
@@ -63,11 +64,12 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
       return
     }
 
-    // 2. 見つからない場合、全リストから探す
-    for (const listId of ['list1', 'list2', 'list3'] as const) {
+    // 2. 見つからない場合、既に読み込み済みの全リストから探す
+    const listName = (id: string) => lists.find((l) => l.slug === id)?.name || id
+    for (const listId of Object.keys(listData)) {
       const idx = listData[listId]?.findIndex((record: any) => String(record.no) === targetNo)
       if (idx !== undefined && idx >= 0) {
-        if (confirm(`No. ${targetNo} は「${listId === 'list1' ? '新規リスト' : listId === 'list2' ? 'ハルエネリスト' : 'モバイルリスト'}」に見つかりました。移動しますか？`)) {
+        if (confirm(`No. ${targetNo} は「${listName(listId)}」に見つかりました。移動しますか？`)) {
           setSearchMode(false) // 検索モードを解除
           setCurrentList(listId) // リストを切り替え
           setCurrentListIndex(idx) // インデックスをセット
@@ -83,9 +85,9 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
       const response: any = await ApiClient.searchByNo(targetNo)
       if (response.success && response.results && response.results.length > 0) {
         const firstMatch = response.results[0]
-        const listId = firstMatch.listId as 'list1' | 'list2' | 'list3'
-        
-        if (confirm(`No. ${targetNo} は「${listId === 'list1' ? '新規リスト' : listId === 'list2' ? 'ハルエネリスト' : 'モバイルリスト'}」に存在します。データを読み込んで移動しますか？`)) {
+        const listId = firstMatch.listId as string
+
+        if (confirm(`No. ${targetNo} は「${listName(listId)}」に存在します。データを読み込んで移動しますか？`)) {
           // データを再読み込み
           const listResult = await ApiClient.getListData(listId)
           if (listResult.success && listResult.data) {

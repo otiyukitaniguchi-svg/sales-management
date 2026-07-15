@@ -15,6 +15,9 @@ export default function Home() {
   const user = useAppStore((state) => state.user)
   const setUser = useAppStore((state) => state.setUser)
   const currentList = useAppStore((state) => state.currentList)
+  const setCurrentList = useAppStore((state) => state.setCurrentList)
+  const lists = useAppStore((state) => state.lists)
+  const setLists = useAppStore((state) => state.setLists)
   const listData = useAppStore((state) => state.listData)
   const setListData = useAppStore((state) => state.setListData)
   const isReportMode = useAppStore((state) => state.isReportMode)
@@ -70,6 +73,23 @@ export default function Home() {
     window.addEventListener('auth:unauthorized', handleUnauthorized)
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized)
   }, [setUser])
+
+  useEffect(() => {
+    const loadLists = async () => {
+      try {
+        const result = await ApiClient.listLists()
+        if (result.success && result.data) {
+          setLists(result.data)
+          if (result.data.length > 0 && !result.data.some((l) => l.slug === currentList)) {
+            setCurrentList(result.data[0].slug)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load lists:', error)
+      }
+    }
+    if (user) loadLists()
+  }, [user, setLists, setCurrentList])
 
   useEffect(() => {
     if (user && currentList) { loadListData(currentList) }
