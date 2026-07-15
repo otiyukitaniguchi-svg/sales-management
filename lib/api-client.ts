@@ -325,6 +325,24 @@ export class ApiClient {
   }
 
   /**
+   * Create a Google Calendar event on the shared team calendar
+   */
+  static async createCalendarEvent(params: {
+    title: string
+    description?: string
+    date: string
+    startTime: string
+    endTime: string
+  }): Promise<ApiResponse & { htmlLink?: string }> {
+    const response = await apiFetch(`${API_BASE}/calendar/create-event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    })
+    return response.json()
+  }
+
+  /**
    * Search companies via the NTA houjin-bangou API (admin only)
    */
   static async searchCompany(name: string): Promise<ApiResponse<any[]>> {

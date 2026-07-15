@@ -43,10 +43,25 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 JWT_SECRET=your-random-secret-string
 SLACK_WEBHOOK_URL=your-slack-webhook-url
 HOUJIN_BANGOU_APP_ID=your-nta-houjin-bangou-application-id
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_CALENDAR_ID=info.oti.okinawa@gmail.com
 NODE_ENV=production
 ```
 
 **HOUJIN_BANGOU_APP_ID**: 国税庁「法人番号システムWeb-API」のアプリケーションID。https://www.houjin-bangou.nta.go.jp/webapi/ から無料で登録できます(登録に数日かかる場合があります)。未設定の間は管理者メニューの「企業情報自動更新」機能は「APIキー未設定」というメッセージを表示するだけで、それ以外の機能には影響しません。
+
+**Googleカレンダー連携(受注時のカレンダー自動登録機能)の設定手順**:
+
+1. [Google Cloud Console](https://console.cloud.google.com/) で新しいプロジェクトを作成(または既存のものを使用)
+2. 「APIとサービス」→「ライブラリ」から **Google Calendar API** を有効化
+3. 「APIとサービス」→「認証情報」→「認証情報を作成」→「サービスアカウント」を作成
+4. 作成したサービスアカウントの詳細画面で「鍵」タブ→「鍵を追加」→「新しい鍵を作成」→ JSON形式でダウンロード
+5. ダウンロードしたJSONの中の `client_email` を `GOOGLE_SERVICE_ACCOUNT_EMAIL` に、`private_key` を `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` にそれぞれ設定(private_keyは改行を含むため、そのままVercelの環境変数に貼り付けてOK)
+6. `info.oti.okinawa@gmail.com` のGoogleカレンダーを開き、「設定と共有」→「特定のユーザーとの共有」→サービスアカウントのメールアドレス(`client_email`)を追加し、権限を **「予定の変更権限」** にする
+7. `GOOGLE_CALENDAR_ID` には `info.oti.okinawa@gmail.com` を設定(Gmailアカウントのメインカレンダーのカレンダーidは、そのメールアドレスと同じ)
+
+未設定の間は、架電履歴の進捗を「受注」にしたときに表示される「📅 カレンダー登録」ボタンを押しても「連携が未設定です」というメッセージが出るだけで、他の機能には影響しません。
 
 **JWT_SECRET**: ログインセッション(HttpOnly Cookie)の署名に使用する秘密鍵。32文字以上のランダムな文字列を設定してください(`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` などで生成可能)。本番用には開発環境と異なる強い値を必ず設定してください。
 

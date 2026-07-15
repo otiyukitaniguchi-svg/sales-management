@@ -5,6 +5,7 @@ import { useAppStore } from '@/lib/store'
 import { ApiClient } from '@/lib/api-client'
 import { FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'
 import { PROGRESS_OPTIONS, GENDER_OPTIONS } from '@/lib/labels'
+import CalendarEventModal from './CalendarEventModal'
 
 export default function CustomerDetail() {
   const currentList = useAppStore((state) => state.currentList)
@@ -47,6 +48,9 @@ export default function CustomerDetail() {
 
   // 削除モード用の状態
   const [isDeleteMode, setIsDeleteMode] = useState(false)
+
+  // 受注時のGoogleカレンダー登録モーダル
+  const [showCalendarModal, setShowCalendarModal] = useState(false)
   
   // 操作ロック状態の判定
   const isLocked = isSaving || isCallActive || isEditingAllRows || isDeleteMode || isSearching;
@@ -846,15 +850,26 @@ export default function CustomerDetail() {
                         </td>
                         <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
-                            <select 
-                              value={isCallActive && idx === 0 ? editingCallData?.progress || '' : editingCallHistoryAll[idx]?.progress || ''}
-                              onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
-                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
-                            >
-                              {PROGRESS_OPTIONS.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </select>
+                            <>
+                              <select
+                                value={isCallActive && idx === 0 ? editingCallData?.progress || '' : editingCallHistoryAll[idx]?.progress || ''}
+                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
+                                className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
+                              >
+                                {PROGRESS_OPTIONS.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                              {isCallActive && idx === 0 && editingCallData?.progress === '受注' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowCalendarModal(true)}
+                                  className="mt-1 w-full px-1 py-0.5 rounded text-[10px] font-bold text-white bg-green-600 hover:bg-green-700"
+                                >
+                                  📅 カレンダー登録
+                                </button>
+                              )}
+                            </>
                           ) : entry.progress}
                         </td>
                         <td 
@@ -925,6 +940,14 @@ export default function CustomerDetail() {
           </div>
         </div>
       </div>
+
+      {showCalendarModal && (
+        <CalendarEventModal
+          defaultTitle={`${editedRecord?.companyName || record?.companyName || ''} 受注`}
+          defaultDescription={`担当者: ${editingCallData?.operator || ''}\n対応者: ${editingCallData?.responder || ''}\nNo: ${record?.no || ''}`}
+          onClose={() => setShowCalendarModal(false)}
+        />
+      )}
     </div>
   )
 }
