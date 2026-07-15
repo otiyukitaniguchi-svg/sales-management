@@ -171,8 +171,8 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
             <div>{totalCount > 0 ? `${currentIndex + 1} / ${totalCount}` : '0 / 0'}</div>
             {isSearchMode && searchResults[searchResultIndex] && (
               <div className="text-[10px] text-blue-600 -mt-1">
-                {searchResults[searchResultIndex].listId === 'list1' ? '新規' : 
-                 searchResults[searchResultIndex].listId === 'list2' ? 'ハルエネ' : 'モバイル'}
+                {lists.find((l) => l.slug === searchResults[searchResultIndex].listId)?.name
+                  || searchResults[searchResultIndex].listId}
               </div>
             )}
           </div>
