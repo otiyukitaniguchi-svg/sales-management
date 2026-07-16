@@ -57,26 +57,38 @@ export default function VisitResultFeed() {
     })
   }
 
-  const fetchFeed = useCallback(async (filters?: { no?: string; companyName?: string; operator?: string }) => {
-    setIsLoading(true)
+  const fetchFeed = useCallback(async (
+    filters?: { no?: string; companyName?: string; operator?: string },
+    silent = false
+  ) => {
+    if (!silent) setIsLoading(true)
     setError('')
     try {
       const result = await ApiClient.getVisitResultFeed(filters)
       if (result.success) {
         setEntries(result.data || [])
-      } else {
+      } else if (!silent) {
+        // ポーリングでの一時的な通信エラーは画面を邪魔しないよう表示しない
         setError(result.message || '取得に失敗しました')
       }
     } catch (e: any) {
-      setError(e.message || '取得中にエラーが発生しました')
+      if (!silent) setError(e.message || '取得中にエラーが発生しました')
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
     fetchFeed()
   }, [fetchFeed])
+
+  // 外勤アプリからの新着報告に素早く気づけるよう、開いている間は自動で再取得する
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery }, true)
+    }, 20000)
+    return () => clearInterval(interval)
+  }, [fetchFeed, noQuery, companyQuery, operatorQuery])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
