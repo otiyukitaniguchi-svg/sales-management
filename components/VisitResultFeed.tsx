@@ -46,6 +46,16 @@ export default function VisitResultFeed() {
   const [noQuery, setNoQuery] = useState('')
   const [companyQuery, setCompanyQuery] = useState('')
   const [operatorQuery, setOperatorQuery] = useState('')
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
+
+  const toggleExpanded = (key: string) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const fetchFeed = useCallback(async (filters?: { no?: string; companyName?: string; operator?: string }) => {
     setIsLoading(true)
@@ -129,29 +139,44 @@ export default function VisitResultFeed() {
         <div className="text-center py-10 text-gray-500">該当する受注報告がありません</div>
       ) : (
         <div className="flex flex-col gap-4">
-          {groups.map((group) => (
-            <div key={group.key} className="border border-gray-200 rounded-lg p-4 shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <div className="text-lg font-bold text-gray-900">{group.companyName || '(企業名不明)'}</div>
-                <div className="text-sm text-gray-500">{group.listName}・No.{group.no}</div>
-              </div>
-              <div className="flex flex-col gap-2">
-                {group.entries.map((entry) => (
-                  <div key={entry.id} className="border-t border-gray-100 pt-2 first:border-0 first:pt-0">
-                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700">
-                      <span>{entry.source === 'field_mobile' ? '訪問者' : '担当者'}: <span className="font-semibold">{entry.operator || '-'}</span></span>
-                      <span>応対者: <span className="font-semibold">{entry.responder || '-'}</span></span>
-                      <span>日時: <span className="font-semibold">{entry.date} {entry.startTime}</span></span>
-                      {entry.replyDate && <span>返答日: <span className="font-semibold">{entry.replyDate}</span></span>}
-                    </div>
-                    {entry.note && (
-                      <div className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{entry.note}</div>
-                    )}
+          {groups.map((group) => {
+            const isExpanded = expandedKeys.has(group.key)
+            return (
+              <div key={group.key} className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleExpanded(group.key)}
+                      aria-expanded={isExpanded}
+                      className="w-7 h-7 flex items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-100"
+                    >
+                      {isExpanded ? '▲' : '▼'}
+                    </button>
+                    <div className="text-lg font-bold text-gray-900">{group.companyName || '(企業名不明)'}</div>
+                    <div className="text-sm text-gray-500">({group.entries.length}件)</div>
                   </div>
-                ))}
+                  <div className="text-sm text-gray-500">{group.listName}・No.{group.no}</div>
+                </div>
+                {isExpanded && (
+                  <div className="flex flex-col gap-2">
+                    {group.entries.map((entry) => (
+                      <div key={entry.id} className="border-t border-gray-100 pt-2 first:border-0 first:pt-0">
+                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700">
+                          <span>{entry.source === 'field_mobile' ? '訪問者' : '担当者'}: <span className="font-semibold">{entry.operator || '-'}</span></span>
+                          <span>応対者: <span className="font-semibold">{entry.responder || '-'}</span></span>
+                          <span>日時: <span className="font-semibold">{entry.date} {entry.startTime}</span></span>
+                          {entry.replyDate && <span>返答日: <span className="font-semibold">{entry.replyDate}</span></span>}
+                        </div>
+                        {entry.note && (
+                          <div className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{entry.note}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
