@@ -234,6 +234,8 @@ export interface VisitResultFeedEntry {
   date: string
   startTime: string
   note: string
+  replyDate: string
+  source: string
   createdAt: string
 }
 

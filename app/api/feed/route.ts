@@ -17,18 +17,31 @@ function resolveListSlug(listType: string | null): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const limit = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 50, 200)
+    const noFilter = (request.nextUrl.searchParams.get('no') || '').trim()
+    const companyNameFilter = (request.nextUrl.searchParams.get('companyName') || '').trim().toLowerCase()
+    const operatorFilter = (request.nextUrl.searchParams.get('operator') || '').trim()
 
-    const { data: rows, error } = await supabaseAdmin
+    // 受注件数は全履歴に比べて限られるため、検索対象として全件をページングで取得する
+    let query = supabaseAdmin
       .from(TABLES.CALL_HISTORY)
-      .select('id, no, list_type, operator, responder, date, start_time, note, created_at')
+      .select('id, no, list_type, operator, responder, date, start_time, note, reply_date, source, created_at')
       .eq('progress', '受注')
-      .order('created_at', { ascending: false })
-      .limit(limit)
+    if (noFilter) query = query.ilike('no', `%${noFilter}%`)
+    if (operatorFilter) query = query.ilike('operator', `%${operatorFilter}%`)
 
-    if (error) throw error
-
-    const entries = rows || []
+    const entries: any[] = []
+    let from = 0
+    const pageSize = 1000
+    while (true) {
+      const { data: page, error } = await query
+        .order('created_at', { ascending: false })
+        .range(from, from + pageSize - 1)
+      if (error) throw error
+      if (!page || page.length === 0) break
+      entries.push(...page)
+      if (page.length < pageSize) break
+      from += pageSize
+    }
 
     // 顧客名を解決するため、リストslugごとにNoをまとめてcustomersテーブルへ問い合わせる
     const nosBySlug = new Map<string, Set<string>>()
@@ -57,7 +70,7 @@ export async function GET(request: NextRequest) {
     if (listsError) throw listsError
     const listNameBySlug = new Map((listRows || []).map((l) => [l.slug, l.name]))
 
-    const data = entries.map((row) => {
+    let data = entries.map((row) => {
       const slug = resolveListSlug(row.list_type)
       return {
         id: row.id,
@@ -70,9 +83,15 @@ export async function GET(request: NextRequest) {
         date: row.date || '',
         startTime: row.start_time || '',
         note: row.note || '',
+        replyDate: row.reply_date || '',
+        source: row.source || '',
         createdAt: row.created_at,
       }
     })
+
+    if (companyNameFilter) {
+      data = data.filter((d) => d.companyName.toLowerCase().includes(companyNameFilter))
+    }
 
     return NextResponse.json({ success: true, data })
   } catch (error: any) {

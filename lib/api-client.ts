@@ -317,10 +317,20 @@ export class ApiClient {
   }
 
   /**
-   * Fetch recent order-won (受注) visit results shared across all sales reps
+   * Fetch order-won (受注) visit results shared across all sales reps.
+   * Optional filters narrow the search to a No./company name/operator.
    */
-  static async getVisitResultFeed(limit = 50): Promise<ApiResponse<VisitResultFeedEntry[]>> {
-    const response = await apiFetch(`${API_BASE}/feed?limit=${limit}`)
+  static async getVisitResultFeed(filters?: {
+    no?: string
+    companyName?: string
+    operator?: string
+  }): Promise<ApiResponse<VisitResultFeedEntry[]>> {
+    const params = new URLSearchParams()
+    if (filters?.no) params.set('no', filters.no)
+    if (filters?.companyName) params.set('companyName', filters.companyName)
+    if (filters?.operator) params.set('operator', filters.operator)
+    const qs = params.toString()
+    const response = await apiFetch(`${API_BASE}/feed${qs ? `?${qs}` : ''}`)
     return response.json()
   }
 
