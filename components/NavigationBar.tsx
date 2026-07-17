@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { ApiClient } from '@/lib/api-client'
+import SearchResultsListModal from './SearchResultsListModal'
 
 interface NavigationBarProps {
   onImport: () => void
@@ -30,6 +31,7 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const isLoading = useAppStore((state) => state.isLoading)
   const isCallActive = useAppStore((state) => state.isLoading)
   const [jumpNo, setJumpNo] = useState('')
+  const [showListView, setShowListView] = useState(false)
 
   const currentData = isSearchMode ? searchResults : listData[currentList]
   const currentIndex = isSearchMode ? searchResultIndex : currentListIndex
@@ -192,6 +194,15 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
           >
             移動
           </button>
+
+          {isSearchMode && totalCount > 0 && (
+            <button
+              onClick={() => setShowListView(true)}
+              className="px-4 py-2 border border-blue-600 bg-gradient-to-b from-blue-500 to-blue-600 text-white cursor-pointer rounded text-lg font-bold hover:from-blue-600 hover:to-blue-700"
+            >
+              📋 一覧表示
+            </button>
+          )}
         </>
       ) : (
         <div className="px-3 text-lg font-bold">
@@ -208,6 +219,8 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
           ログアウト
         </button>
       </div>
+
+      {showListView && <SearchResultsListModal onClose={() => setShowListView(false)} />}
     </div>
   )
 }
