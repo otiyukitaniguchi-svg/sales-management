@@ -69,17 +69,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 重複レコードに紐づく架電履歴をプライマリへ付け替え
+    let reassignedHistoryCount = 0
     for (const dup of duplicates) {
       const aliases = LEGACY_LIST_TYPE_ALIASES[dup.list_slug] || [dup.list_slug]
-      const { error: reassignError } = await supabaseAdmin
+      const { data: reassignedRows, error: reassignError } = await supabaseAdmin
         .from(TABLES.CALL_HISTORY)
         .update({ list_type: primary.list_slug, no: primary.no })
         .in('list_type', aliases)
         .eq('no', dup.no)
+        .select('id')
 
       if (reassignError) {
         return NextResponse.json({ success: false, message: `架電履歴の付け替えに失敗しました: ${reassignError.message}` }, { status: 500 })
       }
+      reassignedHistoryCount += reassignedRows?.length || 0
     }
 
     // 重複レコードを削除
@@ -92,7 +95,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: deleteError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, message: '統合が完了しました' })
+    return NextResponse.json({
+      success: true,
+      message: '統合が完了しました',
+      reassignedHistoryCount,
+    })
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || '不明なエラー' },

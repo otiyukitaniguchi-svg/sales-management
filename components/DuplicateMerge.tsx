@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { ApiClient } from '@/lib/api-client'
+import { useAppStore } from '@/lib/store'
 
 interface DuplicateGroup {
   companyName: string
   suggestedPrimaryId: string
   records: Array<Record<string, any>>
   mergedPreview: Record<string, any>
+  totalCallHistoryCount: number
 }
 
 const PREVIEW_FIELDS: Array<[string, string]> = [
@@ -21,6 +23,8 @@ const PREVIEW_FIELDS: Array<[string, string]> = [
 ]
 
 export default function DuplicateMerge() {
+  const lists = useAppStore((state) => state.lists)
+  const listName = (slug: string) => lists.find((l) => l.slug === slug)?.name || slug
   const [groups, setGroups] = useState<DuplicateGroup[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -54,10 +58,13 @@ export default function DuplicateMerge() {
 
     setMergingKey(group.companyName)
     setError('')
-    const result = await ApiClient.mergeDuplicates(group.suggestedPrimaryId, duplicateIds)
+    const result: any = await ApiClient.mergeDuplicates(group.suggestedPrimaryId, duplicateIds)
     setMergingKey(null)
     if (result.success) {
-      setMessage(`✓ 「${group.companyName}」を統合しました`)
+      const historyNote = result.reassignedHistoryCount > 0
+        ? `(架電履歴${result.reassignedHistoryCount}件も引き継ぎました)`
+        : ''
+      setMessage(`✓ 「${group.companyName}」を統合しました${historyNote}`)
       setTimeout(() => setMessage(''), 4000)
       setGroups((prev) => prev.filter((g) => g.companyName !== group.companyName))
     } else {
@@ -88,7 +95,14 @@ export default function DuplicateMerge() {
         groups.map((group) => (
           <div key={group.companyName} className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold">{group.companyName}({group.records.length}件)</h3>
+              <h3 className="text-lg font-bold">
+                {group.companyName}({group.records.length}件)
+                {group.totalCallHistoryCount > 0 && (
+                  <span className="ml-2 text-sm font-normal text-gray-600">
+                    架電履歴 計{group.totalCallHistoryCount}件も統合されます
+                  </span>
+                )}
+              </h3>
               <button
                 onClick={() => handleMerge(group)}
                 disabled={mergingKey === group.companyName}
@@ -102,6 +116,7 @@ export default function DuplicateMerge() {
               <thead>
                 <tr className="bg-gray-200">
                   <th className="border border-gray-300 px-2 py-1 text-left">リスト/No</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">架電履歴</th>
                   {PREVIEW_FIELDS.map(([, label]) => (
                     <th key={label} className="border border-gray-300 px-2 py-1 text-left">{label}</th>
                   ))}
@@ -111,9 +126,10 @@ export default function DuplicateMerge() {
                 {group.records.map((r) => (
                   <tr key={r.id} className={r.id === group.suggestedPrimaryId ? 'bg-yellow-100' : 'bg-white'}>
                     <td className="border border-gray-300 px-2 py-1">
-                      {r.list_slug} / {r.no}
+                      {listName(r.list_slug)} / {r.no}
                       {r.id === group.suggestedPrimaryId && <span className="ml-1 text-xs text-orange-600 font-bold">(主レコード)</span>}
                     </td>
+                    <td className="border border-gray-300 px-2 py-1 text-gray-700">{r.callHistoryCount}件</td>
                     {PREVIEW_FIELDS.map(([field]) => (
                       <td key={field} className="border border-gray-300 px-2 py-1 text-gray-700">
                         {r[field] || <span className="text-gray-300">(空欄)</span>}
@@ -123,6 +139,7 @@ export default function DuplicateMerge() {
                 ))}
                 <tr className="bg-green-50 font-bold">
                   <td className="border border-gray-300 px-2 py-1">統合後</td>
+                  <td className="border border-gray-300 px-2 py-1 text-green-700">{group.totalCallHistoryCount}件</td>
                   {PREVIEW_FIELDS.map(([field]) => (
                     <td key={field} className="border border-gray-300 px-2 py-1 text-green-700">
                       {group.mergedPreview[field] || <span className="text-gray-300">(空欄)</span>}

@@ -10,6 +10,12 @@ const FIELDS = [
   'accountant', 'established', 'recall_date', 'recall_time',
 ] as const
 
+const LEGACY_LIST_TYPE_ALIASES: Record<string, string[]> = {
+  list1: ['list1', '新規リスト'],
+  list2: ['list2', 'ハルエネリスト'],
+  list3: ['list3', 'モバイルリスト'],
+}
+
 export async function GET(request: NextRequest) {
   const adminError = requireAdmin(request)
   if (adminError) return adminError
@@ -40,6 +46,32 @@ export async function GET(request: NextRequest) {
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(row)
   }
+
+  const duplicateRows = Array.from(groups.values()).filter((rows) => rows.length > 1).flat()
+
+  // 重複候補に含まれるレコードの架電履歴件数をリストごとにまとめて取得する
+  const nosBySlug = new Map<string, Set<string>>()
+  for (const row of duplicateRows) {
+    const slug = row.list_slug as string
+    if (!nosBySlug.has(slug)) nosBySlug.set(slug, new Set())
+    nosBySlug.get(slug)!.add(row.no)
+  }
+
+  const historyCountMap: Record<string, number> = {}
+  await Promise.all(
+    Array.from(nosBySlug.entries()).map(async ([slug, nos]) => {
+      const { data: historyRows, error: historyError } = await supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select('no')
+        .in('list_type', LEGACY_LIST_TYPE_ALIASES[slug] || [slug])
+        .in('no', Array.from(nos))
+      if (historyError) return
+      for (const h of historyRows || []) {
+        const key = `${slug}__${h.no}`
+        historyCountMap[key] = (historyCountMap[key] || 0) + 1
+      }
+    })
+  )
 
   const duplicateGroups = Array.from(groups.entries())
     .filter(([, rows]) => rows.length > 1)
@@ -72,9 +104,14 @@ export async function GET(request: NextRequest) {
           id: r.id,
           list_slug: r.list_slug,
           no: r.no,
+          callHistoryCount: historyCountMap[`${r.list_slug}__${r.no}`] || 0,
           ...Object.fromEntries(FIELDS.map((f) => [f, r[f]])),
         })),
         mergedPreview: Object.fromEntries(FIELDS.map((f) => [f, merged[f]])),
+        totalCallHistoryCount: rows.reduce(
+          (sum, r) => sum + (historyCountMap[`${r.list_slug}__${r.no}`] || 0),
+          0
+        ),
       }
     })
 
