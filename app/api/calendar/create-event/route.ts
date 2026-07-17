@@ -16,9 +16,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { title, description, date, startTime, endTime } = body as {
+    const { title, description, location, date, startTime, endTime } = body as {
       title?: string
       description?: string
+      location?: string
       date?: string
       startTime?: string
       endTime?: string
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const result = await createCalendarEvent({ title, description, date, startTime, endTime })
+    const result = await createCalendarEvent({ title, description, location, date, startTime, endTime })
 
     return NextResponse.json({ success: true, htmlLink: result.htmlLink })
   } catch (error: any) {

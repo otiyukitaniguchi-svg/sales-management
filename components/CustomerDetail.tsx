@@ -943,8 +943,12 @@ export default function CustomerDetail() {
 
       {showCalendarModal && (
         <CalendarEventModal
-          defaultTitle={`${editedRecord?.companyName || record?.companyName || ''} 受注`}
-          defaultDescription={`担当者: ${editingCallData?.operator || ''}\n対応者: ${editingCallData?.responder || ''}\nNo: ${record?.no || ''}`}
+          companyName={editedRecord?.companyName || record?.companyName || ''}
+          orderDate={editingCallData?.date || ''}
+          operatorName={editingCallData?.operator || ''}
+          defaultAddress={editedRecord?.address || record?.address || ''}
+          defaultStaffName={editedRecord?.staffName || record?.staffName || ''}
+          defaultContact={editedRecord?.fixedNo || record?.fixedNo || editedRecord?.otherContact || record?.otherContact || ''}
           onClose={() => setShowCalendarModal(false)}
         />
       )}

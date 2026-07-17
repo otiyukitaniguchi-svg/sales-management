@@ -340,6 +340,7 @@ export class ApiClient {
   static async createCalendarEvent(params: {
     title: string
     description?: string
+    location?: string
     date: string
     startTime: string
     endTime: string

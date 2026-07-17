@@ -23,6 +23,7 @@ function getAuthClient() {
 export interface CreateEventParams {
   title: string
   description?: string
+  location?: string
   date: string // YYYY-MM-DD
   startTime: string // HH:MM
   endTime: string // HH:MM
@@ -39,6 +40,7 @@ export async function createCalendarEvent(params: CreateEventParams): Promise<{ 
     requestBody: {
       summary: params.title,
       description: params.description,
+      location: params.location,
       start: { dateTime: `${params.date}T${params.startTime}:00`, timeZone },
       end: { dateTime: `${params.date}T${params.endTime}:00`, timeZone },
     },

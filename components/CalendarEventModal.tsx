@@ -4,8 +4,12 @@ import { useState } from 'react'
 import { ApiClient } from '@/lib/api-client'
 
 interface CalendarEventModalProps {
-  defaultTitle: string
-  defaultDescription?: string
+  companyName: string
+  orderDate: string
+  operatorName: string
+  defaultAddress?: string
+  defaultStaffName?: string
+  defaultContact?: string
   onClose: () => void
 }
 
@@ -15,35 +19,53 @@ function addHour(time: string): string {
   return `${String(next).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`
 }
 
-export default function CalendarEventModal({ defaultTitle, defaultDescription, onClose }: CalendarEventModalProps) {
+export default function CalendarEventModal({
+  companyName,
+  orderDate,
+  operatorName,
+  defaultAddress,
+  defaultStaffName,
+  defaultContact,
+  onClose,
+}: CalendarEventModalProps) {
   const today = new Date()
   const jstToday = new Date(today.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-  const [title, setTitle] = useState(defaultTitle)
-  const [date, setDate] = useState(jstToday)
-  const [startTime, setStartTime] = useState('10:00')
-  const [endTime, setEndTime] = useState('11:00')
-  const [description, setDescription] = useState(defaultDescription || '')
+  const [title, setTitle] = useState(`AI補助金 ${orderDate} ${companyName}（${operatorName}）`)
+  const [visitDate, setVisitDate] = useState(jstToday)
+  const [visitTime, setVisitTime] = useState('10:00')
+  const [address, setAddress] = useState(defaultAddress || '')
+  const [staffName, setStaffName] = useState(defaultStaffName || '')
+  const [contact, setContact] = useState(defaultContact || '')
+  const [details, setDetails] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notConfigured, setNotConfigured] = useState(false)
   const [successLink, setSuccessLink] = useState('')
 
-  const handleStartTimeChange = (value: string) => {
-    setStartTime(value)
-    setEndTime(addHour(value))
-  }
-
   const handleSubmit = async () => {
-    if (!title.trim() || !date || !startTime || !endTime) {
-      setError('タイトル・日付・開始/終了時刻を入力してください')
+    if (!title.trim() || !visitDate || !visitTime) {
+      setError('タイトル・訪問日・訪問時間を入力してください')
       return
     }
     setIsSubmitting(true)
     setError('')
     setNotConfigured(false)
     try {
-      const result = await ApiClient.createCalendarEvent({ title, description, date, startTime, endTime })
+      const description = [
+        staffName ? `顧客担当者: ${staffName}` : null,
+        contact ? `連絡先: ${contact}` : null,
+        details ? `詳細: ${details}` : null,
+      ].filter(Boolean).join('\n')
+
+      const result = await ApiClient.createCalendarEvent({
+        title,
+        description,
+        location: address,
+        date: visitDate,
+        startTime: visitTime,
+        endTime: addHour(visitTime),
+      })
       if (result.success) {
         setSuccessLink(result.htmlLink || '')
       } else if ((result as any).message?.includes('GOOGLE_SERVICE_ACCOUNT')) {
@@ -92,23 +114,31 @@ export default function CalendarEventModal({ defaultTitle, defaultDescription, o
               <label className="block text-sm font-bold mb-1">タイトル</label>
               <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-bold mb-1">日付</label>
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
+                <label className="block text-sm font-bold mb-1">訪問日</label>
+                <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">開始</label>
-                <input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold mb-1">終了</label>
-                <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
+                <label className="block text-sm font-bold mb-1">訪問時間</label>
+                <input type="time" value={visitTime} onChange={(e) => setVisitTime(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1">メモ(任意)</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded h-20 resize-none" />
+              <label className="block text-sm font-bold mb-1">訪問住所</label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">顧客担当者</label>
+              <input value={staffName} onChange={(e) => setStaffName(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">連絡先</label>
+              <input value={contact} onChange={(e) => setContact(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-1">詳細(任意)</label>
+              <textarea value={details} onChange={(e) => setDetails(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded h-20 resize-none" />
             </div>
 
             {error && <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">{error}</div>}
