@@ -27,6 +27,18 @@ const normalizeProgressLabel = (progress: string | null | undefined): string => 
   return v === '' ? '未設定' : v
 }
 
+// 架電履歴の operator は自由入力/表示名変更などにより表記ゆれが起きるため、
+// 実在するスタッフ名に正規化する(前後の空白・敬称・スペース付与などを許容し部分一致)
+const CANONICAL_OPERATORS = ['安里', '平安名', '浦底', '谷口', '宮﨑', '平良', '糸数', '大城']
+
+const normalizeOperator = (raw: string | null | undefined): string => {
+  const v = (raw || '').trim()
+  if (!v) return 'その他'
+  if (CANONICAL_OPERATORS.includes(v)) return v
+  const matched = CANONICAL_OPERATORS.find((name) => v.includes(name))
+  return matched || 'その他'
+}
+
 export async function GET(request: NextRequest) {
   const adminError = requireAdmin(request)
   if (adminError) return adminError
@@ -76,7 +88,7 @@ export async function GET(request: NextRequest) {
     const monthlyCalls = new Map<string, number>()
     const operatorAllCalls = new Map<string, number>()
     for (const row of allHistory) {
-      const operator = row.operator || '不明'
+      const operator = normalizeOperator(row.operator)
       operatorAllCalls.set(operator, (operatorAllCalls.get(operator) || 0) + 1)
       const date = normalizeDate(row.date)
       if (!date) continue
@@ -94,7 +106,7 @@ export async function GET(request: NextRequest) {
     const operatorProgressCounts = new Map<string, Record<string, number>>()
 
     for (const row of Array.from(latestByCustomer.values())) {
-      const operator = row.operator || '不明'
+      const operator = normalizeOperator(row.operator)
       const label = normalizeProgressLabel(row.progress)
       const date = row.normalizedDate
 
@@ -150,10 +162,10 @@ export async function GET(request: NextRequest) {
     )
     const progressCategories = [...knownCategories, ...extraCategories, '未設定']
 
-    const operatorNameSet = new Set<string>()
-    for (const k of Array.from(operatorAllCalls.keys())) operatorNameSet.add(k)
-    for (const k of Array.from(operatorProgressCounts.keys())) operatorNameSet.add(k)
-    const operators = Array.from(operatorNameSet).sort((a, b) => a.localeCompare(b, 'ja'))
+    // 実在スタッフを固定の並び順で必ず表示し(データが0件でも選択できるように)、
+    // 正規化しきれなかった分だけ「その他」として末尾に追加する
+    const hasOtherData = operatorAllCalls.has('その他') || operatorProgressCounts.has('その他')
+    const operators = [...CANONICAL_OPERATORS, ...(hasOtherData ? ['その他'] : [])]
 
     const totalCalls = allHistory.length
     const totalCustomers = latestByCustomer.size

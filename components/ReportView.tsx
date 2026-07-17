@@ -146,27 +146,62 @@ export default function ReportView() {
         import('jspdf'),
         import('html2canvas'),
       ])
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-      })
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4')
+
+      const pdf = new jsPDF('l', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      const margin = 8
+      const contentWidth = pageWidth - margin * 2
+      const maxContentHeight = pageHeight - margin * 2
+      const sectionGap = 4
 
-      let heightLeft = imgHeight
-      let position = 0
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
+      // セクション(見出し/KPI/グラフ/表)ごとに個別キャプチャして配置することで、
+      // グラフや表の途中でページがまたがって切れないようにする。
+      // windowWidthを広めに固定し、実際のウィンドウ幅に関わらずPC横並びレイアウトで書き出す。
+      const sections = Array.from(reportRef.current.children) as HTMLElement[]
+      let cursorY = margin
+      let placedOnPage = false
+
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i]
+        const canvas = await html2canvas(section, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          windowWidth: 1440,
+        })
+        const imgData = canvas.toDataURL('image/png')
+        const imgWidth = contentWidth
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+        if (imgHeight > maxContentHeight) {
+          // 1ページに収まらない大きさのセクション(明細が多い場合など)はセクション内でのみ分割する
+          if (placedOnPage) pdf.addPage()
+          let remaining = imgHeight
+          let offset = 0
+          while (remaining > 0) {
+            if (offset > 0) pdf.addPage()
+            pdf.addImage(imgData, 'PNG', margin, margin - offset, imgWidth, imgHeight)
+            remaining -= maxContentHeight
+            offset += maxContentHeight
+          }
+          if (i < sections.length - 1) {
+            pdf.addPage()
+            cursorY = margin
+          }
+          placedOnPage = false
+          continue
+        }
+
+        if (placedOnPage && cursorY + imgHeight > pageHeight - margin) {
+          pdf.addPage()
+          cursorY = margin
+          placedOnPage = false
+        }
+
+        pdf.addImage(imgData, 'PNG', margin, cursorY, imgWidth, imgHeight)
+        cursorY += imgHeight + sectionGap
+        placedOnPage = true
       }
 
       const label = viewMode === 'overall' ? '全体' : selectedOperator
