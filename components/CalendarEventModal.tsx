@@ -7,6 +7,7 @@ interface CalendarEventModalProps {
   companyName: string
   orderDate: string
   operatorName: string
+  defaultDetails?: string
   defaultAddress?: string
   defaultStaffName?: string
   defaultContact?: string
@@ -19,10 +20,25 @@ function addHour(time: string): string {
   return `${String(next).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`
 }
 
+// "2026/07/20" や "2026-07-20" から年を除いた "07/20" を返す
+function formatMonthDay(dateStr: string): string {
+  const parts = dateStr.replace(/-/g, '/').split('/')
+  if (parts.length === 3) return `${parts[1]}/${parts[2]}`
+  return dateStr
+}
+
+// 30分刻みの時刻一覧(00:00〜23:30)
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const h = String(Math.floor(i / 2)).padStart(2, '0')
+  const m = i % 2 === 0 ? '00' : '30'
+  return `${h}:${m}`
+})
+
 export default function CalendarEventModal({
   companyName,
   orderDate,
   operatorName,
+  defaultDetails,
   defaultAddress,
   defaultStaffName,
   defaultContact,
@@ -31,13 +47,13 @@ export default function CalendarEventModal({
   const today = new Date()
   const jstToday = new Date(today.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-  const [title, setTitle] = useState(`AI補助金 ${orderDate} ${companyName}（${operatorName}）`)
+  const [title, setTitle] = useState(`AI補助金 ${formatMonthDay(orderDate)} ${companyName}（${operatorName}）`)
   const [visitDate, setVisitDate] = useState(jstToday)
   const [visitTime, setVisitTime] = useState('10:00')
   const [address, setAddress] = useState(defaultAddress || '')
   const [staffName, setStaffName] = useState(defaultStaffName || '')
   const [contact, setContact] = useState(defaultContact || '')
-  const [details, setDetails] = useState('')
+  const [details, setDetails] = useState(defaultDetails || '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notConfigured, setNotConfigured] = useState(false)
@@ -121,7 +137,11 @@ export default function CalendarEventModal({
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1">訪問時間</label>
-                <input type="time" value={visitTime} onChange={(e) => setVisitTime(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
+                <select value={visitTime} onChange={(e) => setVisitTime(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded">
+                  {TIME_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div>
@@ -137,7 +157,7 @@ export default function CalendarEventModal({
               <input value={contact} onChange={(e) => setContact(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded" />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1">詳細(任意)</label>
+              <label className="block text-sm font-bold mb-1">詳細</label>
               <textarea value={details} onChange={(e) => setDetails(e.target.value)} className="w-full border border-gray-300 px-3 py-2 rounded h-20 resize-none" />
             </div>
 

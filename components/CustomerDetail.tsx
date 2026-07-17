@@ -610,13 +610,21 @@ export default function CustomerDetail() {
                   >
                     {isEditingAllRows ? '保存' : '編集'}
                   </button>
-                  <button 
+                  <button
                     onClick={handleDeleteModeToggle}
                     disabled={isLocked && !isDeleteMode}
                     className={`px-3 py-1 rounded text-xs font-medium ${isDeleteMode ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isDeleteMode ? (selectedDeleteIndices.length > 0 ? '実行' : '解除') : '削除'}
                   </button>
+                  {!isCallActive && callHistory[0]?.progress === '受注' && (
+                    <button
+                      onClick={() => setShowCalendarModal(true)}
+                      className="px-3 py-1 rounded text-xs font-bold text-white bg-teal-600 hover:bg-teal-700"
+                    >
+                      📅 カレンダー登録
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -850,26 +858,15 @@ export default function CustomerDetail() {
                         </td>
                         <td className="border border-gray-300 px-2 py-1 text-sm">
                           {isEditingAllRows || (isCallActive && idx === 0) ? (
-                            <>
-                              <select
-                                value={isCallActive && idx === 0 ? editingCallData?.progress || '' : editingCallHistoryAll[idx]?.progress || ''}
-                                onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
-                                className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
-                              >
-                                {PROGRESS_OPTIONS.map(opt => (
-                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                              </select>
-                              {isCallActive && idx === 0 && editingCallData?.progress === '受注' && (
-                                <button
-                                  type="button"
-                                  onClick={() => setShowCalendarModal(true)}
-                                  className="mt-1 w-full px-1 py-0.5 rounded text-[10px] font-bold text-white bg-green-600 hover:bg-green-700"
-                                >
-                                  📅 カレンダー登録
-                                </button>
-                              )}
-                            </>
+                            <select
+                              value={isCallActive && idx === 0 ? editingCallData?.progress || '' : editingCallHistoryAll[idx]?.progress || ''}
+                              onChange={(e) => isCallActive && idx === 0 ? setEditingCallData({...editingCallData, progress: e.target.value}) : handleEditingAllRowsFieldChange(idx, 'progress', e.target.value)}
+                              className="w-full border border-gray-300 px-1 py-0.5 text-sm tracking-wider"
+                            >
+                              {PROGRESS_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
                           ) : entry.progress}
                         </td>
                         <td 
@@ -944,8 +941,9 @@ export default function CustomerDetail() {
       {showCalendarModal && (
         <CalendarEventModal
           companyName={editedRecord?.companyName || record?.companyName || ''}
-          orderDate={editingCallData?.date || ''}
-          operatorName={editingCallData?.operator || ''}
+          orderDate={callHistory[0]?.date || ''}
+          operatorName={callHistory[0]?.operator || ''}
+          defaultDetails={callHistory[0]?.note || ''}
           defaultAddress={editedRecord?.address || record?.address || ''}
           defaultStaffName={editedRecord?.staffName || record?.staffName || ''}
           defaultContact={editedRecord?.fixedNo || record?.fixedNo || editedRecord?.otherContact || record?.otherContact || ''}
