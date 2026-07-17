@@ -21,29 +21,40 @@ export async function GET(request: NextRequest) {
     const companyNameFilter = (request.nextUrl.searchParams.get('companyName') || '').trim().toLowerCase()
     const operatorFilter = (request.nextUrl.searchParams.get('operator') || '').trim()
 
-    // 受注件数は全履歴に比べて限られるため、検索対象として全件をページングで取得する
-    let query = supabaseAdmin
-      .from(TABLES.CALL_HISTORY)
-      .select('id, no, list_type, operator, responder, date, start_time, note, reply_date, source, created_at')
-      .eq('progress', '受注')
-    if (noFilter) query = query.ilike('no', `%${noFilter}%`)
-    if (operatorFilter) query = query.ilike('operator', `%${operatorFilter}%`)
-
-    const entries: any[] = []
-    let from = 0
-    const pageSize = 1000
-    while (true) {
-      const { data: page, error } = await query
-        .order('created_at', { ascending: false })
-        .range(from, from + pageSize - 1)
-      if (error) throw error
-      if (!page || page.length === 0) break
-      entries.push(...page)
-      if (page.length < pageSize) break
-      from += pageSize
+    // 受注件数は全履歴に比べて限られるため、検索対象として全件を取得する。
+    // 件数を先に取得し、必要なページを並列取得する。count用とdata用で
+    // select()の引数が異なるため、selectClauseを都度渡す関数にしている
+    const buildBaseQuery = (selectClause: string, opts?: { count: 'exact'; head: true }) => {
+      let q = supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select(selectClause, opts)
+        .eq('progress', '受注')
+      if (noFilter) q = q.ilike('no', `%${noFilter}%`)
+      if (operatorFilter) q = q.ilike('operator', `%${operatorFilter}%`)
+      return q
     }
 
-    // 顧客名を解決するため、リストslugごとにNoをまとめてcustomersテーブルへ問い合わせる
+    const pageSize = 1000
+    const { count: entryCount, error: countError } = await buildBaseQuery('*', { count: 'exact', head: true })
+    if (countError) throw countError
+
+    const entryPageCount = Math.max(1, Math.ceil((entryCount || 0) / pageSize))
+    const entryPages = await Promise.all(
+      Array.from({ length: entryPageCount }, (_, i) =>
+        buildBaseQuery('id, no, list_type, operator, responder, date, start_time, note, reply_date, source, created_at')
+          .order('created_at', { ascending: false })
+          .range(i * pageSize, i * pageSize + pageSize - 1)
+      )
+    )
+    const entries: any[] = []
+    for (const { data, error } of entryPages) {
+      if (error) throw error
+      if (data) entries.push(...data)
+    }
+    // ページごとに独立取得しているため、ページをまたいだ順序を保証するため再ソートする
+    entries.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+
+    // 顧客名を解決するため、リストslugごとにNoをまとめてcustomersテーブルへ問い合わせる(並列)
     const nosBySlug = new Map<string, Set<string>>()
     for (const row of entries) {
       const slug = resolveListSlug(row.list_type)
@@ -52,12 +63,17 @@ export async function GET(request: NextRequest) {
     }
 
     const companyNameByKey = new Map<string, string>()
-    for (const [slug, nos] of Array.from(nosBySlug.entries())) {
-      const { data: customers, error: custError } = await supabaseAdmin
-        .from(TABLES.CUSTOMERS)
-        .select('no, company_name')
-        .eq('list_slug', slug)
-        .in('no', Array.from(nos))
+    const customerLookups = await Promise.all(
+      Array.from(nosBySlug.entries()).map(([slug, nos]) =>
+        supabaseAdmin
+          .from(TABLES.CUSTOMERS)
+          .select('no, company_name')
+          .eq('list_slug', slug)
+          .in('no', Array.from(nos))
+          .then((res) => ({ slug, ...res }))
+      )
+    )
+    for (const { slug, data: customers, error: custError } of customerLookups) {
       if (custError) throw custError
       for (const c of customers || []) {
         companyNameByKey.set(`${slug}__${c.no}`, c.company_name || '')

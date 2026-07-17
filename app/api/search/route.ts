@@ -97,21 +97,29 @@ export async function GET(request: NextRequest) {
     const matchedByList: Map<string, Set<string>> = new Map()
 
     if (hasHistorySearch) {
-      // 全履歴をページングで取得（Supabase の上限1000件を超える可能性があるため）
-      // latestモードでも最新履歴を判定するため全件取得が必要
-      const allHistory: any[] = []
+      // 全履歴を取得（Supabase の上限1000件を超える可能性があるため）
+      // latestモードでも最新履歴を判定するため全件取得が必要。
+      // 件数を先に取得し、必要なページを並列取得する(直列だと架電履歴が
+      // 多いほど比例して遅くなるため)
       const pageSize = 1000
-      let from = 0
-      while (true) {
-        const { data, error } = await supabaseAdmin
-          .from(TABLES.CALL_HISTORY)
-          .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
-          .range(from, from + pageSize - 1)
+      const { count: historyTotal, error: historyCountErr } = await supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select('*', { count: 'exact', head: true })
+      if (historyCountErr) throw historyCountErr
+
+      const historyPageCount = Math.max(1, Math.ceil((historyTotal || 0) / pageSize))
+      const historyPages = await Promise.all(
+        Array.from({ length: historyPageCount }, (_, i) =>
+          supabaseAdmin
+            .from(TABLES.CALL_HISTORY)
+            .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
+            .range(i * pageSize, i * pageSize + pageSize - 1)
+        )
+      )
+      const allHistory: any[] = []
+      for (const { data, error } of historyPages) {
         if (error) throw error
-        if (!data || data.length === 0) break
-        allHistory.push(...data)
-        if (data.length < pageSize) break
-        from += pageSize
+        if (data) allHistory.push(...data)
       }
 
       // list_typeの表記ゆれ（'list1' と '新規リスト' 等）を正規化する
@@ -220,20 +228,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // --- 顧客テーブル検索 ---
-    const results: any[] = []
-
+    // --- 顧客テーブル検索(リストごとに並列実行) ---
     const { data: listRows, error: listsError } = await supabaseAdmin
       .from(TABLES.LISTS)
       .select('slug')
     if (listsError) throw listsError
     const allListIds = (listRows || []).map((l) => l.slug as string)
 
-    for (const listId of allListIds) {
-      if (hasHistorySearch && !matchedByList.has(listId)) continue
+    const perListResults = await Promise.all(allListIds.map(async (listId) => {
+      if (hasHistorySearch && !matchedByList.has(listId)) return []
 
       const uniqueNos = hasHistorySearch ? Array.from(matchedByList.get(listId)!) : null
-      if (uniqueNos !== null && uniqueNos.length === 0) continue
+      if (uniqueNos !== null && uniqueNos.length === 0) return []
 
       let query = supabaseAdmin.from(TABLES.CUSTOMERS).select('*').eq('list_slug', listId)
 
@@ -276,29 +282,31 @@ export async function GET(request: NextRequest) {
       const { data: records, error } = await query
       if (error) {
         console.error(`[search] listId=${listId} error:`, error)
-        continue
+        return []
       }
 
-      if (records && records.length > 0) {
-        const matchedNos = records.map(r => r.no)
-        const { data: historyCounts } = await supabaseAdmin
-          .from(TABLES.CALL_HISTORY)
-          .select('no')
-          .in('list_type', LEGACY_LIST_TYPE_ALIASES[listId] || [listId])
-          .in('no', matchedNos)
+      if (!records || records.length === 0) return []
 
-        const countMap: Record<string, number> = {}
-        for (const h of (historyCounts || [])) {
-          countMap[h.no] = (countMap[h.no] || 0) + 1
-        }
+      const matchedNos = records.map(r => r.no)
+      const { data: historyCounts } = await supabaseAdmin
+        .from(TABLES.CALL_HISTORY)
+        .select('no')
+        .in('list_type', LEGACY_LIST_TYPE_ALIASES[listId] || [listId])
+        .in('no', matchedNos)
 
-        for (const record of records) {
-          const frontendRecord = toFrontendFormat(record)
-          frontendRecord.callHistoryCount = countMap[record.no] || 0
-          results.push({ listId: listId, record: frontendRecord })
-        }
+      const countMap: Record<string, number> = {}
+      for (const h of (historyCounts || [])) {
+        countMap[h.no] = (countMap[h.no] || 0) + 1
       }
-    }
+
+      return records.map((record) => {
+        const frontendRecord = toFrontendFormat(record)
+        frontendRecord.callHistoryCount = countMap[record.no] || 0
+        return { listId, record: frontendRecord }
+      })
+    }))
+
+    const results = perListResults.flat()
 
     return NextResponse.json({ success: true, results, count: results.length })
   } catch (error: any) {
