@@ -288,20 +288,53 @@ export async function GET(request: NextRequest) {
       if (!records || records.length === 0) return []
 
       const matchedNos = records.map(r => r.no)
-      const { data: historyCounts } = await supabaseAdmin
+      const historyAliases = LEGACY_LIST_TYPE_ALIASES[listId] || [listId]
+
+      // 該当Noの架電履歴は件数が1000件を超えることがあり、Supabaseの
+      // デフォルト上限で暗黙に切り捨てられていた(件数・最新進捗が欠落するバグ)。
+      // 件数を先に取得し、必要なページを並列取得する。
+      const histPageSize = 1000
+      const { count: histCount } = await supabaseAdmin
         .from(TABLES.CALL_HISTORY)
-        .select('no')
-        .in('list_type', LEGACY_LIST_TYPE_ALIASES[listId] || [listId])
+        .select('*', { count: 'exact', head: true })
+        .in('list_type', historyAliases)
         .in('no', matchedNos)
 
+      const histPageCount = Math.max(1, Math.ceil((histCount || 0) / histPageSize))
+      const histPages = await Promise.all(
+        Array.from({ length: histPageCount }, (_, i) =>
+          supabaseAdmin
+            .from(TABLES.CALL_HISTORY)
+            .select('no, progress, gender, date, start_time, created_at')
+            .in('list_type', historyAliases)
+            .in('no', matchedNos)
+            .range(i * histPageSize, i * histPageSize + histPageSize - 1)
+        )
+      )
+      let historyRows: any[] = []
+      for (const { data, error } of histPages) {
+        if (error) throw error
+        if (data) historyRows = historyRows.concat(data)
+      }
+
+      // 件数集計と、各Noの最新履歴(進捗・性別)を判定する
+      // 並び順は history/[no]/route.ts と同じ生値の文字列比較(date, start_time, created_at)
       const countMap: Record<string, number> = {}
-      for (const h of (historyCounts || [])) {
+      const latestMap: Record<string, { progress?: string; gender?: string; sortKey: string }> = {}
+      for (const h of (historyRows || [])) {
         countMap[h.no] = (countMap[h.no] || 0) + 1
+        const sortKey = `${h.date || ''}|${h.start_time || ''}|${h.created_at || ''}`
+        const prev = latestMap[h.no]
+        if (!prev || sortKey > prev.sortKey) {
+          latestMap[h.no] = { progress: h.progress, gender: h.gender, sortKey }
+        }
       }
 
       return records.map((record) => {
         const frontendRecord = toFrontendFormat(record)
         frontendRecord.callHistoryCount = countMap[record.no] || 0
+        frontendRecord.latestProgress = latestMap[record.no]?.progress || ''
+        frontendRecord.latestGender = latestMap[record.no]?.gender || ''
         return { listId, record: frontendRecord }
       })
     }))

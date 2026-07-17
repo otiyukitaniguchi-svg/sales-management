@@ -114,6 +114,8 @@ export interface FrontendCustomerRecord {
   recallTime?: string
   callHistory?: FrontendCallHistoryEntry[]
   callHistoryCount?: number
+  latestProgress?: string
+  latestGender?: string
 }
 
 export interface FrontendCallHistoryEntry {
