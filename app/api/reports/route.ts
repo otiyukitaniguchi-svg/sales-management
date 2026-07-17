@@ -27,6 +27,12 @@ const normalizeProgressLabel = (progress: string | null | undefined): string => 
   return v === '' ? '未設定' : v
 }
 
+// 総架電数に含める進捗ステータス。前回受注/前回NG/前回採択/未設定は
+// 「前回までに決着済み」のため対象月の総架電数には含めない。
+const ACTIVE_PROGRESS_SET = new Set([
+  '受注', '見込みA', '見込みC', 'いつの日か', '留守', '担当不在', '現アナ', '閉業',
+])
+
 // 架電履歴の operator は自由入力/表示名変更などにより表記ゆれが起きるため、
 // 実在するスタッフ名に正規化する(前後の空白・敬称・スペース付与などを許容し部分一致)
 const CANONICAL_OPERATORS = ['安里', '平安名', '浦底', '谷口', '宮﨑', '平良', '糸数', '大城']
@@ -64,13 +70,18 @@ export async function GET(request: NextRequest) {
 
     const normalizeDate = (date: string | null) => (date ? date.replace(/\//g, '-') : '')
 
-    // 顧客(no, list_type)ごとに最新1件を求める
-    const latestByCustomer = new Map<string, CallHistoryRow & { normalizedDate: string }>()
+    // 顧客(no, list_type)×対象月ごとに、その月内での最新1件を求める。
+    // 月をまたいだ古い履歴は対象月の集計に含めない(対象月内の最新行のみを数える)。
+    type Candidate = CallHistoryRow & { normalizedDate: string; month: string }
+    const latestByCustomerMonth = new Map<string, Candidate>()
+
     for (const row of allHistory) {
-      const key = `${row.no}__${row.list_type}`
       const normalizedDate = normalizeDate(row.date)
-      const candidate = { ...row, normalizedDate }
-      const current = latestByCustomer.get(key)
+      if (!normalizedDate) continue
+      const month = normalizedDate.substring(0, 7)
+      const key = `${row.no}__${row.list_type}__${month}`
+      const candidate: Candidate = { ...row, normalizedDate, month }
+      const current = latestByCustomerMonth.get(key)
       if (
         !current ||
         normalizedDate > current.normalizedDate ||
@@ -79,83 +90,58 @@ export async function GET(request: NextRequest) {
           (row.start_time || '') === (current.start_time || '') &&
           (row.created_at || '') > (current.created_at || ''))
       ) {
-        latestByCustomer.set(key, candidate)
+        latestByCustomerMonth.set(key, candidate)
       }
     }
 
-    // 分母: 担当者×日付/月ごとの架電数(全履歴)
-    const dailyCalls = new Map<string, number>()
-    const monthlyCalls = new Map<string, number>()
-    const operatorAllCalls = new Map<string, number>()
-    for (const row of allHistory) {
-      const operator = normalizeOperator(row.operator)
-      operatorAllCalls.set(operator, (operatorAllCalls.get(operator) || 0) + 1)
-      const date = normalizeDate(row.date)
-      if (!date) continue
-      const month = date.substring(0, 7)
-      const dailyKey = `${operator}|${date}`
-      const monthlyKey = `${operator}|${month}`
-      dailyCalls.set(dailyKey, (dailyCalls.get(dailyKey) || 0) + 1)
-      monthlyCalls.set(monthlyKey, (monthlyCalls.get(monthlyKey) || 0) + 1)
-    }
+    // 担当者×月ごとに集計する
+    // calls(総架電数) = ACTIVE_PROGRESS_SETに該当する対象月最新行の件数
+    // progressCounts = 表示用に全カテゴリを保持(受注数はこの中の「受注」件数)
+    const callsMap = new Map<string, number>()
+    const progressMap = new Map<string, Record<string, number>>()
 
-    // 分子: 担当者×日付/月ごとの進捗内訳(顧客ごとの最新履歴のみ集計、受注数はこの中の「受注」件数)
-    const dailyProgress = new Map<string, Record<string, number>>()
-    const monthlyProgress = new Map<string, Record<string, number>>()
-    const overallProgressCounts: Record<string, number> = {}
-    const operatorProgressCounts = new Map<string, Record<string, number>>()
-
-    for (const row of Array.from(latestByCustomer.values())) {
+    for (const row of Array.from(latestByCustomerMonth.values())) {
       const operator = normalizeOperator(row.operator)
       const label = normalizeProgressLabel(row.progress)
-      const date = row.normalizedDate
+      const key = `${operator}|${row.month}`
 
-      overallProgressCounts[label] = (overallProgressCounts[label] || 0) + 1
+      if (!progressMap.has(key)) progressMap.set(key, {})
+      const counts = progressMap.get(key)!
+      counts[label] = (counts[label] || 0) + 1
 
-      if (!operatorProgressCounts.has(operator)) operatorProgressCounts.set(operator, {})
-      const opCounts = operatorProgressCounts.get(operator)!
-      opCounts[label] = (opCounts[label] || 0) + 1
-
-      if (!date) continue
-      const month = date.substring(0, 7)
-      const dailyKey = `${operator}|${date}`
-      const monthlyKey = `${operator}|${month}`
-
-      if (!dailyProgress.has(dailyKey)) dailyProgress.set(dailyKey, {})
-      const d = dailyProgress.get(dailyKey)!
-      d[label] = (d[label] || 0) + 1
-
-      if (!monthlyProgress.has(monthlyKey)) monthlyProgress.set(monthlyKey, {})
-      const m = monthlyProgress.get(monthlyKey)!
-      m[label] = (m[label] || 0) + 1
-    }
-
-    const buildRows = (
-      callsMap: Map<string, number>,
-      progressMap: Map<string, Record<string, number>>
-    ): Array<PeriodStat & { period: string }> => {
-      const rows: Array<PeriodStat & { period: string }> = []
-      for (const [key, calls] of Array.from(callsMap.entries())) {
-        const [operator, period] = key.split('|')
-        const progressCounts = progressMap.get(key) || {}
-        const orders = progressCounts['受注'] || 0
-        rows.push({
-          period,
-          operator,
-          calls,
-          orders,
-          orderRate: calls > 0 ? (orders / calls) * 100 : 0,
-          progressCounts,
-        })
+      if (ACTIVE_PROGRESS_SET.has(label)) {
+        callsMap.set(key, (callsMap.get(key) || 0) + 1)
       }
-      rows.sort((a, b) => b.period.localeCompare(a.period) || a.operator.localeCompare(b.operator))
-      return rows
     }
 
-    const daily = buildRows(dailyCalls, dailyProgress)
-    const monthly = buildRows(monthlyCalls, monthlyProgress)
+    const allKeys = new Set<string>()
+    for (const k of Array.from(callsMap.keys())) allKeys.add(k)
+    for (const k of Array.from(progressMap.keys())) allKeys.add(k)
+
+    const monthly: Array<PeriodStat & { period: string }> = []
+    for (const key of Array.from(allKeys)) {
+      const [operator, period] = key.split('|')
+      const progressCounts = progressMap.get(key) || {}
+      const calls = callsMap.get(key) || 0
+      const orders = progressCounts['受注'] || 0
+      monthly.push({
+        period,
+        operator,
+        calls,
+        orders,
+        orderRate: calls > 0 ? (orders / calls) * 100 : 0,
+        progressCounts,
+      })
+    }
+    monthly.sort((a, b) => b.period.localeCompare(a.period) || a.operator.localeCompare(b.operator, 'ja'))
 
     // 進捗カテゴリの一覧(グラフ・表の列順を固定するため)
+    const overallProgressCounts: Record<string, number> = {}
+    for (const counts of Array.from(progressMap.values())) {
+      for (const [label, cnt] of Object.entries(counts)) {
+        overallProgressCounts[label] = (overallProgressCounts[label] || 0) + cnt
+      }
+    }
     const knownCategories: string[] = PROGRESS_OPTIONS.filter((o) => o.value !== '').map((o) => o.label)
     const extraCategories = Object.keys(overallProgressCounts).filter(
       (c) => c !== '未設定' && !knownCategories.includes(c)
@@ -164,44 +150,17 @@ export async function GET(request: NextRequest) {
 
     // 実在スタッフを固定の並び順で必ず表示し(データが0件でも選択できるように)、
     // 正規化しきれなかった分だけ「その他」として末尾に追加する
-    const hasOtherData = operatorAllCalls.has('その他') || operatorProgressCounts.has('その他')
+    const hasOtherData = monthly.some((r) => r.operator === 'その他')
     const operators = [...CANONICAL_OPERATORS, ...(hasOtherData ? ['その他'] : [])]
 
-    const totalCalls = allHistory.length
-    const totalCustomers = latestByCustomer.size
-    const totalOrders = overallProgressCounts['受注'] || 0
-
-    const overall = {
-      totalCalls,
-      totalCustomers,
-      orders: totalOrders,
-      orderRate: totalCalls > 0 ? (totalOrders / totalCalls) * 100 : 0,
-      progressCounts: overallProgressCounts,
-    }
-
-    const byOperator: Record<
-      string,
-      { totalCalls: number; orders: number; orderRate: number; progressCounts: Record<string, number> }
-    > = {}
-    for (const operator of operators) {
-      const opCalls = operatorAllCalls.get(operator) || 0
-      const progressCounts = operatorProgressCounts.get(operator) || {}
-      const orders = progressCounts['受注'] || 0
-      byOperator[operator] = {
-        totalCalls: opCalls,
-        orders,
-        orderRate: opCalls > 0 ? (orders / opCalls) * 100 : 0,
-        progressCounts,
-      }
-    }
+    // 選択可能な対象月一覧(新しい月順)
+    const months = Array.from(new Set(monthly.map((r) => r.period))).sort((a, b) => b.localeCompare(a))
 
     return NextResponse.json({
       success: true,
       progressCategories,
       operators,
-      overall,
-      byOperator,
-      daily,
+      months,
       monthly,
     })
   } catch (error: any) {

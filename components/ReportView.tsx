@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 
 interface PeriodRow {
-  period: string
+  period: string // YYYY-MM
   operator: string
   calls: number
   orders: number
@@ -15,23 +15,17 @@ interface PeriodRow {
   progressCounts: Record<string, number>
 }
 
-interface OperatorTotal {
+interface Totals {
   totalCalls: number
   orders: number
   orderRate: number
   progressCounts: Record<string, number>
 }
 
-interface OverallTotal extends OperatorTotal {
-  totalCustomers: number
-}
-
 interface ReportData {
   progressCategories: string[]
   operators: string[]
-  overall: OverallTotal
-  byOperator: Record<string, OperatorTotal>
-  daily: PeriodRow[]
+  months: string[] // YYYY-MM, 新しい順
   monthly: PeriodRow[]
 }
 
@@ -46,13 +40,47 @@ const AXIS_LINE = '#c3c2b7'
 // 「見込み」として集計するカテゴリ
 const PROSPECT_CATEGORIES = ['見込みA', '見込みC']
 
+const formatMonth = (period: string): string => {
+  const [y, m] = period.split('-')
+  if (!y || !m) return period
+  return `${y}年${Number(m)}月`
+}
+
+const zeroTotals = (categories: string[]): Totals => {
+  const progressCounts: Record<string, number> = {}
+  for (const c of categories) progressCounts[c] = 0
+  return { totalCalls: 0, orders: 0, orderRate: 0, progressCounts }
+}
+
+const sumRows = (rows: PeriodRow[], categories: string[]): Totals => {
+  const progressCounts: Record<string, number> = {}
+  for (const c of categories) progressCounts[c] = 0
+  let calls = 0
+  let orders = 0
+  for (const r of rows) {
+    calls += r.calls
+    orders += r.orders
+    for (const [k, v] of Object.entries(r.progressCounts)) {
+      progressCounts[k] = (progressCounts[k] || 0) + v
+    }
+  }
+  return { totalCalls: calls, orders, orderRate: calls > 0 ? (orders / calls) * 100 : 0, progressCounts }
+}
+
+const rowToTotals = (row: PeriodRow | undefined, categories: string[]): Totals => {
+  if (!row) return zeroTotals(categories)
+  const progressCounts: Record<string, number> = {}
+  for (const c of categories) progressCounts[c] = row.progressCounts[c] || 0
+  return { totalCalls: row.calls, orders: row.orders, orderRate: row.orderRate, progressCounts }
+}
+
 export default function ReportView() {
   const [data, setData] = useState<ReportData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [viewMode, setViewMode] = useState<'overall' | 'individual'>('overall')
   const [selectedOperator, setSelectedOperator] = useState('')
-  const [periodType, setPeriodType] = useState<'daily' | 'monthly'>('monthly')
+  const [selectedMonth, setSelectedMonth] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
 
@@ -66,6 +94,7 @@ export default function ReportView() {
         if (result.success) {
           setData(result)
           if (result.operators?.length > 0) setSelectedOperator(result.operators[0])
+          if (result.months?.length > 0) setSelectedMonth(result.months[0])
         } else {
           setError(result.message || 'レポートの取得に失敗しました')
         }
@@ -78,55 +107,61 @@ export default function ReportView() {
     fetchReport()
   }, [])
 
-  const totals: OverallTotal | OperatorTotal | null = useMemo(() => {
-    if (!data) return null
-    if (viewMode === 'overall') return data.overall
-    return data.byOperator[selectedOperator] || null
-  }, [data, viewMode, selectedOperator])
-
-  const periodRows = useMemo(() => {
+  // 対象月×全担当者(全体表示・明細用)
+  const monthRows = useMemo(() => {
     if (!data) return []
-    const rows = periodType === 'daily' ? data.daily : data.monthly
+    return data.monthly.filter((r) => r.period === selectedMonth)
+  }, [data, selectedMonth])
 
-    if (viewMode === 'individual') {
-      return rows.filter((r) => r.operator === selectedOperator)
-    }
+  // 選択担当者×全期間(個々表示・トレンド用、新しい月順)
+  const operatorRows = useMemo(() => {
+    if (!data) return []
+    return data.monthly
+      .filter((r) => r.operator === selectedOperator)
+      .sort((a, b) => b.period.localeCompare(a.period))
+  }, [data, selectedOperator])
 
-    // 全体表示: 期間ごとに担当者を合算する
-    const grouped = new Map<string, PeriodRow>()
-    for (const row of rows) {
-      const existing = grouped.get(row.period)
-      if (!existing) {
-        grouped.set(row.period, { ...row, operator: '全体', progressCounts: { ...row.progressCounts } })
-      } else {
-        existing.calls += row.calls
-        existing.orders += row.orders
-        for (const [cat, cnt] of Object.entries(row.progressCounts)) {
-          existing.progressCounts[cat] = (existing.progressCounts[cat] || 0) + cnt
-        }
-      }
-    }
-    const merged = Array.from(grouped.values()).map((r) => ({
-      ...r,
-      orderRate: r.calls > 0 ? (r.orders / r.calls) * 100 : 0,
-    }))
-    merged.sort((a, b) => b.period.localeCompare(a.period))
-    return merged
-  }, [data, periodType, viewMode, selectedOperator])
+  const totals: Totals = useMemo(() => {
+    if (!data) return zeroTotals([])
+    if (viewMode === 'overall') return sumRows(monthRows, data.progressCategories)
+    const row = operatorRows.find((r) => r.period === selectedMonth)
+    return rowToTotals(row, data.progressCategories)
+  }, [data, viewMode, monthRows, operatorRows, selectedMonth])
 
+  const tableRows = viewMode === 'overall' ? monthRows : operatorRows
+
+  // 受注率・件数の推移(全期間) - 全体表示は月ごとに全担当者を合算する
   const trendChartData = useMemo(() => {
-    return [...periodRows]
-      .sort((a, b) => a.period.localeCompare(b.period))
-      .map((r) => ({
-        period: r.period,
-        受注率: Number(r.orderRate.toFixed(1)),
-        架電数: r.calls,
-        受注数: r.orders,
+    if (!data) return []
+    if (viewMode === 'individual') {
+      return [...operatorRows]
+        .sort((a, b) => a.period.localeCompare(b.period))
+        .map((r) => ({
+          period: r.period,
+          受注率: Number(r.orderRate.toFixed(1)),
+          総架電数: r.calls,
+          受注数: r.orders,
+        }))
+    }
+    const grouped = new Map<string, { calls: number; orders: number }>()
+    for (const row of data.monthly) {
+      const g = grouped.get(row.period) || { calls: 0, orders: 0 }
+      g.calls += row.calls
+      g.orders += row.orders
+      grouped.set(row.period, g)
+    }
+    return Array.from(grouped.entries())
+      .map(([period, g]) => ({
+        period,
+        受注率: g.calls > 0 ? Number(((g.orders / g.calls) * 100).toFixed(1)) : 0,
+        総架電数: g.calls,
+        受注数: g.orders,
       }))
-  }, [periodRows])
+      .sort((a, b) => a.period.localeCompare(b.period))
+  }, [data, viewMode, operatorRows])
 
   const progressChartData = useMemo(() => {
-    if (!data || !totals) return []
+    if (!data) return []
     return data.progressCategories
       .map((cat) => ({ name: cat, value: totals.progressCounts[cat] || 0 }))
       .filter((d) => d.value > 0)
@@ -134,7 +169,6 @@ export default function ReportView() {
   }, [data, totals])
 
   const prospectTotal = useMemo(() => {
-    if (!totals) return 0
     return PROSPECT_CATEGORIES.reduce((sum, cat) => sum + (totals.progressCounts[cat] || 0), 0)
   }, [totals])
 
@@ -175,7 +209,6 @@ export default function ReportView() {
         const imgHeight = (canvas.height * imgWidth) / canvas.width
 
         if (imgHeight > maxContentHeight) {
-          // 1ページに収まらない大きさのセクション(明細が多い場合など)はセクション内でのみ分割する
           if (placedOnPage) pdf.addPage()
           let remaining = imgHeight
           let offset = 0
@@ -205,8 +238,9 @@ export default function ReportView() {
       }
 
       const label = viewMode === 'overall' ? '全体' : selectedOperator
+      const monthLabel = selectedMonth || 'all'
       const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-      pdf.save(`効果報告レポート_${label}_${today}.pdf`)
+      pdf.save(`効果報告レポート_${label}_${monthLabel}_${today}.pdf`)
     } catch (e) {
       console.error('PDF export failed:', e)
       alert('PDFの生成に失敗しました')
@@ -227,7 +261,7 @@ export default function ReportView() {
     )
   }
 
-  if (!data || !totals) {
+  if (!data || data.months.length === 0) {
     return <div className="p-6 text-center py-10 text-gray-500">データがありません</div>
   }
 
@@ -262,20 +296,15 @@ export default function ReportView() {
           </select>
         )}
 
-        <div className="flex bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setPeriodType('daily')}
-            className={`px-4 py-1.5 rounded-md text-sm font-bold transition ${periodType === 'daily' ? 'bg-blue-600 text-white shadow' : 'text-gray-600'}`}
-          >
-            日次
-          </button>
-          <button
-            onClick={() => setPeriodType('monthly')}
-            className={`px-4 py-1.5 rounded-md text-sm font-bold transition ${periodType === 'monthly' ? 'bg-blue-600 text-white shadow' : 'text-gray-600'}`}
-          >
-            月次
-          </button>
-        </div>
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="px-3 py-1.5 border border-gray-300 rounded-md text-sm font-bold"
+        >
+          {data.months.map((m) => (
+            <option key={m} value={m}>{formatMonth(m)}</option>
+          ))}
+        </select>
 
         <button
           onClick={handleExportPdf}
@@ -291,7 +320,7 @@ export default function ReportView() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">効果報告レポート</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {viewMode === 'overall' ? '全体実績' : `担当者: ${selectedOperator}`}　出力日: {new Date().toLocaleDateString('ja-JP')}
+            {viewMode === 'overall' ? '全体実績' : `担当者: ${selectedOperator}`}　対象月: {formatMonth(selectedMonth)}　出力日: {new Date().toLocaleDateString('ja-JP')}
           </p>
         </div>
 
@@ -306,9 +335,7 @@ export default function ReportView() {
         {/* グラフエリア */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-4 min-w-0">
-            <h3 className="text-sm font-bold text-gray-700 mb-3">
-              受注率推移({periodType === 'daily' ? '日次' : '月次'})
-            </h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-3">受注率推移(月次・全期間)</h3>
             <div className="w-full h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendChartData}>
@@ -323,7 +350,9 @@ export default function ReportView() {
           </div>
 
           <div className="bg-white rounded-lg shadow p-4 min-w-0">
-            <h3 className="text-sm font-bold text-gray-700 mb-3">進捗内訳(件数の多い順)</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-3">
+              進捗内訳({formatMonth(selectedMonth)}・件数の多い順)
+            </h3>
             <div style={{ width: '100%', height: Math.max(220, progressChartData.length * 34) }}>
               {progressChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -358,9 +387,7 @@ export default function ReportView() {
         </div>
 
         <div className="bg-white rounded-lg shadow p-4 mb-6 min-w-0">
-          <h3 className="text-sm font-bold text-gray-700 mb-3">
-            架電数・受注数({periodType === 'daily' ? '日次' : '月次'})
-          </h3>
+          <h3 className="text-sm font-bold text-gray-700 mb-3">総架電数・受注数(月次・全期間)</h3>
           <div className="w-full h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={trendChartData}>
@@ -369,7 +396,7 @@ export default function ReportView() {
                 <YAxis tick={{ fontSize: 11, fill: AXIS_TICK }} stroke={AXIS_LINE} />
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="架電数" fill={CHART_BLUE} radius={[4, 4, 0, 0]} maxBarSize={24} />
+                <Bar dataKey="総架電数" fill={CHART_BLUE} radius={[4, 4, 0, 0]} maxBarSize={24} />
                 <Bar dataKey="受注数" fill={CHART_GREEN} radius={[4, 4, 0, 0]} maxBarSize={24} />
               </BarChart>
             </ResponsiveContainer>
@@ -379,32 +406,32 @@ export default function ReportView() {
         {/* 詳細テーブル */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <h3 className="text-sm font-bold text-gray-700 px-4 pt-4">
-            明細({periodType === 'daily' ? '日次' : '月次'})
+            {viewMode === 'overall'
+              ? `明細(${formatMonth(selectedMonth)}・担当者別)`
+              : `明細(${selectedOperator}・月別推移)`}
           </h3>
           <div className="overflow-x-auto p-4">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">
-                    {periodType === 'daily' ? '日付' : '年月'}
-                  </th>
-                  {viewMode === 'overall' && (
+                  {viewMode === 'overall' ? (
                     <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">担当者</th>
+                  ) : (
+                    <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">対象月</th>
                   )}
-                  <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">架電数</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">総架電数</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">受注数</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">受注率</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-500 whitespace-nowrap">見込み(A+C)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {periodRows.length > 0 ? (
-                  periodRows.map((row, idx) => (
+                {tableRows.length > 0 ? (
+                  tableRows.map((row, idx) => (
                     <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 whitespace-nowrap font-medium text-gray-900">{row.period}</td>
-                      {viewMode === 'overall' && (
-                        <td className="px-4 py-2 whitespace-nowrap text-gray-500">{row.operator}</td>
-                      )}
+                      <td className="px-4 py-2 whitespace-nowrap font-medium text-gray-900">
+                        {viewMode === 'overall' ? row.operator : formatMonth(row.period)}
+                      </td>
                       <td className="px-4 py-2 whitespace-nowrap text-gray-500">{row.calls}</td>
                       <td className="px-4 py-2 whitespace-nowrap text-green-600 font-semibold">{row.orders}</td>
                       <td className="px-4 py-2 whitespace-nowrap text-blue-600 font-bold">
@@ -417,7 +444,7 @@ export default function ReportView() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={viewMode === 'overall' ? 6 : 5} className="px-4 py-10 text-center text-gray-500">
+                    <td colSpan={5} className="px-4 py-10 text-center text-gray-500">
                       データがありません
                     </td>
                   </tr>
