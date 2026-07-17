@@ -30,6 +30,8 @@ export default function DuplicateMerge() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [mergingKey, setMergingKey] = useState<string | null>(null)
+  const [isMergingAll, setIsMergingAll] = useState(false)
+  const [mergeAllProgress, setMergeAllProgress] = useState<{ done: number; total: number } | null>(null)
 
   const load = async () => {
     setIsLoading(true)
@@ -72,16 +74,78 @@ export default function DuplicateMerge() {
     }
   }
 
+  const handleMergeAll = async () => {
+    if (groups.length === 0) return
+    const totalRecords = groups.reduce((sum, g) => sum + g.records.length, 0)
+    const totalHistory = groups.reduce((sum, g) => sum + g.totalCallHistoryCount, 0)
+    if (!confirm(
+      `検出された${groups.length}件の重複グループ(合計${totalRecords}レコード、架電履歴計${totalHistory}件)を` +
+      `すべて統合します。よろしいですか？`
+    )) return
+
+    setIsMergingAll(true)
+    setError('')
+    setMessage('')
+    setMergeAllProgress({ done: 0, total: groups.length })
+
+    let successCount = 0
+    let failCount = 0
+    let historyTotal = 0
+    const failedNames: string[] = []
+    const remaining: DuplicateGroup[] = []
+
+    for (let i = 0; i < groups.length; i++) {
+      const group = groups[i]
+      const duplicateIds = group.records.map((r) => r.id).filter((id) => id !== group.suggestedPrimaryId)
+      const result: any = await ApiClient.mergeDuplicates(group.suggestedPrimaryId, duplicateIds)
+      if (result.success) {
+        successCount++
+        historyTotal += result.reassignedHistoryCount || 0
+      } else {
+        failCount++
+        failedNames.push(group.companyName)
+        remaining.push(group)
+      }
+      setMergeAllProgress({ done: i + 1, total: groups.length })
+    }
+
+    setGroups(remaining)
+    setIsMergingAll(false)
+    setMergeAllProgress(null)
+
+    if (failCount === 0) {
+      setMessage(`✓ ${successCount}件のグループを統合しました(架電履歴 計${historyTotal}件も引き継ぎました)`)
+      setTimeout(() => setMessage(''), 6000)
+    } else {
+      setMessage(successCount > 0 ? `✓ ${successCount}件のグループを統合しました(架電履歴 計${historyTotal}件も引き継ぎました)` : '')
+      setError(`✗ ${failCount}件の統合に失敗しました: ${failedNames.join('、')}`)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-gray-600">同一の企業名で複数レコードが存在するものを検出しています(自動では統合されません)</p>
-        <button
-          onClick={load}
-          className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600"
-        >
-          再検出
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={load}
+            disabled={isMergingAll}
+            className="px-4 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 disabled:opacity-50"
+          >
+            再検出
+          </button>
+          {groups.length > 0 && (
+            <button
+              onClick={handleMergeAll}
+              disabled={isMergingAll || mergingKey !== null}
+              className="px-4 py-2 bg-red-600 text-white rounded font-bold hover:bg-red-700 disabled:opacity-50"
+            >
+              {isMergingAll
+                ? `統合中... (${mergeAllProgress?.done ?? 0}/${mergeAllProgress?.total ?? groups.length})`
+                : `全て統合を実行(${groups.length}件)`}
+            </button>
+          )}
+        </div>
       </div>
 
       {message && <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">{message}</div>}
@@ -105,7 +169,7 @@ export default function DuplicateMerge() {
               </h3>
               <button
                 onClick={() => handleMerge(group)}
-                disabled={mergingKey === group.companyName}
+                disabled={mergingKey === group.companyName || isMergingAll}
                 className="px-4 py-2 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 disabled:opacity-50"
               >
                 {mergingKey === group.companyName ? '統合中...' : 'この内容で統合を実行'}
