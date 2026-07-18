@@ -36,6 +36,15 @@ function normalizeTime(t: string | null | undefined): string {
   return String(t).trim().slice(0, 5)
 }
 
+/**
+ * PostgRESTの.or()フィルタ文字列に埋め込む値をエスケープする。
+ * カンマ・括弧はor構文の区切り文字として解釈されてしまうため、
+ * 値をダブルクォートで囲み、値中のバックスラッシュ・ダブルクォートのみエスケープする。
+ */
+function escapeOrValue(v: string): string {
+  return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -113,6 +122,8 @@ export async function GET(request: NextRequest) {
           supabaseAdmin
             .from(TABLES.CALL_HISTORY)
             .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
+            // 並列.range()ページが安定して重複/欠落なく分割されるよう明示的な順序を指定する
+            .order('id', { ascending: true })
             .range(i * pageSize, i * pageSize + pageSize - 1)
         )
       )
@@ -236,24 +247,32 @@ export async function GET(request: NextRequest) {
     const allListIds = (listRows || []).map((l) => l.slug as string)
 
     const perListResults = await Promise.all(allListIds.map(async (listId) => {
-      if (hasHistorySearch && !matchedByList.has(listId)) return []
+      if (hasHistorySearch && !matchedByList.has(listId)) return { items: [], truncated: false }
 
       const uniqueNos = hasHistorySearch ? Array.from(matchedByList.get(listId)!) : null
-      if (uniqueNos !== null && uniqueNos.length === 0) return []
+      if (uniqueNos !== null && uniqueNos.length === 0) return { items: [], truncated: false }
 
       let query = supabaseAdmin.from(TABLES.CUSTOMERS).select('*').eq('list_slug', listId)
 
       if (no) query = query.ilike('no', `%${no}%`)
       if (companyName) {
         // 企業名は company_name / company_kana 両方の部分一致
-        query = query.or(`company_name.ilike.%${companyName}%,company_kana.ilike.%${companyName}%`)
+        const v = escapeOrValue(companyName)
+        query = query.or(`company_name.ilike."%${v}%",company_kana.ilike."%${v}%"`)
       }
       if (companyKana) query = query.ilike('company_kana', `%${companyKana}%`)
       if (address) {
-        query = query.or(`address.ilike.%${address}%,address_kana.ilike.%${address}%`)
+        const v = escapeOrValue(address)
+        query = query.or(`address.ilike."%${v}%",address_kana.ilike."%${v}%"`)
       }
-      if (repName) query = query.or(`rep_name.ilike.%${repName}%,rep_kana.ilike.%${repName}%`)
-      if (staffName) query = query.or(`staff_name.ilike.%${staffName}%,staff_kana.ilike.%${staffName}%`)
+      if (repName) {
+        const v = escapeOrValue(repName)
+        query = query.or(`rep_name.ilike."%${v}%",rep_kana.ilike."%${v}%"`)
+      }
+      if (staffName) {
+        const v = escapeOrValue(staffName)
+        query = query.or(`staff_name.ilike."%${v}%",staff_kana.ilike."%${v}%"`)
+      }
       if (memo) query = query.ilike('memo', `%${memo}%`)
       if (fixedNo) query = query.ilike('fixed_no', `%${fixedNo}%`)
       if (otherContact) query = query.ilike('other_contact', `%${otherContact}%`)
@@ -282,10 +301,10 @@ export async function GET(request: NextRequest) {
       const { data: records, error } = await query
       if (error) {
         console.error(`[search] listId=${listId} error:`, error)
-        return []
+        return { items: [], truncated: false }
       }
 
-      if (!records || records.length === 0) return []
+      if (!records || records.length === 0) return { items: [], truncated: false }
 
       const matchedNos = records.map(r => r.no)
       const historyAliases = LEGACY_LIST_TYPE_ALIASES[listId] || [listId]
@@ -308,6 +327,8 @@ export async function GET(request: NextRequest) {
             .select('no, progress, gender, date, start_time, created_at')
             .in('list_type', historyAliases)
             .in('no', matchedNos)
+            // 並列.range()ページが安定して重複/欠落なく分割されるよう明示的な順序を指定する
+            .order('id', { ascending: true })
             .range(i * histPageSize, i * histPageSize + histPageSize - 1)
         )
       )
@@ -330,18 +351,24 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      return records.map((record) => {
-        const frontendRecord = toFrontendFormat(record)
-        frontendRecord.callHistoryCount = countMap[record.no] || 0
-        frontendRecord.latestProgress = latestMap[record.no]?.progress || ''
-        frontendRecord.latestGender = latestMap[record.no]?.gender || ''
-        return { listId, record: frontendRecord }
-      })
+      return {
+        items: records.map((record) => {
+          const frontendRecord = toFrontendFormat(record)
+          frontendRecord.callHistoryCount = countMap[record.no] || 0
+          frontendRecord.latestProgress = latestMap[record.no]?.progress || ''
+          frontendRecord.latestGender = latestMap[record.no]?.gender || ''
+          return { listId, record: frontendRecord }
+        }),
+        // 安全策の上限(2000件)に達した場合、そのリストではさらに一致する候補が
+        // 隠れている可能性がある(結果は暗黙に切り捨てられていた)
+        truncated: records.length >= 2000,
+      }
     }))
 
-    const results = perListResults.flat()
+    const results = perListResults.flatMap((r) => r.items)
+    const truncated = perListResults.some((r) => r.truncated)
 
-    return NextResponse.json({ success: true, results, count: results.length })
+    return NextResponse.json({ success: true, results, count: results.length, truncated })
   } catch (error: any) {
     console.error('[search] fatal error:', error)
     return NextResponse.json(

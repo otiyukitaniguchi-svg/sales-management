@@ -45,6 +45,9 @@ export default function CustomerDetail() {
   const [isSearching, setIsSearching] = useState(false)
   // 履歴検索の範囲（'latest' = 最新履歴のみ / 'all' = 過去履歴すべて）
   const [historyScope, setHistoryScope] = useState<'latest' | 'all'>('latest')
+  // 再コール日時が未設定のレコードだけを検索する(日付/時間を空欄にしただけでは
+  // 「条件なし」と区別できないため、明示的なチェックボックスで指定する)
+  const [searchRecallUnset, setSearchRecallUnset] = useState(false)
 
   // 削除モード用の状態
   const [isDeleteMode, setIsDeleteMode] = useState(false)
@@ -371,9 +374,15 @@ export default function CustomerDetail() {
       if (searchHistory.gender) params.append('historyGender', searchHistory.gender)
       if (searchHistory.progress) params.append('progress', searchHistory.progress)
       if (searchHistory.note) params.append('historyNote', searchHistory.note)
-      // 再コール日時の検索（値が入力されている場合のみ送信）
-      if (searchRecord.recallDate) params.append('recallDate', searchRecord.recallDate)
-      if (searchRecord.recallTime) params.append('recallTime', searchRecord.recallTime)
+      // 再コール日時の検索(チェックボックスがONなら未設定のものだけを検索、
+      // OFFなら日付/時間が入力されている場合のみその値で検索)
+      if (searchRecallUnset) {
+        params.append('recallDate', '')
+        params.append('recallTime', '')
+      } else {
+        if (searchRecord.recallDate) params.append('recallDate', searchRecord.recallDate)
+        if (searchRecord.recallTime) params.append('recallTime', searchRecord.recallTime)
+      }
 
       // 履歴検索範囲（最新履歴のみ / 過去全件）
       params.append('historyScope', historyScope)
@@ -385,13 +394,18 @@ export default function CustomerDetail() {
         // 検索結果をグローバルストアの検索結果としてセット
         useAppStore.getState().setSearchResults(data.results)
         useAppStore.getState().setSearchMode(true)
-        
+
         // 最初の結果を表示
         useAppStore.getState().setSearchResultIndex(0)
-        
+
         setIsSearchMode(false)
-        setSaveMessage(`✓ ${data.results.length}件ヒットしました`)
+        const truncatedNote = data.truncated ? '(件数が多いため一部のみ表示。検索条件を絞り込んでください)' : ''
+        setSaveMessage(`✓ ${data.results.length}件ヒットしました${truncatedNote}`)
       } else {
+        // 前回の検索結果が残ったまま「見つかりません」と表示されるのを防ぐため、
+        // 検索結果と検索モードをクリアする
+        useAppStore.getState().setSearchResults([])
+        useAppStore.getState().setSearchMode(false)
         setSaveMessage('✗ 該当するデータが見つかりませんでした')
       }
       setTimeout(() => setSaveMessage(''), 3000)
@@ -634,9 +648,10 @@ export default function CustomerDetail() {
               <span className="text-[10px] font-bold text-gray-600 px-1">
                 {isSearchMode ? '再コール日時検索' : '再コール日時'}
               </span>
-              <input 
-                type="date" 
-                value={isSearchMode ? (searchRecord.recallDate ?? '') : (editedRecord?.recallDate || '')} 
+              <input
+                type="date"
+                value={isSearchMode ? (searchRecord.recallDate ?? '') : (editedRecord?.recallDate || '')}
+                disabled={isSearchMode && searchRecallUnset}
                 onChange={(e) => {
                   if (isSearchMode) {
                     setSearchRecord({...searchRecord, recallDate: e.target.value})
@@ -645,11 +660,12 @@ export default function CustomerDetail() {
                     setIsRecallEdited(true)
                   }
                 }}
-                className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
+                className="border border-gray-300 rounded px-1 py-0.5 text-[10px] disabled:bg-gray-100"
               />
-              <input 
-                type="time" 
-                value={isSearchMode ? (searchRecord.recallTime ?? '') : (editedRecord?.recallTime || '')} 
+              <input
+                type="time"
+                value={isSearchMode ? (searchRecord.recallTime ?? '') : (editedRecord?.recallTime || '')}
+                disabled={isSearchMode && searchRecallUnset}
                 onChange={(e) => {
                   if (isSearchMode) {
                     setSearchRecord({...searchRecord, recallTime: e.target.value})
@@ -658,10 +674,17 @@ export default function CustomerDetail() {
                     setIsRecallEdited(true)
                   }
                 }}
-                className="border border-gray-300 rounded px-1 py-0.5 text-[10px]"
+                className="border border-gray-300 rounded px-1 py-0.5 text-[10px] disabled:bg-gray-100"
               />
               {isSearchMode ? (
-                <span className="text-[9px] text-gray-400">空欄のまま検索→未設定を検索</span>
+                <label className="flex items-center gap-1 text-[9px] text-gray-500 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={searchRecallUnset}
+                    onChange={(e) => setSearchRecallUnset(e.target.checked)}
+                  />
+                  未設定のみ検索
+                </label>
               ) : (
                 <button 
                   onClick={handleSetRecall}

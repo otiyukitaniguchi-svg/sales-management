@@ -82,12 +82,16 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
     }
 
     // 3. メモリ上に見つからない場合、サーバーに問い合わせる
+    // サーバー側のNo検索は部分一致のため、結果の先頭ではなく完全一致するものを探す
     setIsLoading(true)
     try {
       const response: any = await ApiClient.searchByNo(targetNo)
-      if (response.success && response.results && response.results.length > 0) {
-        const firstMatch = response.results[0]
-        const listId = firstMatch.listId as string
+      const exactMatch = response.success && response.results
+        ? response.results.find((r: any) => String(r.record?.no) === targetNo)
+        : null
+
+      if (exactMatch) {
+        const listId = exactMatch.listId as string
 
         if (confirm(`No. ${targetNo} は「${listName(listId)}」に存在します。データを読み込んで移動しますか？`)) {
           // データを再読み込み

@@ -78,6 +78,8 @@ export async function GET(
             .from(TABLES.CALL_HISTORY)
             .select('no')
             .in('list_type', historyListTypes)
+            // 並列.range()ページが安定して重複/欠落なく分割されるよう明示的な順序を指定する
+            .order('id', { ascending: true })
             .range(i * pageSize, i * pageSize + pageSize - 1)
         )
       )

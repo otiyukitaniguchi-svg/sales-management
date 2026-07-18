@@ -31,7 +31,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     callResponder: '',
     callProgress: '',
     callNote: '',
-    recallDate: '',
+    callDate: '',
   })
   // 履歴検索の範囲（'latest' = 最新履歴のみ / 'all' = 過去全件）
   const [historyScope, setHistoryScope] = useState<'latest' | 'all'>('latest')
@@ -60,7 +60,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
       if (searchFields.callProgress) params.append('progress', searchFields.callProgress)
       if (searchFields.callNote) params.append('historyNote', searchFields.callNote)
       // 「対応日」: 架電履歴の日付検索
-      if (searchFields.recallDate) params.append('historyDate', searchFields.recallDate)
+      if (searchFields.callDate) params.append('historyDate', searchFields.callDate)
 
       // 履歴検索範囲
       params.append('historyScope', historyScope)
@@ -74,6 +74,9 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
       }
 
       if (!data.results || data.results.length === 0) {
+        // 前回の検索結果が残ったまま無関係なデータが表示され続けるのを防ぐ
+        setSearchResults([])
+        setSearchMode(false)
         alert('HITなし')
         return
       }
@@ -82,6 +85,9 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
       setSearchResults(data.results)
       setSearchResultIndex(0)
       setSearchMode(true)
+      if (data.truncated) {
+        alert(`${data.results.length}件ヒットしました(件数が多いため一部のみ表示。検索条件を絞り込んでください)`)
+      }
       onClose()
     } catch (error) {
       console.error('Search failed:', error)
@@ -103,7 +109,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
       callResponder: '',
       callProgress: '',
       callNote: '',
-      recallDate: '',
+      callDate: '',
     })
   }
 
@@ -284,8 +290,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
               <label className="block font-semibold text-gray-700 mb-2">対応日</label>
               <input
                 type="text"
-                value={searchFields.recallDate}
-                onChange={(e) => handleSearchFieldChange('recallDate', e.target.value)}
+                value={searchFields.callDate}
+                onChange={(e) => handleSearchFieldChange('callDate', e.target.value)}
                 onKeyPress={handleKeyPress}
                 className="w-full border-2 border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="対応日を入力（YYYY-MM-DD）"
