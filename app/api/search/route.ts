@@ -295,9 +295,9 @@ export async function GET(request: NextRequest) {
 
       if (uniqueNos !== null) query = query.in('no', uniqueNos)
 
-      // 検索結果は最大2000件まで取得（安全策）
-      query = query.limit(2000)
-
+      // Supabase/PostgRESTはデフォルトで1リクエストあたり最大1000件しか返さない
+      // (.limit()に2000を指定しても実際には1000件で打ち切られる)。安全策として
+      // リストごとに最大1000件までとし、上限に達した場合はtruncatedで通知する。
       const { data: records, error } = await query
       if (error) {
         console.error(`[search] listId=${listId} error:`, error)
@@ -359,9 +359,9 @@ export async function GET(request: NextRequest) {
           frontendRecord.latestGender = latestMap[record.no]?.gender || ''
           return { listId, record: frontendRecord }
         }),
-        // 安全策の上限(2000件)に達した場合、そのリストではさらに一致する候補が
-        // 隠れている可能性がある(結果は暗黙に切り捨てられていた)
-        truncated: records.length >= 2000,
+        // Supabase/PostgRESTの1リクエスト上限(1000件)に達した場合、そのリストでは
+        // さらに一致する候補が隠れている可能性がある
+        truncated: records.length >= 1000,
       }
     }))
 
