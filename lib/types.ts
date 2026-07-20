@@ -238,6 +238,7 @@ export interface VisitResultFeedEntry {
   note: string
   replyDate: string
   source: string
+  progress: string
   createdAt: string
 }
 

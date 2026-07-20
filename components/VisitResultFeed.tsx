@@ -4,6 +4,15 @@ import { useState, useEffect, useCallback } from 'react'
 import { ApiClient } from '@/lib/api-client'
 import { VisitResultFeedEntry } from '@/lib/types'
 
+const PROGRESS_FILTER_OPTIONS = ['', '受注', '検討', 'NG', '稟議検討'] as const
+
+const PROGRESS_BADGE_STYLE: Record<string, string> = {
+  '受注': 'bg-green-100 text-green-800 border-green-300',
+  '検討': 'bg-blue-100 text-blue-800 border-blue-300',
+  'NG': 'bg-red-100 text-red-800 border-red-300',
+  '稟議検討': 'bg-purple-100 text-purple-800 border-purple-300',
+}
+
 interface CompanyGroup {
   key: string
   listId: string
@@ -46,6 +55,7 @@ export default function VisitResultFeed() {
   const [noQuery, setNoQuery] = useState('')
   const [companyQuery, setCompanyQuery] = useState('')
   const [operatorQuery, setOperatorQuery] = useState('')
+  const [progressQuery, setProgressQuery] = useState('')
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
 
   const toggleExpanded = (key: string) => {
@@ -58,7 +68,7 @@ export default function VisitResultFeed() {
   }
 
   const fetchFeed = useCallback(async (
-    filters?: { no?: string; companyName?: string; operator?: string },
+    filters?: { no?: string; companyName?: string; operator?: string; progress?: string },
     silent = false
   ) => {
     if (!silent) setIsLoading(true)
@@ -85,21 +95,27 @@ export default function VisitResultFeed() {
   // 外勤アプリからの新着報告に素早く気づけるよう、開いている間は自動で再取得する
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery }, true)
+      fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery, progress: progressQuery }, true)
     }, 20000)
     return () => clearInterval(interval)
-  }, [fetchFeed, noQuery, companyQuery, operatorQuery])
+  }, [fetchFeed, noQuery, companyQuery, operatorQuery, progressQuery])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery })
+    fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery, progress: progressQuery })
   }
 
   const handleClear = () => {
     setNoQuery('')
     setCompanyQuery('')
     setOperatorQuery('')
+    setProgressQuery('')
     fetchFeed()
+  }
+
+  const handleProgressPick = (value: string) => {
+    setProgressQuery(value)
+    fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery, progress: value })
   }
 
   const groups = groupByCompany(entries)
@@ -107,14 +123,30 @@ export default function VisitResultFeed() {
   return (
     <div className="p-6 bg-white h-full overflow-auto">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">🎉 受注報告フィード</h2>
+        <h2 className="text-xl font-bold">📋 アポ受注一覧</h2>
         <button
-          onClick={() => fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery })}
+          onClick={() => fetchFeed({ no: noQuery, companyName: companyQuery, operator: operatorQuery, progress: progressQuery })}
           disabled={isLoading}
           className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50"
         >
           {isLoading ? '更新中...' : '更新'}
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {PROGRESS_FILTER_OPTIONS.map((p) => (
+          <button
+            key={p || 'all'}
+            onClick={() => handleProgressPick(p)}
+            className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition ${
+              progressQuery === p
+                ? 'bg-gray-800 text-white border-gray-800'
+                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
+            }`}
+          >
+            {p || 'すべて'}
+          </button>
+        ))}
       </div>
 
       <form onSubmit={handleSearch} className="flex flex-wrap gap-2 mb-6">
@@ -148,7 +180,7 @@ export default function VisitResultFeed() {
       {isLoading ? (
         <div className="text-center py-10">読み込み中...</div>
       ) : groups.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">該当する受注報告がありません</div>
+        <div className="text-center py-10 text-gray-500">該当する報告がありません</div>
       ) : (
         <div className="flex flex-col gap-4">
           {groups.map((group) => {
@@ -173,7 +205,10 @@ export default function VisitResultFeed() {
                   <div className="flex flex-col gap-2">
                     {group.entries.map((entry) => (
                       <div key={entry.id} className="border-t border-gray-100 pt-2 first:border-0 first:pt-0">
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-700">
+                          <span className={`px-2 py-0.5 rounded border text-xs font-bold ${PROGRESS_BADGE_STYLE[entry.progress] || 'bg-gray-100 text-gray-700 border-gray-300'}`}>
+                            {entry.progress || '-'}
+                          </span>
                           <span>{entry.source === 'field_mobile' ? '訪問者' : '担当者'}: <span className="font-semibold">{entry.operator || '-'}</span></span>
                           <span>応対者: <span className="font-semibold">{entry.responder || '-'}</span></span>
                           <span>日時: <span className="font-semibold">{entry.date} {entry.startTime}</span></span>

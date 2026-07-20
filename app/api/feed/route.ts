@@ -15,20 +15,27 @@ function resolveListSlug(listType: string | null): string {
   return LEGACY_NAME_TO_SLUG[t] || t
 }
 
+// 外勤アプリ(ガイキンマン)の訪問結果フィードで一覧対象とする進捗。
+// 「受注」はアポインター・外勤どちらの記録にも付き得るが、それ以外の3つは
+// ガイキンマン独自の進捗語彙のため実質外勤経由の記録のみが該当する。
+const VISIBLE_PROGRESS_VALUES = ['受注', '検討', 'NG', '稟議検討']
+
 export async function GET(request: NextRequest) {
   try {
     const noFilter = (request.nextUrl.searchParams.get('no') || '').trim()
     const companyNameFilter = (request.nextUrl.searchParams.get('companyName') || '').trim().toLowerCase()
     const operatorFilter = (request.nextUrl.searchParams.get('operator') || '').trim()
+    const progressFilterRaw = (request.nextUrl.searchParams.get('progress') || '').trim()
+    const progressFilter = VISIBLE_PROGRESS_VALUES.includes(progressFilterRaw) ? progressFilterRaw : ''
 
-    // 受注件数は全履歴に比べて限られるため、検索対象として全件を取得する。
+    // 対象件数は全履歴に比べて限られるため、検索対象として全件を取得する。
     // 件数を先に取得し、必要なページを並列取得する。count用とdata用で
     // select()の引数が異なるため、selectClauseを都度渡す関数にしている
     const buildBaseQuery = (selectClause: string, opts?: { count: 'exact'; head: true }) => {
       let q = supabaseAdmin
         .from(TABLES.CALL_HISTORY)
         .select(selectClause, opts)
-        .eq('progress', '受注')
+        .in('progress', progressFilter ? [progressFilter] : VISIBLE_PROGRESS_VALUES)
       if (noFilter) q = q.ilike('no', `%${noFilter}%`)
       if (operatorFilter) q = q.ilike('operator', `%${operatorFilter}%`)
       return q
@@ -41,7 +48,7 @@ export async function GET(request: NextRequest) {
     const entryPageCount = Math.max(1, Math.ceil((entryCount || 0) / pageSize))
     const entryPages = await Promise.all(
       Array.from({ length: entryPageCount }, (_, i) =>
-        buildBaseQuery('id, no, list_type, operator, responder, date, start_time, note, reply_date, source, created_at')
+        buildBaseQuery('id, no, list_type, operator, responder, date, start_time, note, reply_date, source, progress, created_at')
           .order('created_at', { ascending: false })
           .range(i * pageSize, i * pageSize + pageSize - 1)
       )
@@ -101,6 +108,7 @@ export async function GET(request: NextRequest) {
         note: row.note || '',
         replyDate: row.reply_date || '',
         source: row.source || '',
+        progress: row.progress || '',
         createdAt: row.created_at,
       }
     })
