@@ -187,6 +187,15 @@ export default function CustomerDetail() {
         setCurrentCall({})
         // 保存後に最新の履歴を再読み込み
         await loadCallHistory()
+
+        // 受注になった場合はLINEグループへ自動通知(未設定の場合はサーバー側で何もしない)
+        if (finalEntry.progress === '受注') {
+          fetch('/api/line/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ record, callEntry: finalEntry }),
+          }).catch((e) => console.error('Failed to send LINE notification:', e))
+        }
       }
     } catch (error) {
       console.error('Failed to save call history:', error)

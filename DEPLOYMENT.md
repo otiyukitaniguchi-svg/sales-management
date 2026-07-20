@@ -46,6 +46,9 @@ HOUJIN_BANGOU_APP_ID=your-nta-houjin-bangou-application-id
 GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 GOOGLE_CALENDAR_ID=info.oti.okinawa@gmail.com
+LINE_CHANNEL_ACCESS_TOKEN=your-line-messaging-api-channel-access-token
+LINE_CHANNEL_SECRET=your-line-messaging-api-channel-secret
+LINE_GROUP_ID=your-line-group-id
 NODE_ENV=production
 ```
 
@@ -62,6 +65,20 @@ NODE_ENV=production
 7. `GOOGLE_CALENDAR_ID` には `info.oti.okinawa@gmail.com` を設定(Gmailアカウントのメインカレンダーのカレンダーidは、そのメールアドレスと同じ)
 
 未設定の間は、架電履歴の進捗を「受注」にしたときに表示される「📅 カレンダー登録」ボタンを押しても「連携が未設定です」というメッセージが出るだけで、他の機能には影響しません。
+
+**LINEグループ通知(受注時の自動通知機能)の設定手順**:
+
+LINE Notifyは2025年3月にサービス終了しているため、LINE公式アカウント(Messaging API)を使う方式で実装しています。
+
+1. [LINE Developers Console](https://developers.line.biz/console/) にログイン(LINEアカウントでログイン可)
+2. 「プロバイダー」を新規作成(未作成の場合)→ そのプロバイダー配下に **Messaging APIチャンネル** を新規作成
+3. 作成したチャンネルの「Messaging API設定」タブで **チャンネルアクセストークン(長期)** を発行 → `LINE_CHANNEL_ACCESS_TOKEN` に設定
+4. 同じ画面の「チャンネル基本設定」タブにある **チャンネルシークレット** を `LINE_CHANNEL_SECRET` に設定(webhookの送信元がLINEであることを検証するために使用)
+5. LINEアプリで、作成したチャンネルの公式アカウントを友だち追加し、通知したいグループに招待する
+6. グループIDを取得する: 「Messaging API設定」タブの「Webhook URL」に `https://(本番URL)/api/line/webhook` を設定して「検証」→有効化。その後、対象グループ内でボットにメッセージを送信(または適当な発言)すると、Vercelの当該デプロイのFunction Logsに `[LINE webhook] sourceType=group groupId=Cxxxxxxxx...` という行が出力されるので、その `groupId` の値を `LINE_GROUP_ID` に設定する
+7. 「応答メッセージ」「あいさつメッセージ」はオフにしておくと、ボットが余計な返信をしません(Messaging API設定のチャンネル既定応答から変更可能)
+
+未設定の間は、架電履歴を「受注」で保存しても通知が送信されないだけで、他の機能には影響しません。
 
 **JWT_SECRET**: ログインセッション(HttpOnly Cookie)の署名に使用する秘密鍵。32文字以上のランダムな文字列を設定してください(`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` などで生成可能)。本番用には開発環境と異なる強い値を必ず設定してください。
 

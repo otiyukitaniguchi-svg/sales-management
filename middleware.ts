@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth'
 
-const PUBLIC_API_PATHS = ['/api/auth/login', '/api/auth/logout']
+// /api/line/webhook はLINEサーバーから直接呼ばれるためセッションCookieを持たない。
+// 署名検証(LINE_CHANNEL_SECRET)をルート側で行うためここでは認証を除外する。
+const PUBLIC_API_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/line/webhook']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
