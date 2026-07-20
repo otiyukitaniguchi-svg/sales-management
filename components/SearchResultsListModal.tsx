@@ -61,11 +61,26 @@ function getSortValue(item: ResultItem, key: SortKey): string | number {
   }
 }
 
+function getRowKey(item: ResultItem): string {
+  return `${item.listId}__${item.record.no}`
+}
+
 export default function SearchResultsListModal({ onClose }: SearchResultsListModalProps) {
   const searchResults = useAppStore((state) => state.searchResults)
   const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  // その日架電したものをチェックして色付けする(この一覧限定の一時的な目印、保存はしない)
+  const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set())
+
+  const toggleChecked = (key: string) => {
+    setCheckedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const sortedResults = useMemo(() => {
     const indexed = searchResults.map((item, originalIndex) => ({ item, originalIndex }))
@@ -122,25 +137,40 @@ export default function SearchResultsListModal({ onClose }: SearchResultsListMod
                     {sortKey === col.key && (sortDir === 'asc' ? ' ▲' : ' ▼')}
                   </th>
                 ))}
+                <th className="border border-gray-300 px-3 py-2 text-center text-xs font-bold">架電済</th>
               </tr>
             </thead>
             <tbody>
-              {sortedResults.map(({ item, originalIndex }) => (
-                <tr
-                  key={`${item.listId}-${item.record.no}-${originalIndex}`}
-                  onClick={() => handleSelect(originalIndex)}
-                  className="hover:bg-blue-50 cursor-pointer"
-                >
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm">{item.record.no}</td>
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm">{item.record.latestProgress || ''}</td>
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm font-bold">{item.record.companyName}</td>
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm">{item.record.address}</td>
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm">{item.record.staffName}</td>
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm">{item.record.latestGender || ''}</td>
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm">{getContact(item.record)}</td>
-                  <td className="border border-gray-300 px-3 py-1.5 text-sm">{getRecall(item.record)}</td>
-                </tr>
-              ))}
+              {sortedResults.map(({ item, originalIndex }) => {
+                const rowKey = getRowKey(item)
+                const isChecked = checkedKeys.has(rowKey)
+                const cellClass = `border border-gray-300 px-3 py-1.5 text-sm ${isChecked ? 'bg-green-100' : ''}`
+                return (
+                  <tr
+                    key={`${rowKey}-${originalIndex}`}
+                    onClick={() => handleSelect(originalIndex)}
+                    className="hover:bg-blue-50 cursor-pointer"
+                  >
+                    <td className={cellClass}>{item.record.no}</td>
+                    <td className={cellClass}>{item.record.latestProgress || ''}</td>
+                    <td className={`${cellClass} font-bold`}>{item.record.companyName}</td>
+                    <td className={cellClass}>{item.record.address}</td>
+                    <td className={cellClass}>{item.record.staffName}</td>
+                    <td className={cellClass}>{item.record.latestGender || ''}</td>
+                    <td className={cellClass}>{getContact(item.record)}</td>
+                    <td className={cellClass}>{getRecall(item.record)}</td>
+                    <td className="border border-gray-300 px-3 py-1.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => toggleChecked(rowKey)}
+                        className="w-4 h-4 cursor-pointer"
+                      />
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
