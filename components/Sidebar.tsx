@@ -73,13 +73,13 @@ export default function Sidebar() {
               key={list.slug}
               onClick={() => handleListClick(list.slug)}
               className={`
-                px-4 py-3 text-lg cursor-pointer border-b border-gray-600 whitespace-nowrap
+                px-3 py-2.5 cursor-pointer border-b border-gray-600
                 ${isActive ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
-              <div className="whitespace-nowrap">{list.name}</div>
-              <div className="text-sm text-gray-600 mt-1">{count}件</div>
+              <div className="text-sm leading-snug break-words">{list.name}</div>
+              <div className="text-xs text-gray-600 mt-1">{count}件</div>
             </div>
           )
         })}
@@ -87,14 +87,14 @@ export default function Sidebar() {
       <button
         onClick={() => !isLoading && setShowCreateRecord(true)}
         disabled={isLoading}
-        className="px-4 py-3 text-lg font-bold border-t border-gray-600 bg-yellow-300 hover:bg-yellow-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-2 py-2.5 text-sm font-bold border-t border-gray-600 bg-yellow-300 hover:bg-yellow-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed leading-snug break-words"
       >
-        📝 新規登録
+        📝 新規レコード
       </button>
       <button
         onClick={() => !isLoading && setShowVisitFeed(true)}
         disabled={isLoading}
-        className="px-4 py-3 text-lg font-bold border-t border-gray-600 bg-green-300 hover:bg-green-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-2 py-2.5 text-sm font-bold border-t border-gray-600 bg-green-300 hover:bg-green-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed leading-snug break-words"
       >
         📢 訪問結果
       </button>
@@ -103,7 +103,7 @@ export default function Sidebar() {
         <button
           onClick={() => !isLoading && setShowAdminDashboard(true)}
           disabled={isLoading}
-          className="px-4 py-3 text-lg font-bold border-t border-gray-600 bg-blue-300 hover:bg-blue-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-2 py-2.5 text-sm font-bold border-t border-gray-600 bg-blue-300 hover:bg-blue-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed leading-snug break-words"
         >
           管理者
         </button>
