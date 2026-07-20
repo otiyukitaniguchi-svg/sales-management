@@ -30,6 +30,8 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const isReportMode = useAppStore((state) => state.isReportMode)
   const isLoading = useAppStore((state) => state.isLoading)
   const isCallActive = useAppStore((state) => state.isLoading)
+  const isSidebarVisible = useAppStore((state) => state.isSidebarVisible)
+  const toggleSidebar = useAppStore((state) => state.toggleSidebar)
   const [jumpNo, setJumpNo] = useState('')
   const [showListView, setShowListView] = useState(false)
 
@@ -155,6 +157,14 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
 
   return (
     <div className="bg-gradient-to-b from-gray-100 to-gray-300 border-b border-gray-600 px-3 py-2 flex items-center gap-2">
+      <button
+        onClick={toggleSidebar}
+        title={isSidebarVisible ? 'サイドバーを隠す' : 'サイドバーを表示'}
+        className="w-9 h-9 border border-gray-600 bg-gradient-to-b from-white to-gray-200 cursor-pointer flex items-center justify-center text-lg rounded hover:from-gray-200 hover:to-gray-300"
+      >
+        {isSidebarVisible ? '◀☰' : '☰▶'}
+      </button>
+
       {!isReportMode ? (
         <>
           <button

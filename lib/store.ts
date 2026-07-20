@@ -46,6 +46,10 @@ interface AppState {
   isReportMode: boolean
   setIsReportMode: (isReport: boolean) => void
 
+  // Sidebar visibility (toggle to reclaim screen space)
+  isSidebarVisible: boolean
+  toggleSidebar: () => void
+
   // Current call (for call history input)
   currentCall: FrontendCallHistoryEntry
   setCurrentCall: (call: FrontendCallHistoryEntry) => void
@@ -106,6 +110,10 @@ export const useAppStore = create<AppState>((set) => ({
   // Report
   isReportMode: false,
   setIsReportMode: (isReport) => set({ isReportMode: isReport }),
+
+  // Sidebar visibility
+  isSidebarVisible: true,
+  toggleSidebar: () => set((state) => ({ isSidebarVisible: !state.isSidebarVisible })),
 
   // Current call
   currentCall: initialCallState,

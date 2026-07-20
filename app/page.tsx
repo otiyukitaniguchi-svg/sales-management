@@ -21,6 +21,7 @@ export default function Home() {
   const listData = useAppStore((state) => state.listData)
   const setListData = useAppStore((state) => state.setListData)
   const isReportMode = useAppStore((state) => state.isReportMode)
+  const isSidebarVisible = useAppStore((state) => state.isSidebarVisible)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
 
@@ -119,7 +120,7 @@ export default function Home() {
       <NavigationBar onImport={() => setIsImportModalOpen(true)} onSearch={() => setIsSearchModalOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        {isSidebarVisible && <Sidebar />}
         <div className="flex-1 overflow-auto bg-white">
           {isReportMode ? (
             <ReportView />
