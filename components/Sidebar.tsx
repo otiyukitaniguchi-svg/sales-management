@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import AdminDashboard from './AdminDashboard'
 import VisitResultFeed from './VisitResultFeed'
+import CreateRecordModal from './CreateRecordModal'
 
 export default function Sidebar() {
   const currentList = useAppStore((state) => state.currentList)
@@ -13,6 +14,7 @@ export default function Sidebar() {
   const user = useAppStore((state) => state.user)
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
   const [showVisitFeed, setShowVisitFeed] = useState(false)
+  const [showCreateRecord, setShowCreateRecord] = useState(false)
 
   const isAdmin = user?.role === 'admin'
 
@@ -83,12 +85,20 @@ export default function Sidebar() {
         })}
       </div>
       <button
+        onClick={() => !isLoading && setShowCreateRecord(true)}
+        disabled={isLoading}
+        className="px-4 py-3 text-lg font-bold border-t border-gray-600 bg-yellow-300 hover:bg-yellow-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        📝 新規登録
+      </button>
+      <button
         onClick={() => !isLoading && setShowVisitFeed(true)}
         disabled={isLoading}
         className="px-4 py-3 text-lg font-bold border-t border-gray-600 bg-green-300 hover:bg-green-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         📢 訪問結果
       </button>
+      {showCreateRecord && <CreateRecordModal onClose={() => setShowCreateRecord(false)} />}
       {isAdmin && (
         <button
           onClick={() => !isLoading && setShowAdminDashboard(true)}

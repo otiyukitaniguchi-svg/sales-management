@@ -20,6 +20,18 @@ export class ApiClient {
   }
 
   /**
+   * Create a new customer record in the given list (No. is auto-assigned server-side)
+   */
+  static async createRecord(listSlug: string, fields: Partial<FrontendCustomerRecord>): Promise<ApiResponse> {
+    const response = await apiFetch(`${API_BASE}/records/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listSlug, fields }),
+    })
+    return response.json()
+  }
+
+  /**
    * Fetch call history for a specific record
    */
   static async getCallHistory(listId: string, no: string): Promise<ApiResponse> {
