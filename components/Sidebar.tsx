@@ -15,6 +15,8 @@ export default function Sidebar() {
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
   const [showVisitFeed, setShowVisitFeed] = useState(false)
   const [showCreateRecord, setShowCreateRecord] = useState(false)
+  // 架電リストは最初は畳んでおき、クリックすると個別のリストが一覧表示される
+  const [isListsExpanded, setIsListsExpanded] = useState(false)
 
   const isAdmin = user?.role === 'admin'
 
@@ -64,25 +66,33 @@ export default function Sidebar() {
   return (
     <div className="w-[160px] bg-[#d0d0d0] border-r border-gray-600 overflow-y-auto flex flex-col">
       <div className="flex-1 overflow-y-auto">
-        {lists.map((list) => {
-          const isActive = currentList === list.slug
-          const count = listData[list.slug]?.length || 0
+        <div
+          onClick={() => setIsListsExpanded((v) => !v)}
+          className="px-3 py-2.5 cursor-pointer border-b border-gray-600 bg-[#c0c0c0] hover:bg-[#b5b5b5] flex items-center justify-between"
+        >
+          <span className="text-sm font-bold leading-snug break-words">📋 架電リスト</span>
+          <span className="text-xs">{isListsExpanded ? '▲' : '▼'}</span>
+        </div>
+        {isListsExpanded &&
+          lists.map((list) => {
+            const isActive = currentList === list.slug
+            const count = listData[list.slug]?.length || 0
 
-          return (
-            <div
-              key={list.slug}
-              onClick={() => handleListClick(list.slug)}
-              className={`
-                px-3 py-2.5 cursor-pointer border-b border-gray-600
-                ${isActive ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
-                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-            >
-              <div className="text-sm leading-snug break-words">{list.name}</div>
-              <div className="text-xs text-gray-600 mt-1">{count}件</div>
-            </div>
-          )
-        })}
+            return (
+              <div
+                key={list.slug}
+                onClick={() => handleListClick(list.slug)}
+                className={`
+                  px-3 py-2.5 pl-5 cursor-pointer border-b border-gray-600
+                  ${isActive ? 'bg-white font-bold' : 'bg-[#e0e0e0] hover:bg-gray-300'}
+                  ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+              >
+                <div className="text-sm leading-snug break-words">{list.name}</div>
+                <div className="text-xs text-gray-600 mt-1">{count}件</div>
+              </div>
+            )
+          })}
       </div>
       <button
         onClick={() => !isLoading && setShowCreateRecord(true)}
