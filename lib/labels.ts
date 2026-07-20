@@ -66,6 +66,10 @@ export const PROGRESS_OPTIONS = [
   { value: '前回NG', label: '前回NG' },
   { value: '前回採択', label: '前回採択' },
   { value: '閉業', label: '閉業' },
+  { value: '成約', label: '成約' },
+  { value: '検討', label: '検討' },
+  { value: 'NG', label: 'NG' },
+  { value: '返待ち', label: '返待ち' },
 ] as const
 
 export const GENDER_OPTIONS = [
