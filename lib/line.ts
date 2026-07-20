@@ -17,15 +17,15 @@ export async function sendOrderToLine(
     return false
   }
 
+  const contact = record.fixedNo || record.otherContact || '-'
+
   const text =
-    `🎉 受注通知\n` +
-    `企業名: ${record.companyName || '-'}\n` +
-    `No: ${record.no}\n` +
-    `担当者: ${callEntry.operator || '-'}\n` +
-    `応対者: ${callEntry.responder || '-'}\n` +
-    `日時: ${callEntry.date || '-'} ${callEntry.startTime || ''}\n` +
-    `備考: ${callEntry.note || '-'}\n` +
-    `\n営業管理システムより自動送信`
+    `《 AP受注通知》\n` +
+    `No: ${record.no}/企業名: ${record.companyName || '-'}\n` +
+    `架電担当者: ${callEntry.operator || '-'}\n` +
+    `顧客対応者: ${callEntry.responder || '-'}\n` +
+    `連絡先：${contact}\n` +
+    `備考: ${callEntry.note || '-'}`
 
   try {
     const response = await fetch(LINE_PUSH_URL, {
