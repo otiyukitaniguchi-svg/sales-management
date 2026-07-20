@@ -6,6 +6,7 @@ import { ApiClient } from '@/lib/api-client'
 import { FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'
 import { PROGRESS_OPTIONS, GENDER_OPTIONS } from '@/lib/labels'
 import CalendarEventModal from './CalendarEventModal'
+import IndustryPickerModal from './IndustryPickerModal'
 
 export default function CustomerDetail() {
   const currentList = useAppStore((state) => state.currentList)
@@ -48,6 +49,7 @@ export default function CustomerDetail() {
   // 再コール日時が未設定のレコードだけを検索する(日付/時間を空欄にしただけでは
   // 「条件なし」と区別できないため、明示的なチェックボックスで指定する)
   const [searchRecallUnset, setSearchRecallUnset] = useState(false)
+  const [showIndustryPicker, setShowIndustryPicker] = useState(false)
 
   // 削除モード用の状態
   const [isDeleteMode, setIsDeleteMode] = useState(false)
@@ -586,7 +588,6 @@ export default function CustomerDetail() {
                 { label: '《固定番号》', field: 'fixedNo' },
                 { label: '《その他連絡先》', field: 'otherContact' },
                 { label: '《メールアドレス》', field: 'email' },
-                { label: '《業種》', field: 'industry' },
               ].map((item) => (
                 <div key={item.field}>
                   <label className="block text-xs text-gray-900 font-semibold mb-1">{item.label}</label>
@@ -599,7 +600,41 @@ export default function CustomerDetail() {
                   />
                 </div>
               ))}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs text-gray-900 font-semibold">《業種》</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowIndustryPicker(true)}
+                    className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-semibold"
+                  >
+                    📋 業種一覧
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={isSearchMode ? (searchRecord.industry || '') : (editedRecord?.industry || '')}
+                  onChange={(e) => isSearchMode ? setSearchRecord({ ...searchRecord, industry: e.target.value }) : handleFieldChange('industry', e.target.value)}
+                  onClick={() => setShowIndustryPicker(true)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="クリックで一覧から選択、または直接入力"
+                  className="w-full border border-gray-300 px-3 py-2 text-base h-10 tracking-wider cursor-pointer"
+                />
+              </div>
             </div>
+            {showIndustryPicker && (
+              <IndustryPickerModal
+                onSelect={(name) => {
+                  if (isSearchMode) {
+                    setSearchRecord({ ...searchRecord, industry: name })
+                  } else {
+                    handleFieldChange('industry', name)
+                  }
+                  setShowIndustryPicker(false)
+                }}
+                onClose={() => setShowIndustryPicker(false)}
+              />
+            )}
           </div>
         </div>
 

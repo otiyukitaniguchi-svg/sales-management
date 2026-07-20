@@ -6,12 +6,13 @@ import AccountManagement from './AccountManagement'
 import ListManagement from './ListManagement'
 import DuplicateMerge from './DuplicateMerge'
 import CompanyLookup from './CompanyLookup'
+import IndustryManagement from './IndustryManagement'
 
 interface AdminDashboardProps {
   onClose: () => void
 }
 
-type AdminMode = 'menu' | 'report' | 'accounts' | 'lists' | 'duplicates' | 'company-lookup'
+type AdminMode = 'menu' | 'report' | 'accounts' | 'lists' | 'duplicates' | 'company-lookup' | 'industries'
 
 const SCREENS: Record<Exclude<AdminMode, 'menu'>, { title: string; render: () => JSX.Element }> = {
   report: { title: '効果報告レポート', render: () => <ReportView /> },
@@ -19,6 +20,7 @@ const SCREENS: Record<Exclude<AdminMode, 'menu'>, { title: string; render: () =>
   lists: { title: 'リスト管理(新規作成・インポート)', render: () => <ListManagement /> },
   duplicates: { title: '重複データ統合', render: () => <DuplicateMerge /> },
   'company-lookup': { title: '企業情報自動更新', render: () => <CompanyLookup /> },
+  industries: { title: '業種名一覧', render: () => <IndustryManagement /> },
 }
 
 export default function AdminDashboard({ onClose }: AdminDashboardProps) {
@@ -61,6 +63,12 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
               className="px-6 py-4 bg-teal-500 text-white rounded-lg font-bold text-lg hover:bg-teal-600 transition"
             >
               🏢 企業情報自動更新
+            </button>
+            <button
+              onClick={() => setAdminMode('industries')}
+              className="px-6 py-4 bg-pink-500 text-white rounded-lg font-bold text-lg hover:bg-pink-600 transition"
+            >
+              🏭 業種名一覧
             </button>
           </div>
 
