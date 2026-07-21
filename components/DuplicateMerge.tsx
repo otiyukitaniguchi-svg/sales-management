@@ -33,6 +33,7 @@ export default function DuplicateMerge() {
   const [isMergingAll, setIsMergingAll] = useState(false)
   const [mergeAllProgress, setMergeAllProgress] = useState<{ done: number; total: number } | null>(null)
   const [primarySelection, setPrimarySelection] = useState<Record<string, string>>({})
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set())
 
   const load = async () => {
     setIsLoading(true)
@@ -44,6 +45,7 @@ export default function DuplicateMerge() {
         const defaults: Record<string, string> = {}
         for (const g of result.data as DuplicateGroup[]) defaults[g.companyName] = g.suggestedPrimaryId
         setPrimarySelection(defaults)
+        setSelectedGroups(new Set((result.data as DuplicateGroup[]).map((g) => g.companyName)))
       } else {
         setError(result.message || '検出に失敗しました')
       }
@@ -59,6 +61,19 @@ export default function DuplicateMerge() {
   }, [])
 
   const primaryIdOf = (group: DuplicateGroup) => primarySelection[group.companyName] || group.suggestedPrimaryId
+
+  const toggleGroupSelected = (companyName: string) => {
+    setSelectedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(companyName)) next.delete(companyName)
+      else next.add(companyName)
+      return next
+    })
+  }
+
+  const toggleSelectAllGroups = () => {
+    setSelectedGroups((prev) => (prev.size === groups.length ? new Set() : new Set(groups.map((g) => g.companyName))))
+  }
 
   const mergedPreviewFor = (group: DuplicateGroup) => {
     const primaryId = primaryIdOf(group)
@@ -112,48 +127,59 @@ export default function DuplicateMerge() {
       setMessage(`✓ 「${group.companyName}」を統合しました${historyNote}`)
       setTimeout(() => setMessage(''), 4000)
       setGroups((prev) => prev.filter((g) => g.companyName !== group.companyName))
+      setSelectedGroups((prev) => {
+        const next = new Set(prev)
+        next.delete(group.companyName)
+        return next
+      })
     } else {
       setError(result.message || '統合に失敗しました')
     }
   }
 
   const handleMergeAll = async () => {
-    if (groups.length === 0) return
-    const totalRecords = groups.reduce((sum, g) => sum + g.records.length, 0)
-    const totalHistory = groups.reduce((sum, g) => sum + g.totalCallHistoryCount, 0)
+    const targetGroups = groups.filter((g) => selectedGroups.has(g.companyName))
+    if (targetGroups.length === 0) return
+    const totalRecords = targetGroups.reduce((sum, g) => sum + g.records.length, 0)
+    const totalHistory = targetGroups.reduce((sum, g) => sum + g.totalCallHistoryCount, 0)
     if (!confirm(
-      `検出された${groups.length}件の重複グループ(合計${totalRecords}レコード、架電履歴計${totalHistory}件)を` +
-      `すべて統合します。よろしいですか？`
+      `選択された${targetGroups.length}件の重複グループ(合計${totalRecords}レコード、架電履歴計${totalHistory}件)を` +
+      `統合します。よろしいですか？`
     )) return
 
     setIsMergingAll(true)
     setError('')
     setMessage('')
-    setMergeAllProgress({ done: 0, total: groups.length })
+    setMergeAllProgress({ done: 0, total: targetGroups.length })
 
     let successCount = 0
     let failCount = 0
     let historyTotal = 0
     const failedNames: string[] = []
-    const remaining: DuplicateGroup[] = []
+    const mergedNames = new Set<string>()
 
-    for (let i = 0; i < groups.length; i++) {
-      const group = groups[i]
+    for (let i = 0; i < targetGroups.length; i++) {
+      const group = targetGroups[i]
       const primaryId = primaryIdOf(group)
       const duplicateIds = group.records.map((r) => r.id).filter((id) => id !== primaryId)
       const result: any = await ApiClient.mergeDuplicates(primaryId, duplicateIds)
       if (result.success) {
         successCount++
         historyTotal += result.reassignedHistoryCount || 0
+        mergedNames.add(group.companyName)
       } else {
         failCount++
         failedNames.push(group.companyName)
-        remaining.push(group)
       }
-      setMergeAllProgress({ done: i + 1, total: groups.length })
+      setMergeAllProgress({ done: i + 1, total: targetGroups.length })
     }
 
-    setGroups(remaining)
+    setGroups((prev) => prev.filter((g) => !mergedNames.has(g.companyName)))
+    setSelectedGroups((prev) => {
+      const next = new Set(prev)
+      mergedNames.forEach((name) => next.delete(name))
+      return next
+    })
     setIsMergingAll(false)
     setMergeAllProgress(null)
 
@@ -170,7 +196,18 @@ export default function DuplicateMerge() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-gray-600">同一の企業名で複数レコードが存在するものを検出しています(自動では統合されません)</p>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          {groups.length > 0 && (
+            <label className="flex items-center gap-1 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={groups.length > 0 && selectedGroups.size === groups.length}
+                onChange={toggleSelectAllGroups}
+                disabled={isMergingAll}
+              />
+              全選択
+            </label>
+          )}
           <button
             onClick={load}
             disabled={isMergingAll}
@@ -181,12 +218,12 @@ export default function DuplicateMerge() {
           {groups.length > 0 && (
             <button
               onClick={handleMergeAll}
-              disabled={isMergingAll || mergingKey !== null}
+              disabled={isMergingAll || mergingKey !== null || selectedGroups.size === 0}
               className="px-4 py-2 bg-red-600 text-white rounded font-bold hover:bg-red-700 disabled:opacity-50"
             >
               {isMergingAll
-                ? `統合中... (${mergeAllProgress?.done ?? 0}/${mergeAllProgress?.total ?? groups.length})`
-                : `全て統合を実行(${groups.length}件)`}
+                ? `統合中... (${mergeAllProgress?.done ?? 0}/${mergeAllProgress?.total ?? selectedGroups.size})`
+                : `選択したグループを一括統合(${selectedGroups.size}件)`}
             </button>
           )}
         </div>
@@ -203,7 +240,13 @@ export default function DuplicateMerge() {
         groups.map((group) => (
           <div key={group.companyName} className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedGroups.has(group.companyName)}
+                  onChange={() => toggleGroupSelected(group.companyName)}
+                  disabled={isMergingAll}
+                />
                 {group.companyName}({group.records.length}件)
                 {group.totalCallHistoryCount > 0 && (
                   <span className="ml-2 text-sm font-normal text-gray-600">
