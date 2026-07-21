@@ -291,6 +291,25 @@ export class ApiClient {
   }
 
   /**
+   * Search records within a single list by No/company name, for the admin
+   * record-deletion UI (admin only)
+   */
+  static async searchListRecords(listId: string, q: string): Promise<ApiResponse & { records?: any[] }> {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/records?q=${encodeURIComponent(q)}`)
+    return response.json()
+  }
+
+  /**
+   * Delete a single customer record (and its call history) from a list (admin only)
+   */
+  static async deleteRecord(listId: string, no: string): Promise<ApiResponse & { deletedHistoryCount?: number }> {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/records/${encodeURIComponent(no)}`, {
+      method: 'DELETE',
+    })
+    return response.json()
+  }
+
+  /**
    * Detect duplicate customers across all lists (admin only, read-only)
    */
   static async getDuplicates(): Promise<ApiResponse<any[]>> {

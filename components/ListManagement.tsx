@@ -20,6 +20,12 @@ export default function ListManagement() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
 
+  const [recordMgmtId, setRecordMgmtId] = useState<string | null>(null)
+  const [recordQuery, setRecordQuery] = useState('')
+  const [recordResults, setRecordResults] = useState<any[]>([])
+  const [recordSearching, setRecordSearching] = useState(false)
+  const [recordError, setRecordError] = useState('')
+
   const loadLists = async () => {
     setIsLoading(true)
     try {
@@ -81,6 +87,57 @@ export default function ListManagement() {
       loadLists()
     } else {
       setError(result.message || '削除に失敗しました')
+    }
+  }
+
+  const toggleRecordMgmt = (list: ListDefinition) => {
+    setRecordMgmtId((current) => (current === list.id ? null : list.id))
+    setRecordQuery('')
+    setRecordResults([])
+    setRecordError('')
+  }
+
+  const handleRecordSearch = async (list: ListDefinition) => {
+    setRecordSearching(true)
+    setRecordError('')
+    try {
+      const result = await ApiClient.searchListRecords(list.slug, recordQuery.trim())
+      if (result.success) {
+        setRecordResults(result.records || [])
+        if ((result.records || []).length === 0) {
+          setRecordError('該当するレコードが見つかりません')
+        }
+      } else {
+        setRecordResults([])
+        setRecordError(result.message || '検索に失敗しました')
+      }
+    } catch (e: any) {
+      setRecordResults([])
+      setRecordError(e.message || '検索中にエラーが発生しました')
+    } finally {
+      setRecordSearching(false)
+    }
+  }
+
+  const handleDeleteRecord = async (list: ListDefinition, record: any) => {
+    if (
+      !confirm(
+        `No.${record.no}「${record.companyName || '(企業名未入力)'}」を削除します。紐づく架電履歴も含めて完全に削除され、元に戻せません。よろしいですか？`
+      )
+    ) {
+      return
+    }
+    try {
+      const result = await ApiClient.deleteRecord(list.slug, record.no)
+      if (result.success) {
+        setRecordResults((prev) => prev.filter((r) => r.no !== record.no))
+        setMessage(`✓ No.${record.no} を削除しました(架電履歴${result.deletedHistoryCount ?? 0}件を含む)`)
+        setTimeout(() => setMessage(''), 4000)
+      } else {
+        setRecordError(result.message || '削除に失敗しました')
+      }
+    } catch (e: any) {
+      setRecordError(e.message || '削除中にエラーが発生しました')
     }
   }
 
@@ -238,6 +295,12 @@ export default function ListManagement() {
                             インポート
                           </button>
                           <button
+                            onClick={() => toggleRecordMgmt(list)}
+                            className="px-3 py-1 bg-orange-500 text-white rounded text-sm font-bold hover:bg-orange-600"
+                          >
+                            🗑 レコード削除
+                          </button>
+                          <button
                             onClick={() => handleDelete(list)}
                             className="px-3 py-1 bg-red-500 text-white rounded text-sm font-bold hover:bg-red-600"
                           >
@@ -246,6 +309,61 @@ export default function ListManagement() {
                         </>
                       )}
                     </div>
+                    {recordMgmtId === list.id && (
+                      <div className="border-t border-gray-200 pt-2 w-full">
+                        <div className="flex gap-2 items-center justify-center">
+                          <input
+                            type="text"
+                            value={recordQuery}
+                            onChange={(e) => setRecordQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleRecordSearch(list)
+                            }}
+                            placeholder="Noまたは企業名で検索"
+                            className="border border-gray-300 px-2 py-1 rounded text-sm w-56"
+                          />
+                          <button
+                            onClick={() => handleRecordSearch(list)}
+                            disabled={recordSearching}
+                            className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-bold hover:bg-blue-600 disabled:opacity-50"
+                          >
+                            {recordSearching ? '検索中...' : '検索'}
+                          </button>
+                        </div>
+                        {recordError && <p className="text-xs text-red-600 mt-1">{recordError}</p>}
+                        {recordResults.length > 0 && (
+                          <table className="w-full border-collapse border border-gray-200 mt-2 text-sm">
+                            <thead>
+                              <tr className="bg-orange-100">
+                                <th className="border border-gray-200 px-2 py-1">No</th>
+                                <th className="border border-gray-200 px-2 py-1">企業名</th>
+                                <th className="border border-gray-200 px-2 py-1">住所</th>
+                                <th className="border border-gray-200 px-2 py-1">担当者</th>
+                                <th className="border border-gray-200 px-2 py-1">操作</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {recordResults.map((r) => (
+                                <tr key={r.no} className="bg-white">
+                                  <td className="border border-gray-200 px-2 py-1">{r.no}</td>
+                                  <td className="border border-gray-200 px-2 py-1 text-left">{r.companyName || '-'}</td>
+                                  <td className="border border-gray-200 px-2 py-1 text-left">{r.address || '-'}</td>
+                                  <td className="border border-gray-200 px-2 py-1">{r.staffName || r.repName || '-'}</td>
+                                  <td className="border border-gray-200 px-2 py-1">
+                                    <button
+                                      onClick={() => handleDeleteRecord(list, r)}
+                                      className="px-2 py-1 bg-red-500 text-white rounded text-xs font-bold hover:bg-red-600"
+                                    >
+                                      削除
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    )}
                     {importTargetId === list.id && (
                       <div className="border-t border-gray-200 pt-2 w-full text-center">
                         <input
@@ -253,7 +371,7 @@ export default function ListManagement() {
                           accept=".csv,.tsv,.txt"
                           onChange={(e) => {
                             const file = e.target.files?.[0]
-                            if (file) handleImportFile(list.id, file)
+                            if (file) handleImportFile(list.slug, file)
                           }}
                           className="text-sm"
                         />
