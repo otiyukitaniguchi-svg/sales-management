@@ -59,6 +59,19 @@ export async function POST(request: NextRequest) {
       mergedFields[field] = value
     }
 
+    // 統合元に主レコードと異なる固定番号が残っている場合、その他連絡先が空欄なら
+    // そこへ残しておく(片方の番号を統合で消してしまわないようにするため)
+    if (!mergedFields.other_contact || String(mergedFields.other_contact).trim() === '') {
+      const primaryFixedNo = String(mergedFields.fixed_no || '').trim()
+      for (const dup of duplicates) {
+        const dupFixedNo = String(dup.fixed_no || '').trim()
+        if (dupFixedNo && dupFixedNo !== primaryFixedNo) {
+          mergedFields.other_contact = dupFixedNo
+          break
+        }
+      }
+    }
+
     const { error: updateError } = await supabaseAdmin
       .from(TABLES.CUSTOMERS)
       .update(mergedFields)

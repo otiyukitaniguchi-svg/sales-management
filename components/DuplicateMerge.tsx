@@ -77,6 +77,18 @@ export default function DuplicateMerge() {
       }
       preview[field] = value
     }
+
+    if (!preview.other_contact || String(preview.other_contact).trim() === '') {
+      const primaryFixedNo = String(preview.fixed_no || '').trim()
+      for (const o of others) {
+        const otherFixedNo = String(o.fixed_no || '').trim()
+        if (otherFixedNo && otherFixedNo !== primaryFixedNo) {
+          preview.other_contact = otherFixedNo
+          break
+        }
+      }
+    }
+
     return preview
   }
 
