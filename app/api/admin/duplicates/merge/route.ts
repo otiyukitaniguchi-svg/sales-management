@@ -59,16 +59,21 @@ export async function POST(request: NextRequest) {
       mergedFields[field] = value
     }
 
-    // 統合元に主レコードと異なる固定番号が残っている場合、その他連絡先が空欄なら
-    // そこへ残しておく(片方の番号を統合で消してしまわないようにするため)
+    // 統合元(サブ)に主レコード(メイン)と異なる番号が残っている場合、その他連絡先が
+    // 空欄ならそこへ残しておく(固定・携帯を問わず、片方の番号を統合で消してしまわない
+    // ようにするため。サブ側は固定番号欄・その他連絡先欄のどちらに入っていても拾う)
     if (!mergedFields.other_contact || String(mergedFields.other_contact).trim() === '') {
       const primaryFixedNo = String(mergedFields.fixed_no || '').trim()
+      const candidateNumbers: string[] = []
       for (const dup of duplicates) {
         const dupFixedNo = String(dup.fixed_no || '').trim()
-        if (dupFixedNo && dupFixedNo !== primaryFixedNo) {
-          mergedFields.other_contact = dupFixedNo
-          break
-        }
+        const dupOtherContact = String(dup.other_contact || '').trim()
+        if (dupFixedNo) candidateNumbers.push(dupFixedNo)
+        if (dupOtherContact) candidateNumbers.push(dupOtherContact)
+      }
+      const secondNumber = candidateNumbers.find((n) => n !== primaryFixedNo)
+      if (secondNumber) {
+        mergedFields.other_contact = secondNumber
       }
     }
 

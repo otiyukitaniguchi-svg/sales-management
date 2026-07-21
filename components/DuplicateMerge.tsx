@@ -80,12 +80,16 @@ export default function DuplicateMerge() {
 
     if (!preview.other_contact || String(preview.other_contact).trim() === '') {
       const primaryFixedNo = String(preview.fixed_no || '').trim()
+      const candidateNumbers: string[] = []
       for (const o of others) {
-        const otherFixedNo = String(o.fixed_no || '').trim()
-        if (otherFixedNo && otherFixedNo !== primaryFixedNo) {
-          preview.other_contact = otherFixedNo
-          break
-        }
+        const oFixedNo = String(o.fixed_no || '').trim()
+        const oOtherContact = String(o.other_contact || '').trim()
+        if (oFixedNo) candidateNumbers.push(oFixedNo)
+        if (oOtherContact) candidateNumbers.push(oOtherContact)
+      }
+      const secondNumber = candidateNumbers.find((n) => n !== primaryFixedNo)
+      if (secondNumber) {
+        preview.other_contact = secondNumber
       }
     }
 
