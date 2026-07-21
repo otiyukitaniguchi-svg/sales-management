@@ -62,6 +62,23 @@ export function normalizeAddress(input: string | null | undefined): string {
   return s
 }
 
+// 全角の英数字・記号(Unicode "Fullwidth Forms"、U+FF01-FF5E)を半角に変換する。
+// この範囲はラテン文字・数字・記号のみでカタカナは含まれないため、
+// カナ(ひらがな・カタカナ)はこの変換では一切変化しない(全角のまま保持される)
+function toHalfWidthAlnumSymbols(s: string): string {
+  return s.replace(/[！-～]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+}
+
+/**
+ * 企業名を正規化する。
+ * ・空白(前後・間を問わずすべて、全角スペースも含む)を削除する
+ * ・全角の英数字・記号のみ半角に変換する(漢字・ひらがな・カタカナは全角のまま)
+ */
+export function normalizeCompanyName(input: string | null | undefined): string {
+  if (!input) return input || ''
+  return toHalfWidthAlnumSymbols(input).replace(/\s+/g, '')
+}
+
 /**
  * 電話番号(固定番号)を正規化する。
  * ・先頭の0が欠落している場合に0を補う(9桁を固定電話10桁に、10桁を携帯番号等11桁に)

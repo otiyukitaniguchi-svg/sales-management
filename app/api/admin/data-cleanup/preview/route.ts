@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
-import { normalizeAddress, normalizePhone } from '@/lib/dataCleanup'
+import { normalizeAddress, normalizePhone, normalizeCompanyName } from '@/lib/dataCleanup'
 import type { NextRequest } from 'next/server'
 
 // 全顧客レコードを走査し、住所(丁目/番地/号の表記ゆれ)と固定番号(先頭0欠落・ハイフン
@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const pageSize = 1000
     const addressChanges: any[] = []
     const phoneChanges: any[] = []
+    const companyNameChanges: any[] = []
     let scannedCount = 0
 
     while (true) {
@@ -52,13 +53,25 @@ export async function GET(request: NextRequest) {
             newValue: newPhone,
           })
         }
+
+        const newCompanyName = normalizeCompanyName(row.company_name)
+        if (row.company_name && newCompanyName !== row.company_name) {
+          companyNameChanges.push({
+            id: row.id,
+            listSlug: row.list_slug,
+            no: row.no,
+            companyName: row.company_name || '',
+            oldValue: row.company_name,
+            newValue: newCompanyName,
+          })
+        }
       }
 
       if (data.length < pageSize) break
       from += pageSize
     }
 
-    return NextResponse.json({ success: true, scannedCount, addressChanges, phoneChanges })
+    return NextResponse.json({ success: true, scannedCount, addressChanges, phoneChanges, companyNameChanges })
   } catch (error: any) {
     console.error('Error in data-cleanup/preview:', error)
     return NextResponse.json(

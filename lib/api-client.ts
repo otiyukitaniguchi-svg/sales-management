@@ -310,18 +310,20 @@ export class ApiClient {
   }
 
   /**
-   * Preview address/phone-number normalization candidates across all customers (admin only, read-only)
+   * Preview address/phone-number/company-name normalization candidates across all customers (admin only, read-only)
    */
-  static async previewDataCleanup(): Promise<ApiResponse & { scannedCount?: number; addressChanges?: any[]; phoneChanges?: any[] }> {
+  static async previewDataCleanup(): Promise<
+    ApiResponse & { scannedCount?: number; addressChanges?: any[]; phoneChanges?: any[]; companyNameChanges?: any[] }
+  > {
     const response = await apiFetch(`${API_BASE}/admin/data-cleanup/preview`)
     return response.json()
   }
 
   /**
-   * Apply selected address/phone-number normalization changes (admin only)
+   * Apply selected address/phone-number/company-name normalization changes (admin only)
    */
   static async applyDataCleanup(
-    items: Array<{ id: string; field: 'address' | 'fixed_no' }>
+    items: Array<{ id: string; field: 'address' | 'fixed_no' | 'company_name' }>
   ): Promise<ApiResponse & { updatedCount?: number; unchangedCount?: number; failedCount?: number }> {
     const response = await apiFetch(`${API_BASE}/admin/data-cleanup/apply`, {
       method: 'POST',

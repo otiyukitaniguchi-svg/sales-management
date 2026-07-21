@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ApiClient } from '@/lib/api-client'
 import { useAppStore } from '@/lib/store'
+
+type Field = 'address' | 'fixed_no' | 'company_name'
 
 interface Change {
   id: string
@@ -12,6 +14,12 @@ interface Change {
   oldValue: string
   newValue: string
 }
+
+const SECTIONS: Array<{ field: Field; icon: string; title: string; label: string }> = [
+  { field: 'address', icon: '📍', title: '住所', label: '住所' },
+  { field: 'fixed_no', icon: '📞', title: '電話番号', label: '電話番号' },
+  { field: 'company_name', icon: '🏢', title: '企業名', label: '企業名' },
+]
 
 function ChangeTable({
   changes,
@@ -69,12 +77,17 @@ export default function DataCleanup() {
   const [isLoading, setIsLoading] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [scannedCount, setScannedCount] = useState(0)
-  const [addressChanges, setAddressChanges] = useState<Change[]>([])
-  const [phoneChanges, setPhoneChanges] = useState<Change[]>([])
-  const [selectedAddress, setSelectedAddress] = useState<Set<string>>(new Set())
-  const [selectedPhone, setSelectedPhone] = useState<Set<string>>(new Set())
-  const [isApplyingAddress, setIsApplyingAddress] = useState(false)
-  const [isApplyingPhone, setIsApplyingPhone] = useState(false)
+  const [changesByField, setChangesByField] = useState<Record<Field, Change[]>>({
+    address: [],
+    fixed_no: [],
+    company_name: [],
+  })
+  const [selectedByField, setSelectedByField] = useState<Record<Field, Set<string>>>({
+    address: new Set(),
+    fixed_no: new Set(),
+    company_name: new Set(),
+  })
+  const [applyingField, setApplyingField] = useState<Field | null>(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -85,10 +98,17 @@ export default function DataCleanup() {
       const result = await ApiClient.previewDataCleanup()
       if (result.success) {
         setScannedCount(result.scannedCount || 0)
-        setAddressChanges(result.addressChanges || [])
-        setPhoneChanges(result.phoneChanges || [])
-        setSelectedAddress(new Set((result.addressChanges || []).map((c: Change) => c.id)))
-        setSelectedPhone(new Set((result.phoneChanges || []).map((c: Change) => c.id)))
+        const nextChanges: Record<Field, Change[]> = {
+          address: result.addressChanges || [],
+          fixed_no: result.phoneChanges || [],
+          company_name: result.companyNameChanges || [],
+        }
+        setChangesByField(nextChanges)
+        setSelectedByField({
+          address: new Set(nextChanges.address.map((c) => c.id)),
+          fixed_no: new Set(nextChanges.fixed_no.map((c) => c.id)),
+          company_name: new Set(nextChanges.company_name.map((c) => c.id)),
+        })
         setHasLoaded(true)
       } else {
         setError(result.message || '検出に失敗しました')
@@ -100,69 +120,54 @@ export default function DataCleanup() {
     }
   }
 
-  const toggle = (set: Set<string>, setFn: (s: Set<string>) => void, id: string) => {
-    const next = new Set(set)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setFn(next)
+  const toggle = (field: Field, id: string) => {
+    setSelectedByField((prev) => {
+      const next = new Set(prev[field])
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return { ...prev, [field]: next }
+    })
   }
 
-  const toggleAll = (changes: Change[], set: Set<string>, setFn: (s: Set<string>) => void) => {
-    setFn(set.size === changes.length ? new Set() : new Set(changes.map((c) => c.id)))
+  const toggleAll = (field: Field) => {
+    setSelectedByField((prev) => {
+      const changes = changesByField[field]
+      const isAllSelected = prev[field].size === changes.length
+      return { ...prev, [field]: isAllSelected ? new Set() : new Set(changes.map((c) => c.id)) }
+    })
   }
 
-  const applyAddress = async () => {
-    if (selectedAddress.size === 0) return
-    if (!confirm(`選択した${selectedAddress.size}件の住所を変更します。よろしいですか？`)) return
-    setIsApplyingAddress(true)
+  const apply = async (field: Field, label: string) => {
+    const selected = selectedByField[field]
+    if (selected.size === 0) return
+    if (!confirm(`選択した${selected.size}件の${label}を変更します。よろしいですか？`)) return
+
+    setApplyingField(field)
     setError('')
     try {
-      const items = Array.from(selectedAddress).map((id) => ({ id, field: 'address' as const }))
+      const items = Array.from(selected).map((id) => ({ id, field }))
       const result = await ApiClient.applyDataCleanup(items)
       if (result.success) {
-        setMessage(`✓ 住所を${result.updatedCount ?? 0}件更新しました${result.failedCount ? `(失敗${result.failedCount}件)` : ''}`)
+        setMessage(`✓ ${label}を${result.updatedCount ?? 0}件更新しました${result.failedCount ? `(失敗${result.failedCount}件)` : ''}`)
         setTimeout(() => setMessage(''), 5000)
-        setAddressChanges((prev) => prev.filter((c) => !selectedAddress.has(c.id)))
-        setSelectedAddress(new Set())
+        setChangesByField((prev) => ({ ...prev, [field]: prev[field].filter((c) => !selected.has(c.id)) }))
+        setSelectedByField((prev) => ({ ...prev, [field]: new Set() }))
       } else {
         setError(result.message || '反映に失敗しました')
       }
     } catch (e: any) {
       setError(e.message || '反映中にエラーが発生しました')
     } finally {
-      setIsApplyingAddress(false)
-    }
-  }
-
-  const applyPhone = async () => {
-    if (selectedPhone.size === 0) return
-    if (!confirm(`選択した${selectedPhone.size}件の電話番号を変更します。よろしいですか？`)) return
-    setIsApplyingPhone(true)
-    setError('')
-    try {
-      const items = Array.from(selectedPhone).map((id) => ({ id, field: 'fixed_no' as const }))
-      const result = await ApiClient.applyDataCleanup(items)
-      if (result.success) {
-        setMessage(`✓ 電話番号を${result.updatedCount ?? 0}件更新しました${result.failedCount ? `(失敗${result.failedCount}件)` : ''}`)
-        setTimeout(() => setMessage(''), 5000)
-        setPhoneChanges((prev) => prev.filter((c) => !selectedPhone.has(c.id)))
-        setSelectedPhone(new Set())
-      } else {
-        setError(result.message || '反映に失敗しました')
-      }
-    } catch (e: any) {
-      setError(e.message || '反映中にエラーが発生しました')
-    } finally {
-      setIsApplyingPhone(false)
+      setApplyingField(null)
     }
   }
 
   return (
     <div className="flex flex-col gap-5">
       <div className="p-3 bg-yellow-50 border border-yellow-300 text-yellow-800 rounded text-sm">
-        全レコードを走査し、住所(丁目・番地・号の表記統一)と固定番号(先頭0の補完・ハイフン付与)の
-        修正候補を検出します。自動では反映されません。内容を確認し、チェックを外したい行があれば外してから
-        「反映」ボタンを押してください。
+        全レコードを走査し、企業名(空白の削除・全角英数記号の半角化)・住所(丁目・番地・号の表記統一)・
+        固定番号(先頭0の補完・ハイフン付与)の修正候補を検出します。自動では反映されません。内容を確認し、
+        チェックを外したい行があれば外してから「反映」ボタンを押してください。
       </div>
 
       <div>
@@ -179,65 +184,42 @@ export default function DataCleanup() {
       {message && <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">{message}</div>}
       {error && <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
 
-      {hasLoaded && (
-        <>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold">📍 住所の修正候補({addressChanges.length}件)</h3>
-              {addressChanges.length > 0 && (
-                <button
-                  onClick={applyAddress}
-                  disabled={isApplyingAddress || selectedAddress.size === 0}
-                  className="px-4 py-2 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 disabled:opacity-50"
-                >
-                  {isApplyingAddress ? '反映中...' : `選択した${selectedAddress.size}件を反映`}
-                </button>
+      {hasLoaded &&
+        SECTIONS.map(({ field, icon, title, label }) => {
+          const changes = changesByField[field]
+          const selected = selectedByField[field]
+          return (
+            <div key={field}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold">
+                  {icon} {title}の修正候補({changes.length}件)
+                </h3>
+                {changes.length > 0 && (
+                  <button
+                    onClick={() => apply(field, label)}
+                    disabled={applyingField === field || selected.size === 0}
+                    className="px-4 py-2 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 disabled:opacity-50"
+                  >
+                    {applyingField === field ? '反映中...' : `選択した${selected.size}件を反映`}
+                  </button>
+                )}
+              </div>
+              {changes.length === 0 ? (
+                <p className="text-gray-500 text-sm">修正候補はありません</p>
+              ) : (
+                <div className="max-h-96 overflow-y-auto">
+                  <ChangeTable
+                    changes={changes}
+                    selected={selected}
+                    onToggle={(id) => toggle(field, id)}
+                    onToggleAll={() => toggleAll(field)}
+                    listName={listName}
+                  />
+                </div>
               )}
             </div>
-            {addressChanges.length === 0 ? (
-              <p className="text-gray-500 text-sm">修正候補はありません</p>
-            ) : (
-              <div className="max-h-96 overflow-y-auto">
-                <ChangeTable
-                  changes={addressChanges}
-                  selected={selectedAddress}
-                  onToggle={(id) => toggle(selectedAddress, setSelectedAddress, id)}
-                  onToggleAll={() => toggleAll(addressChanges, selectedAddress, setSelectedAddress)}
-                  listName={listName}
-                />
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-bold">📞 電話番号の修正候補({phoneChanges.length}件)</h3>
-              {phoneChanges.length > 0 && (
-                <button
-                  onClick={applyPhone}
-                  disabled={isApplyingPhone || selectedPhone.size === 0}
-                  className="px-4 py-2 bg-orange-500 text-white rounded font-bold hover:bg-orange-600 disabled:opacity-50"
-                >
-                  {isApplyingPhone ? '反映中...' : `選択した${selectedPhone.size}件を反映`}
-                </button>
-              )}
-            </div>
-            {phoneChanges.length === 0 ? (
-              <p className="text-gray-500 text-sm">修正候補はありません</p>
-            ) : (
-              <div className="max-h-96 overflow-y-auto">
-                <ChangeTable
-                  changes={phoneChanges}
-                  selected={selectedPhone}
-                  onToggle={(id) => toggle(selectedPhone, setSelectedPhone, id)}
-                  onToggleAll={() => toggleAll(phoneChanges, selectedPhone, setSelectedPhone)}
-                  listName={listName}
-                />
-              </div>
-            )}
-          </div>
-        </>
-      )}
+          )
+        })}
     </div>
   )
 }

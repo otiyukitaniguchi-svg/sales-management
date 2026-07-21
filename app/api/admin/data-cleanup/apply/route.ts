@@ -2,11 +2,17 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
-import { normalizeAddress, normalizePhone } from '@/lib/dataCleanup'
+import { normalizeAddress, normalizePhone, normalizeCompanyName } from '@/lib/dataCleanup'
 
-type Field = 'address' | 'fixed_no'
-const ALLOWED_FIELDS: Field[] = ['address', 'fixed_no']
+type Field = 'address' | 'fixed_no' | 'company_name'
+const ALLOWED_FIELDS: Field[] = ['address', 'fixed_no', 'company_name']
 const CHUNK_SIZE = 25
+
+function normalizeByField(field: Field, currentValue: string | null): string {
+  if (field === 'address') return normalizeAddress(currentValue)
+  if (field === 'company_name') return normalizeCompanyName(currentValue)
+  return normalizePhone(currentValue)
+}
 
 // プレビューで選択された{id, field}を受け取り、現在値を再取得したうえで
 // 正規化関数を再計算して反映する(クライアントから送られた値をそのまま書き込むのではなく、
@@ -43,7 +49,7 @@ export async function POST(request: NextRequest) {
           if (fetchError || !row) return 'failed' as const
 
           const currentValue = (row as any)[field] as string | null
-          const newValue = field === 'address' ? normalizeAddress(currentValue) : normalizePhone(currentValue)
+          const newValue = normalizeByField(field, currentValue)
 
           if (!currentValue || newValue === currentValue) return 'unchanged' as const
 
