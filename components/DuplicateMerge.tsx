@@ -32,6 +32,7 @@ export default function DuplicateMerge() {
   const [mergingKey, setMergingKey] = useState<string | null>(null)
   const [isMergingAll, setIsMergingAll] = useState(false)
   const [mergeAllProgress, setMergeAllProgress] = useState<{ done: number; total: number } | null>(null)
+  const [primarySelection, setPrimarySelection] = useState<Record<string, string>>({})
 
   const load = async () => {
     setIsLoading(true)
@@ -40,6 +41,9 @@ export default function DuplicateMerge() {
       const result = await ApiClient.getDuplicates()
       if (result.success && result.data) {
         setGroups(result.data)
+        const defaults: Record<string, string> = {}
+        for (const g of result.data as DuplicateGroup[]) defaults[g.companyName] = g.suggestedPrimaryId
+        setPrimarySelection(defaults)
       } else {
         setError(result.message || '検出に失敗しました')
       }
@@ -54,13 +58,36 @@ export default function DuplicateMerge() {
     load()
   }, [])
 
+  const primaryIdOf = (group: DuplicateGroup) => primarySelection[group.companyName] || group.suggestedPrimaryId
+
+  const mergedPreviewFor = (group: DuplicateGroup) => {
+    const primaryId = primaryIdOf(group)
+    const primary = group.records.find((r) => r.id === primaryId)
+    const others = group.records.filter((r) => r.id !== primaryId)
+    const preview: Record<string, any> = {}
+    for (const [field] of PREVIEW_FIELDS) {
+      let value = primary?.[field]
+      if (!value || String(value).trim() === '') {
+        for (const o of others) {
+          if (o[field] && String(o[field]).trim() !== '') {
+            value = o[field]
+            break
+          }
+        }
+      }
+      preview[field] = value
+    }
+    return preview
+  }
+
   const handleMerge = async (group: DuplicateGroup) => {
-    const duplicateIds = group.records.map((r) => r.id).filter((id) => id !== group.suggestedPrimaryId)
+    const primaryId = primaryIdOf(group)
+    const duplicateIds = group.records.map((r) => r.id).filter((id) => id !== primaryId)
     if (!confirm(`「${group.companyName}」の${group.records.length}件を1件に統合します。よろしいですか？`)) return
 
     setMergingKey(group.companyName)
     setError('')
-    const result: any = await ApiClient.mergeDuplicates(group.suggestedPrimaryId, duplicateIds)
+    const result: any = await ApiClient.mergeDuplicates(primaryId, duplicateIds)
     setMergingKey(null)
     if (result.success) {
       const historyNote = result.reassignedHistoryCount > 0
@@ -96,8 +123,9 @@ export default function DuplicateMerge() {
 
     for (let i = 0; i < groups.length; i++) {
       const group = groups[i]
-      const duplicateIds = group.records.map((r) => r.id).filter((id) => id !== group.suggestedPrimaryId)
-      const result: any = await ApiClient.mergeDuplicates(group.suggestedPrimaryId, duplicateIds)
+      const primaryId = primaryIdOf(group)
+      const duplicateIds = group.records.map((r) => r.id).filter((id) => id !== primaryId)
+      const result: any = await ApiClient.mergeDuplicates(primaryId, duplicateIds)
       if (result.success) {
         successCount++
         historyTotal += result.reassignedHistoryCount || 0
@@ -176,9 +204,11 @@ export default function DuplicateMerge() {
               </button>
             </div>
 
+            <p className="text-xs text-gray-600 mb-1">主レコード(統合後に残る側)を選択できます。ラジオボタンで切り替えてください</p>
             <table className="w-full border-collapse border border-gray-300 text-sm mb-3">
               <thead>
                 <tr className="bg-gray-200">
+                  <th className="border border-gray-300 px-2 py-1 text-center">主</th>
                   <th className="border border-gray-300 px-2 py-1 text-left">リスト/No</th>
                   <th className="border border-gray-300 px-2 py-1 text-left">架電履歴</th>
                   {PREVIEW_FIELDS.map(([, label]) => (
@@ -187,26 +217,38 @@ export default function DuplicateMerge() {
                 </tr>
               </thead>
               <tbody>
-                {group.records.map((r) => (
-                  <tr key={r.id} className={r.id === group.suggestedPrimaryId ? 'bg-yellow-100' : 'bg-white'}>
-                    <td className="border border-gray-300 px-2 py-1">
-                      {listName(r.list_slug)} / {r.no}
-                      {r.id === group.suggestedPrimaryId && <span className="ml-1 text-xs text-orange-600 font-bold">(主レコード)</span>}
-                    </td>
-                    <td className="border border-gray-300 px-2 py-1 text-gray-700">{r.callHistoryCount}件</td>
-                    {PREVIEW_FIELDS.map(([field]) => (
-                      <td key={field} className="border border-gray-300 px-2 py-1 text-gray-700">
-                        {r[field] || <span className="text-gray-300">(空欄)</span>}
+                {group.records.map((r) => {
+                  const isPrimary = r.id === primaryIdOf(group)
+                  return (
+                    <tr key={r.id} className={isPrimary ? 'bg-yellow-100' : 'bg-white'}>
+                      <td className="border border-gray-300 px-2 py-1 text-center">
+                        <input
+                          type="radio"
+                          name={`primary-${group.companyName}`}
+                          checked={isPrimary}
+                          onChange={() => setPrimarySelection((prev) => ({ ...prev, [group.companyName]: r.id }))}
+                        />
                       </td>
-                    ))}
-                  </tr>
-                ))}
+                      <td className="border border-gray-300 px-2 py-1">
+                        {listName(r.list_slug)} / {r.no}
+                        {isPrimary && <span className="ml-1 text-xs text-orange-600 font-bold">(主レコード)</span>}
+                      </td>
+                      <td className="border border-gray-300 px-2 py-1 text-gray-700">{r.callHistoryCount}件</td>
+                      {PREVIEW_FIELDS.map(([field]) => (
+                        <td key={field} className="border border-gray-300 px-2 py-1 text-gray-700">
+                          {r[field] || <span className="text-gray-300">(空欄)</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
                 <tr className="bg-green-50 font-bold">
+                  <td className="border border-gray-300 px-2 py-1"></td>
                   <td className="border border-gray-300 px-2 py-1">統合後</td>
                   <td className="border border-gray-300 px-2 py-1 text-green-700">{group.totalCallHistoryCount}件</td>
                   {PREVIEW_FIELDS.map(([field]) => (
                     <td key={field} className="border border-gray-300 px-2 py-1 text-green-700">
-                      {group.mergedPreview[field] || <span className="text-gray-300">(空欄)</span>}
+                      {mergedPreviewFor(group)[field] || <span className="text-gray-300">(空欄)</span>}
                     </td>
                   ))}
                 </tr>

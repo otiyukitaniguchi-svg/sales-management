@@ -7,12 +7,13 @@ import ListManagement from './ListManagement'
 import DuplicateMerge from './DuplicateMerge'
 import CompanyLookup from './CompanyLookup'
 import IndustryManagement from './IndustryManagement'
+import DataCleanup from './DataCleanup'
 
 interface AdminDashboardProps {
   onClose: () => void
 }
 
-type AdminMode = 'menu' | 'report' | 'accounts' | 'lists' | 'duplicates' | 'company-lookup' | 'industries'
+type AdminMode = 'menu' | 'report' | 'accounts' | 'lists' | 'duplicates' | 'company-lookup' | 'industries' | 'cleanup'
 
 const SCREENS: Record<Exclude<AdminMode, 'menu'>, { title: string; render: () => JSX.Element }> = {
   report: { title: '効果報告レポート', render: () => <ReportView /> },
@@ -21,6 +22,7 @@ const SCREENS: Record<Exclude<AdminMode, 'menu'>, { title: string; render: () =>
   duplicates: { title: '重複データ統合', render: () => <DuplicateMerge /> },
   'company-lookup': { title: '企業情報自動更新', render: () => <CompanyLookup /> },
   industries: { title: '業種名一覧', render: () => <IndustryManagement /> },
+  cleanup: { title: 'データ一括修正(住所・電話番号)', render: () => <DataCleanup /> },
 }
 
 export default function AdminDashboard({ onClose }: AdminDashboardProps) {
@@ -69,6 +71,12 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
               className="px-6 py-4 bg-pink-500 text-white rounded-lg font-bold text-lg hover:bg-pink-600 transition"
             >
               🏭 業種名一覧
+            </button>
+            <button
+              onClick={() => setAdminMode('cleanup')}
+              className="px-6 py-4 bg-yellow-500 text-white rounded-lg font-bold text-lg hover:bg-yellow-600 transition"
+            >
+              🧹 データ一括修正(住所・電話番号)
             </button>
           </div>
 

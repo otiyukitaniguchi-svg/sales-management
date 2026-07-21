@@ -310,6 +310,28 @@ export class ApiClient {
   }
 
   /**
+   * Preview address/phone-number normalization candidates across all customers (admin only, read-only)
+   */
+  static async previewDataCleanup(): Promise<ApiResponse & { scannedCount?: number; addressChanges?: any[]; phoneChanges?: any[] }> {
+    const response = await apiFetch(`${API_BASE}/admin/data-cleanup/preview`)
+    return response.json()
+  }
+
+  /**
+   * Apply selected address/phone-number normalization changes (admin only)
+   */
+  static async applyDataCleanup(
+    items: Array<{ id: string; field: 'address' | 'fixed_no' }>
+  ): Promise<ApiResponse & { updatedCount?: number; unchangedCount?: number; failedCount?: number }> {
+    const response = await apiFetch(`${API_BASE}/admin/data-cleanup/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    })
+    return response.json()
+  }
+
+  /**
    * Detect duplicate customers across all lists (admin only, read-only)
    */
   static async getDuplicates(): Promise<ApiResponse<any[]>> {
