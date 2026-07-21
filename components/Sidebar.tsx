@@ -22,9 +22,7 @@ export default function Sidebar() {
 
   const setIsReportMode = useAppStore((state) => state.setIsReportMode)
   const isSearchMode = useAppStore((state) => state.isSearchMode)
-  const setSearchMode = useAppStore((state) => state.setSearchMode)
-  const setSearchResults = useAppStore((state) => state.setSearchResults)
-  const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
+  const clearSearch = useAppStore((state) => state.clearSearch)
   const setCurrentListIndex = useAppStore((state) => state.setCurrentListIndex)
 
   const isLoading = useAppStore((state) => state.isLoading)
@@ -33,9 +31,7 @@ export default function Sidebar() {
     if (isLoading) return
     // 検索モード中は検索を解除してからリスト切替
     if (isSearchMode) {
-      setSearchMode(false)
-      setSearchResults([])
-      setSearchResultIndex(0)
+      clearSearch()
     }
     setCurrentListIndex(0)
     setIsReportMode(false)

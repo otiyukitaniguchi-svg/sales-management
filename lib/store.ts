@@ -38,6 +38,17 @@ interface AppState {
   updateSearchResultsOnly: (results: Array<{ listId: string; record: FrontendCustomerRecord }>) => void
   setSearchResultIndex: (index: number) => void
 
+  // 検索結果一覧のチェック(架電済み目印)とソート順。一覧モーダルを閉じても保持され、
+  // 検索を解除したとき(clearSearch)にのみリセットする
+  checkedResultKeys: Set<string>
+  toggleCheckedResultKey: (key: string) => void
+  resultSortKey: string | null
+  resultSortDir: 'asc' | 'desc'
+  setResultSort: (key: string | null, dir: 'asc' | 'desc') => void
+
+  // 検索を完全に終了する(モード・結果・一覧のチェック/ソートをすべてリセット)
+  clearSearch: () => void
+
   // Loading state
   isLoading: boolean
   setIsLoading: (loading: boolean) => void
@@ -102,6 +113,28 @@ export const useAppStore = create<AppState>((set) => ({
   setSearchResults: (results) => set({ searchResults: results, searchResultIndex: 0 }),
   updateSearchResultsOnly: (results) => set({ searchResults: results }),
   setSearchResultIndex: (index) => set({ searchResultIndex: index }),
+
+  checkedResultKeys: new Set(),
+  toggleCheckedResultKey: (key) =>
+    set((state) => {
+      const next = new Set(state.checkedResultKeys)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return { checkedResultKeys: next }
+    }),
+  resultSortKey: null,
+  resultSortDir: 'asc',
+  setResultSort: (key, dir) => set({ resultSortKey: key, resultSortDir: dir }),
+
+  clearSearch: () =>
+    set({
+      isSearchMode: false,
+      searchResults: [],
+      searchResultIndex: 0,
+      checkedResultKeys: new Set(),
+      resultSortKey: null,
+      resultSortDir: 'asc',
+    }),
 
   // Loading
   isLoading: false,

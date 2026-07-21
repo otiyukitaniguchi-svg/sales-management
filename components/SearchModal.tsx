@@ -16,6 +16,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const setSearchMode = useAppStore((state) => state.setSearchMode)
   const setSearchResults = useAppStore((state) => state.setSearchResults)
   const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
+  const clearSearch = useAppStore((state) => state.clearSearch)
 
   // 検索フィールド
   const [searchFields, setSearchFields] = useState({
@@ -75,8 +76,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
       if (!data.results || data.results.length === 0) {
         // 前回の検索結果が残ったまま無関係なデータが表示され続けるのを防ぐ
-        setSearchResults([])
-        setSearchMode(false)
+        clearSearch()
         alert('HITなし')
         return
       }

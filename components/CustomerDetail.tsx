@@ -340,9 +340,7 @@ export default function CustomerDetail() {
     setSearchHistory({})
 
     // グローバルな検索モードも解除
-    useAppStore.getState().setSearchMode(false)
-    useAppStore.getState().setSearchResults([])
-    useAppStore.getState().setSearchResultIndex(0)
+    useAppStore.getState().clearSearch()
 
     // 元のリストデータを再読み込みして通常表示に戻す
     try {
@@ -415,8 +413,7 @@ export default function CustomerDetail() {
       } else {
         // 前回の検索結果が残ったまま「見つかりません」と表示されるのを防ぐため、
         // 検索結果と検索モードをクリアする
-        useAppStore.getState().setSearchResults([])
-        useAppStore.getState().setSearchMode(false)
+        useAppStore.getState().clearSearch()
         setSaveMessage('✗ 該当するデータが見つかりませんでした')
       }
       setTimeout(() => setSaveMessage(''), 3000)

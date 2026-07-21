@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useAppStore } from '@/lib/store'
 import { FrontendCustomerRecord } from '@/lib/types'
 
@@ -68,19 +68,13 @@ function getRowKey(item: ResultItem): string {
 export default function SearchResultsListModal({ onClose }: SearchResultsListModalProps) {
   const searchResults = useAppStore((state) => state.searchResults)
   const setSearchResultIndex = useAppStore((state) => state.setSearchResultIndex)
-  const [sortKey, setSortKey] = useState<SortKey | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
-  // その日架電したものをチェックして色付けする(この一覧限定の一時的な目印、保存はしない)
-  const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set())
-
-  const toggleChecked = (key: string) => {
-    setCheckedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
+  // チェック(架電済み目印)とソート順はストアで保持し、一覧を閉じても保持する
+  // (検索を解除するまで維持し続けたいという要望のため、この画面のローカルstateにはしない)
+  const sortKey = useAppStore((state) => state.resultSortKey) as SortKey | null
+  const sortDir = useAppStore((state) => state.resultSortDir)
+  const setResultSort = useAppStore((state) => state.setResultSort)
+  const checkedKeys = useAppStore((state) => state.checkedResultKeys)
+  const toggleChecked = useAppStore((state) => state.toggleCheckedResultKey)
 
   const sortedResults = useMemo(() => {
     const indexed = searchResults.map((item, originalIndex) => ({ item, originalIndex }))
@@ -102,10 +96,9 @@ export default function SearchResultsListModal({ onClose }: SearchResultsListMod
 
   const handleHeaderClick = (key: SortKey) => {
     if (sortKey === key) {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+      setResultSort(key, sortDir === 'asc' ? 'desc' : 'asc')
     } else {
-      setSortKey(key)
-      setSortDir('asc')
+      setResultSort(key, 'asc')
     }
   }
 
