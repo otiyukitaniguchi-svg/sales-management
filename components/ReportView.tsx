@@ -181,21 +181,22 @@ export default function ReportView() {
         import('html2canvas'),
       ])
 
-      const pdf = new jsPDF('l', 'mm', 'a4')
+      const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
       const margin = 8
       const availWidth = pageWidth - margin * 2
       const availHeight = pageHeight - margin * 2
 
-      // レポート全体を1枚のキャプチャにまとめ、必ずA4横1枚に収まるよう縮小して中央配置する
+      // レポート全体を1枚のキャプチャにまとめ、必ずA4縦1枚に収まるよう縮小して中央配置する
       // (セクションごとに分割して複数ページに渡す従来方式はやめ、常に1ページで完結させる)。
-      // windowWidthを広めに固定し、実際のウィンドウ幅に関わらずPC横並びレイアウトで書き出す。
+      // windowWidthはA4縦の縦長比率に近い構成になる幅(lg:のブレークポイント未満、
+      // sm:は超える)を指定し、KPIは2列、グラフは1列積みでキャプチャする。
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
-        windowWidth: 1440,
+        windowWidth: 900,
       })
       const imgData = canvas.toDataURL('image/png')
 
