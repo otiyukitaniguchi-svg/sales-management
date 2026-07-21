@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, CSSProperties } from 'react'
 import {
   BarChart, Bar, LineChart, Line, Cell, LabelList,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -83,6 +83,7 @@ export default function ReportView() {
   const [selectedMonth, setSelectedMonth] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
+  const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -173,7 +174,7 @@ export default function ReportView() {
   }, [totals])
 
   const handleExportPdf = async () => {
-    if (!reportRef.current) return
+    if (!printRef.current) return
     setIsExporting(true)
     try {
       const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
@@ -184,31 +185,30 @@ export default function ReportView() {
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const margin = 8
-      const availWidth = pageWidth - margin * 2
-      const availHeight = pageHeight - margin * 2
 
-      // レポート全体を1枚のキャプチャにまとめ、必ずA4縦1枚に収まるよう縮小して中央配置する
-      // (セクションごとに分割して複数ページに渡す従来方式はやめ、常に1ページで完結させる)。
-      // windowWidthはA4縦の縦長比率に近い構成になる幅(lg:のブレークポイント未満、
-      // sm:は超える)を指定し、KPIは2列、グラフは1列積みでキャプチャする。
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
+      // オンスクリーン表示用のレスポンシブレイアウトをそのまま縮小するのではなく、
+      // A4縦(210x297mm)にぴったり収まるよう寸法を固定設計した印刷専用レイアウト
+      // (printRef、画面外に配置)をキャプチャする。余白はこのレイアウト自身の
+      // paddingとして作り込んであるため、ページ全面(0,0,pageWidth,pageHeight)に
+      // そのまま配置する。
+      const canvas = await html2canvas(printRef.current, {
+        scale: 3,
         backgroundColor: '#ffffff',
         useCORS: true,
-        windowWidth: 900,
       })
       const imgData = canvas.toDataURL('image/png')
 
+      // 実際の描画結果が想定寸法と数mm前後ずれても崩れないよう、縦横比を保って
+      // ページに収まるサイズへ補正したうえで配置する(安全策)
       const canvasRatio = canvas.height / canvas.width
-      let imgWidth = availWidth
+      let imgWidth = pageWidth
       let imgHeight = imgWidth * canvasRatio
-      if (imgHeight > availHeight) {
-        imgHeight = availHeight
+      if (imgHeight > pageHeight) {
+        imgHeight = pageHeight
         imgWidth = imgHeight / canvasRatio
       }
-      const x = margin + (availWidth - imgWidth) / 2
-      const y = margin + (availHeight - imgHeight) / 2
+      const x = (pageWidth - imgWidth) / 2
+      const y = (pageHeight - imgHeight) / 2
 
       pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight)
 
@@ -428,6 +428,168 @@ export default function ReportView() {
             </table>
           </div>
         </div>
+      </div>
+
+      {/* PDF出力専用レイアウト(画面外に配置。A4縦にぴったり収まる固定寸法で組んである) */}
+      <div
+        ref={printRef}
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: '-10000px',
+          width: '210mm',
+          height: '297mm',
+          padding: '10mm',
+          boxSizing: 'border-box',
+          backgroundColor: '#ffffff',
+          fontFamily: 'inherit',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div style={{ height: '16mm', marginBottom: '4mm', flexShrink: 0 }}>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: '#1f2937' }}>効果報告レポート</div>
+          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '3px' }}>
+            {viewMode === 'overall' ? '全体実績' : `担当者: ${selectedOperator}`}　対象月: {formatMonth(selectedMonth)}　出力日: {new Date().toLocaleDateString('ja-JP')}
+          </div>
+          <div style={{ height: '2px', width: '40mm', background: CHART_BLUE, marginTop: '6px' }} />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4mm', height: '24mm', marginBottom: '5mm', flexShrink: 0 }}>
+          <PrintKpi label="総架電数" value={totals.totalCalls.toLocaleString()} unit="件" color={CHART_BLUE} bg="#eaf2fc" />
+          <PrintKpi label="受注数" value={totals.orders.toLocaleString()} unit="件" color={STATUS_GOOD} bg="#eaf7ea" />
+          <PrintKpi label="受注率" value={totals.orderRate.toFixed(1)} unit="%" color="#4f46e5" bg="#eeeefc" />
+          <PrintKpi label="見込み件数(A+C)" value={prospectTotal.toLocaleString()} unit="件" color="#b45309" bg="#fdf3e3" />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4mm', height: '68mm', marginBottom: '5mm', flexShrink: 0 }}>
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: '4px', padding: '8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', marginBottom: '4px', flexShrink: 0 }}>受注率推移(月次・全期間)</div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendChartData}>
+                  <CartesianGrid stroke={GRID_LINE} vertical={false} />
+                  <XAxis dataKey="period" tick={{ fontSize: 9, fill: AXIS_TICK }} stroke={AXIS_LINE} />
+                  <YAxis tick={{ fontSize: 9, fill: AXIS_TICK }} stroke={AXIS_LINE} unit="%" width={30} />
+                  <Line type="monotone" dataKey="受注率" stroke={CHART_BLUE} strokeWidth={2} dot={{ r: 3, fill: CHART_BLUE, strokeWidth: 1, stroke: '#fff' }} isAnimationActive={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: '4px', padding: '8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', marginBottom: '4px', flexShrink: 0 }}>
+              進捗内訳({formatMonth(selectedMonth)}・件数の多い順)
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              {progressChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={progressChartData} layout="vertical" margin={{ top: 2, right: 22, bottom: 2, left: 2 }}>
+                    <CartesianGrid stroke={GRID_LINE} horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 9, fill: AXIS_TICK }} stroke={AXIS_LINE} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" width={72} tick={{ fontSize: 9, fill: '#0b0b0b' }} stroke={AXIS_LINE} />
+                    <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={16} isAnimationActive={false}>
+                      <LabelList dataKey="value" position="right" style={{ fontSize: 9, fill: '#52514e' }} />
+                      {progressChartData.map((d, i) => (
+                        <Cell key={i} fill={d.name === '受注' ? STATUS_GOOD : CHART_BLUE} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '10px' }}>
+                  データがありません
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ height: '55mm', marginBottom: '5mm', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '8px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', marginBottom: '4px', flexShrink: 0 }}>総架電数・受注数(月次・全期間)</div>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={trendChartData}>
+                <CartesianGrid stroke={GRID_LINE} vertical={false} />
+                <XAxis dataKey="period" tick={{ fontSize: 9, fill: AXIS_TICK }} stroke={AXIS_LINE} />
+                <YAxis tick={{ fontSize: 9, fill: AXIS_TICK }} stroke={AXIS_LINE} width={30} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Bar dataKey="総架電数" fill={CHART_BLUE} radius={[3, 3, 0, 0]} maxBarSize={20} isAnimationActive={false} />
+                <Bar dataKey="受注数" fill={CHART_GREEN} radius={[3, 3, 0, 0]} maxBarSize={20} isAnimationActive={false} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, minHeight: 0, border: '1px solid #e5e7eb', borderRadius: '4px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#374151', padding: '6px 8px 4px', flexShrink: 0 }}>
+            {viewMode === 'overall'
+              ? `明細(${formatMonth(selectedMonth)}・担当者別)`
+              : `明細(${selectedOperator}・月別推移)`}
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '0 8px 8px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px' }}>
+              <thead>
+                <tr style={{ background: '#f9fafb' }}>
+                  <th style={printThStyle}>{viewMode === 'overall' ? '担当者' : '対象月'}</th>
+                  <th style={printThStyle}>総架電数</th>
+                  <th style={printThStyle}>受注数</th>
+                  <th style={printThStyle}>受注率</th>
+                  <th style={printThStyle}>見込み(A+C)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.length > 0 ? (
+                  tableRows.map((row, idx) => (
+                    <tr key={idx} style={{ borderTop: '1px solid #f3f4f6' }}>
+                      <td style={{ ...printTdStyle, fontWeight: 600, color: '#111827' }}>
+                        {viewMode === 'overall' ? row.operator : formatMonth(row.period)}
+                      </td>
+                      <td style={{ ...printTdStyle, color: '#6b7280' }}>{row.calls}</td>
+                      <td style={{ ...printTdStyle, color: STATUS_GOOD, fontWeight: 600 }}>{row.orders}</td>
+                      <td style={{ ...printTdStyle, color: CHART_BLUE, fontWeight: 700 }}>{row.orderRate.toFixed(1)}%</td>
+                      <td style={{ ...printTdStyle, color: '#b45309', fontWeight: 600 }}>
+                        {PROSPECT_CATEGORIES.reduce((s, c) => s + (row.progressCounts[c] || 0), 0)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} style={{ ...printTdStyle, textAlign: 'center', color: '#9ca3af' }}>
+                      データがありません
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const printThStyle: CSSProperties = {
+  padding: '4px 6px',
+  textAlign: 'left',
+  fontWeight: 600,
+  color: '#6b7280',
+  whiteSpace: 'nowrap',
+}
+
+const printTdStyle: CSSProperties = {
+  padding: '3px 6px',
+  whiteSpace: 'nowrap',
+}
+
+function PrintKpi({ label, value, unit, color, bg }: { label: string; value: string; unit: string; color: string; bg: string }) {
+  return (
+    <div style={{ background: bg, borderRadius: '4px', padding: '8px 10px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+      <div style={{ fontSize: '9px', fontWeight: 700, color, opacity: 0.85 }}>{label}</div>
+      <div style={{ fontSize: '22px', fontWeight: 700, color, marginTop: '2px' }}>
+        {value}
+        <span style={{ fontSize: '10px', marginLeft: '3px' }}>{unit}</span>
       </div>
     </div>
   )
