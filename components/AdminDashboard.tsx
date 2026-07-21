@@ -22,7 +22,7 @@ const SCREENS: Record<Exclude<AdminMode, 'menu'>, { title: string; render: () =>
   duplicates: { title: '重複データ統合', render: () => <DuplicateMerge /> },
   'company-lookup': { title: '企業情報自動更新', render: () => <CompanyLookup /> },
   industries: { title: '業種名一覧', render: () => <IndustryManagement /> },
-  cleanup: { title: 'データ一括修正(住所・電話番号)', render: () => <DataCleanup /> },
+  cleanup: { title: 'データ一括修正', render: () => <DataCleanup /> },
 }
 
 export default function AdminDashboard({ onClose }: AdminDashboardProps) {
@@ -76,7 +76,7 @@ export default function AdminDashboard({ onClose }: AdminDashboardProps) {
               onClick={() => setAdminMode('cleanup')}
               className="px-6 py-4 bg-yellow-500 text-white rounded-lg font-bold text-lg hover:bg-yellow-600 transition"
             >
-              🧹 データ一括修正(住所・電話番号)
+              🧹 データ一括修正
             </button>
           </div>
 
