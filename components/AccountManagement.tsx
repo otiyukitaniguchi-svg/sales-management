@@ -30,6 +30,10 @@ export default function AccountManagement() {
   const [editPassword, setEditPassword] = useState('')
   const [editRole, setEditRole] = useState('user')
 
+  // パスワードはハッシュ化して保存するため後から閲覧はできない。
+  // 代わりに、作成・リセットした「その場」だけ平文を一時的に表示する
+  const [revealedCredential, setRevealedCredential] = useState<{ username: string; password: string; action: string } | null>(null)
+
   const loadUsers = async () => {
     setIsLoading(true)
     setError('')
@@ -64,8 +68,7 @@ export default function AccountManagement() {
       newUser.role
     )
     if (result.success) {
-      setMessage('✓ アカウントを作成しました')
-      setTimeout(() => setMessage(''), 3000)
+      setRevealedCredential({ username: newUser.username, password: newUser.password, action: '作成' })
       setIsCreating(false)
       setNewUser(emptyNewUser)
       loadUsers()
@@ -81,11 +84,13 @@ export default function AccountManagement() {
     setEditPassword('')
     setEditRole(user.role || 'user')
     setError('')
+    setRevealedCredential(null)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
     setEditPassword('')
+    setRevealedCredential(null)
   }
 
   const handleSaveEdit = async (id: string) => {
@@ -99,8 +104,12 @@ export default function AccountManagement() {
 
     const result = await ApiClient.updateUser(id, updates)
     if (result.success) {
-      setMessage('✓ 更新しました')
-      setTimeout(() => setMessage(''), 3000)
+      if (editPassword) {
+        setRevealedCredential({ username: editUsername, password: editPassword, action: 'リセット' })
+      } else {
+        setMessage('✓ 更新しました')
+        setTimeout(() => setMessage(''), 3000)
+      }
       setEditingId(null)
       setEditPassword('')
       loadUsers()
@@ -130,12 +139,34 @@ export default function AccountManagement() {
           onClick={() => {
             setIsCreating((v) => !v)
             setError('')
+            setRevealedCredential(null)
           }}
           className="px-4 py-2 bg-blue-500 text-white rounded font-bold hover:bg-blue-600"
         >
           {isCreating ? 'キャンセル' : '+ 新規アカウント作成'}
         </button>
       </div>
+
+      {revealedCredential && (
+        <div className="p-4 bg-yellow-50 border-2 border-yellow-400 rounded flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-yellow-800 mb-1">
+              ⚠️ パスワードは保存後に読み返すことができません。今のうちに控えてください({revealedCredential.action}直後のみ表示)
+            </p>
+            <p className="font-mono text-lg">
+              <span className="text-gray-600">{revealedCredential.username}</span>
+              <span className="mx-2 text-gray-400">/</span>
+              <span className="font-bold text-yellow-900">{revealedCredential.password}</span>
+            </p>
+          </div>
+          <button
+            onClick={() => setRevealedCredential(null)}
+            className="px-3 py-1 bg-yellow-500 text-white rounded text-sm font-bold hover:bg-yellow-600 shrink-0"
+          >
+            閉じる
+          </button>
+        </div>
+      )}
 
       {message && <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">{message}</div>}
       {error && <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
