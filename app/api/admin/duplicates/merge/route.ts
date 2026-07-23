@@ -22,7 +22,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { primaryId, duplicateIds } = body as { primaryId: string; duplicateIds: string[] }
+    const { primaryId, duplicateIds, fieldOverrides } = body as {
+      primaryId: string
+      duplicateIds: string[]
+      fieldOverrides?: Record<string, string>
+    }
 
     if (!primaryId || !Array.isArray(duplicateIds) || duplicateIds.length === 0) {
       return NextResponse.json({ success: false, message: '統合対象が指定されていません' }, { status: 400 })
@@ -74,6 +78,15 @@ export async function POST(request: NextRequest) {
       const secondNumber = candidateNumbers.find((n) => n !== primaryFixedNo)
       if (secondNumber) {
         mergedFields.other_contact = secondNumber
+      }
+    }
+
+    // 管理者が項目ごとに手動で選択した値があれば、自動マージの結果より優先する
+    if (fieldOverrides && typeof fieldOverrides === 'object') {
+      for (const [field, value] of Object.entries(fieldOverrides)) {
+        if ((FIELDS as readonly string[]).includes(field)) {
+          mergedFields[field] = value
+        }
       }
     }
 

@@ -323,7 +323,7 @@ export class ApiClient {
    * Apply selected address/phone-number/company-name normalization changes (admin only)
    */
   static async applyDataCleanup(
-    items: Array<{ id: string; field: 'address' | 'fixed_no' | 'company_name' }>
+    items: Array<{ id: string; field: 'address' | 'fixed_no' | 'other_contact' | 'company_name' }>
   ): Promise<ApiResponse & { updatedCount?: number; unchangedCount?: number; failedCount?: number }> {
     const response = await apiFetch(`${API_BASE}/admin/data-cleanup/apply`, {
       method: 'POST',
@@ -334,22 +334,38 @@ export class ApiClient {
   }
 
   /**
-   * Detect duplicate customers across all lists (admin only, read-only)
+   * Detect duplicate customers across all lists (admin only, read-only).
+   * fields controls which columns trigger a match (default: company_name only)
    */
-  static async getDuplicates(): Promise<ApiResponse<any[]>> {
-    const response = await apiFetch(`${API_BASE}/admin/duplicates`)
+  static async getDuplicates(fields?: string[]): Promise<ApiResponse<any[]>> {
+    const qs = fields && fields.length > 0 ? `?fields=${encodeURIComponent(fields.join(','))}` : ''
+    const response = await apiFetch(`${API_BASE}/admin/duplicates${qs}`)
     const result = await response.json()
     return { ...result, data: result.groups }
   }
 
   /**
-   * Merge duplicate customers into one record (admin only)
+   * Search customers across all lists by No/company name, for manually building a merge set (admin only)
    */
-  static async mergeDuplicates(primaryId: string, duplicateIds: string[]): Promise<ApiResponse> {
+  static async searchDuplicateCandidates(q: string): Promise<ApiResponse & { records?: any[] }> {
+    const response = await apiFetch(`${API_BASE}/admin/duplicates/search?q=${encodeURIComponent(q)}`)
+    return response.json()
+  }
+
+  /**
+   * Merge duplicate customers into one record (admin only).
+   * fieldOverrides lets the caller explicitly choose the final value for individual
+   * fields (e.g. picked per-field in the UI) instead of relying on the automatic fill logic.
+   */
+  static async mergeDuplicates(
+    primaryId: string,
+    duplicateIds: string[],
+    fieldOverrides?: Record<string, string>
+  ): Promise<ApiResponse> {
     const response = await apiFetch(`${API_BASE}/admin/duplicates/merge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ primaryId, duplicateIds }),
+      body: JSON.stringify({ primaryId, duplicateIds, fieldOverrides }),
     })
     return response.json()
   }
