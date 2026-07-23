@@ -31,16 +31,26 @@ function kanjiToNumber(str: string): number | null {
   return total > 0 ? total : null
 }
 
+// 全角の英数字・記号(Unicode "Fullwidth Forms"、U+FF01-FF5E)を半角に変換する。
+// この範囲はラテン文字・数字・記号のみでカタカナは含まれないため、
+// カナ(ひらがな・カタカナ)はこの変換では一切変化しない(全角のまま保持される)
+function toHalfWidthAlnumSymbols(s: string): string {
+  return s.replace(/[！-～]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+}
+
 /**
- * 住所の丁目/番地/番/号を漢数字から算用数字に変換したうえで、
- * 「1丁目2番地3号」を「1-2-3」のようにハイフンでつなぐ。
- * 「〇号室」は部屋番号のため変換対象から除外する。
- * 丁目/番地/番/号に隣接しない漢数字(地名など)は変更しない。
+ * 住所を正規化する。
+ * ・空白(前後・間を問わずすべて、全角スペースも含む)を削除する
+ * ・全角の英数字・記号を半角に変換する(漢字・ひらがな・カタカナは全角のまま)
+ * ・丁目/番地/番/号を漢数字から算用数字に変換したうえで、
+ *   「1丁目2番地3号」を「1-2-3」のようにハイフンでつなぐ
+ * ・「〇号室」は部屋番号のため変換対象から除外する
+ * ・丁目/番地/番/号に隣接しない漢数字(地名など)は変更しない
  */
 export function normalizeAddress(input: string | null | undefined): string {
   if (!input) return input || ''
   const ROOM_PLACEHOLDER = ' ROOMNUM '
-  let s = toHalfWidthDigits(input).split('号室').join(ROOM_PLACEHOLDER)
+  let s = toHalfWidthAlnumSymbols(input).replace(/\s+/g, '').split('号室').join(ROOM_PLACEHOLDER)
 
   s = s.replace(/([一二三四五六七八九十百千]+)(丁目|番地|番|号)/g, (match, kanji: string, unit: string) => {
     const n = kanjiToNumber(kanji)
@@ -60,13 +70,6 @@ export function normalizeAddress(input: string | null | undefined): string {
 
   s = s.split(ROOM_PLACEHOLDER).join('号室')
   return s
-}
-
-// 全角の英数字・記号(Unicode "Fullwidth Forms"、U+FF01-FF5E)を半角に変換する。
-// この範囲はラテン文字・数字・記号のみでカタカナは含まれないため、
-// カナ(ひらがな・カタカナ)はこの変換では一切変化しない(全角のまま保持される)
-function toHalfWidthAlnumSymbols(s: string): string {
-  return s.replace(/[！-～]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
 }
 
 /**

@@ -4,8 +4,8 @@ import { supabaseAdmin, TABLES } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
 import { normalizeAddress, normalizePhone, normalizeCompanyName } from '@/lib/dataCleanup'
 
-type Field = 'address' | 'fixed_no' | 'company_name'
-const ALLOWED_FIELDS: Field[] = ['address', 'fixed_no', 'company_name']
+type Field = 'address' | 'fixed_no' | 'other_contact' | 'company_name'
+const ALLOWED_FIELDS: Field[] = ['address', 'fixed_no', 'other_contact', 'company_name']
 const CHUNK_SIZE = 25
 
 function normalizeByField(field: Field, currentValue: string | null): string {

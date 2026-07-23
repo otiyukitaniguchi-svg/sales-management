@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     while (true) {
       const { data, error } = await supabaseAdmin
         .from(TABLES.CUSTOMERS)
-        .select('id, list_slug, no, company_name, address, fixed_no')
+        .select('id, list_slug, no, company_name, address, fixed_no, other_contact')
         .range(from, from + pageSize - 1)
 
       if (error) throw error
@@ -42,15 +42,29 @@ export async function GET(request: NextRequest) {
           })
         }
 
-        const newPhone = normalizePhone(row.fixed_no)
-        if (row.fixed_no && newPhone !== row.fixed_no) {
+        const newFixedNo = normalizePhone(row.fixed_no)
+        if (row.fixed_no && newFixedNo !== row.fixed_no) {
           phoneChanges.push({
             id: row.id,
+            field: 'fixed_no',
             listSlug: row.list_slug,
             no: row.no,
             companyName: row.company_name || '',
             oldValue: row.fixed_no,
-            newValue: newPhone,
+            newValue: newFixedNo,
+          })
+        }
+
+        const newOtherContact = normalizePhone(row.other_contact)
+        if (row.other_contact && newOtherContact !== row.other_contact) {
+          phoneChanges.push({
+            id: row.id,
+            field: 'other_contact',
+            listSlug: row.list_slug,
+            no: row.no,
+            companyName: row.company_name || '',
+            oldValue: row.other_contact,
+            newValue: newOtherContact,
           })
         }
 
