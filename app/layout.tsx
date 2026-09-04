@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import VersionWatcher from '@/components/VersionWatcher'
 
 export const metadata: Metadata = {
   title: 'AnyPro',
@@ -15,7 +16,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        {children}
+        <VersionWatcher />
+      </body>
     </html>
   )
 }
