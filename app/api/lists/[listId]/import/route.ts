@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, verifyListExists, TABLES } from '@/lib/supabase'
+import { supabaseAdmin, verifyListExists, getNextGlobalNos, TABLES } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'
 import { requireAdmin } from '@/lib/auth'
 
@@ -48,8 +48,17 @@ export async function POST(
       }
     }
 
+    // No未入力の行には、全リストを通した連番を自動採番する(新規レコード作成と同じ基準)
+    const blankNoCount = body.data.filter((record) => !record.no || !String(record.no).trim()).length
+    const autoNos = blankNoCount > 0 ? await getNextGlobalNos(supabaseAdmin, blankNoCount) : []
+    let autoNoIndex = 0
+    const dataWithNos = body.data.map((record) => {
+      if (record.no && String(record.no).trim()) return record
+      return { ...record, no: autoNos[autoNoIndex++] }
+    })
+
     // Convert to database format and tag with the target list
-    const dbRecords = body.data.map((record) => ({ ...toDbFormat(record), list_slug: listId }))
+    const dbRecords = dataWithNos.map((record) => ({ ...toDbFormat(record), list_slug: listId }))
 
     // Insert or upsert records in batches (Supabase has a limit of ~1000 rows per request)
     const batchSize = 500
@@ -79,10 +88,12 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: `インポート完了: ${insertedCount}件挿入, ${errorCount}件エラー`,
+      message: `インポート完了: ${insertedCount}件挿入, ${errorCount}件エラー` +
+        (blankNoCount > 0 ? ` (うちNo未入力${blankNoCount}件は自動採番)` : ''),
       insertedCount,
       errorCount,
       totalRecords: body.data.length,
+      autoNumberedCount: blankNoCount,
     })
   } catch (error: any) {
     console.error('Error in importData:', error)

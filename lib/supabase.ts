@@ -51,3 +51,37 @@ export async function verifyListExists(
     .maybeSingle()
   return !error && !!data
 }
+
+// 全リストを横断して現在の最大Noを求め、そこから続く連番をcount個返す
+// (Noはtext列のため数値化して比較する)。新規レコード作成・CSVインポートの
+// どちらでも「Noが未入力なら自動採番」を同じ基準で行うための共通処理
+export async function getNextGlobalNos(
+  supabaseAdmin: import('@supabase/supabase-js').SupabaseClient,
+  count: number
+): Promise<string[]> {
+  if (count <= 0) return []
+
+  let from = 0
+  const pageSize = 1000
+  let maxNo = 0
+
+  while (true) {
+    const { data, error } = await supabaseAdmin
+      .from(TABLES.CUSTOMERS)
+      .select('no')
+      .range(from, from + pageSize - 1)
+
+    if (error) throw error
+    if (!data || data.length === 0) break
+
+    for (const row of data) {
+      const n = parseInt(row.no, 10)
+      if (!isNaN(n) && n > maxNo) maxNo = n
+    }
+
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+
+  return Array.from({ length: count }, (_, i) => String(maxNo + 1 + i))
+}

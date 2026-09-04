@@ -1,38 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, verifyListExists, TABLES } from '@/lib/supabase'
+import { supabaseAdmin, verifyListExists, getNextGlobalNos, TABLES } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'
 
 interface CreateRecordBody {
   listSlug: string
   fields: Partial<FrontendCustomerRecord>
-}
-
-// 全リストを横断して現在の最大Noを求める(Noは text 列のため数値化して比較する)
-async function getNextGlobalNo(): Promise<string> {
-  let from = 0
-  const pageSize = 1000
-  let maxNo = 0
-
-  while (true) {
-    const { data, error } = await supabaseAdmin
-      .from(TABLES.CUSTOMERS)
-      .select('no')
-      .range(from, from + pageSize - 1)
-
-    if (error) throw error
-    if (!data || data.length === 0) break
-
-    for (const row of data) {
-      const n = parseInt(row.no, 10)
-      if (!isNaN(n) && n > maxNo) maxNo = n
-    }
-
-    if (data.length < pageSize) break
-    from += pageSize
-  }
-
-  return String(maxNo + 1)
 }
 
 export async function POST(request: NextRequest) {
@@ -66,7 +39,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const nextNo = await getNextGlobalNo()
+    const nextNo = (await getNextGlobalNos(supabaseAdmin, 1))[0]
     const dbFields = toDbFormat({ ...fields, no: nextNo } as FrontendCustomerRecord)
 
     const { data, error } = await supabaseAdmin

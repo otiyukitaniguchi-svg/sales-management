@@ -153,7 +153,9 @@ export default function ListManagement() {
       })
 
       const records: FrontendCustomerRecord[] = (parsed.data || [])
-        .filter((row) => row.no)
+        // 企業名・住所など何かしら値がある行だけを対象にする(完全な空行を除外)。
+        // Noが空欄の行はサーバー側で全リスト共通の連番を自動採番する
+        .filter((row) => Object.values(row).some((v) => (v || '').trim()))
         .map((row) => ({
           no: row.no,
           companyKana: row.companyKana,
@@ -181,13 +183,14 @@ export default function ListManagement() {
         }))
 
       if (records.length === 0) {
-        setImportProgress('✗ インポート可能なデータが見つかりませんでした(no列は必須です)')
+        setImportProgress('✗ インポート可能なデータが見つかりませんでした')
         return
       }
 
       const result: any = await ApiClient.importData(listId, records, 'append')
       if (result.success) {
-        setImportProgress(`✓ ${result.insertedCount ?? records.length}件をインポートしました`)
+        const autoNote = result.autoNumberedCount > 0 ? `(うちNo自動採番${result.autoNumberedCount}件)` : ''
+        setImportProgress(`✓ ${result.insertedCount ?? records.length}件をインポートしました${autoNote}`)
         loadLists()
       } else {
         setImportProgress(`✗ ${result.message || 'インポートに失敗しました'}`)
@@ -376,7 +379,7 @@ export default function ListManagement() {
                           className="text-sm"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          先頭行にno,companyName,fixedNo,address等の英字列名が必要です
+                          先頭行にno,companyName,fixedNo,address等の英字列名が必要です(noを空欄にすると自動採番されます)
                         </p>
                         {importProgress && <p className="text-sm font-bold mt-1">{importProgress}</p>}
                       </div>
