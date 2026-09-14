@@ -450,4 +450,39 @@ export class ApiClient {
     })
     return response.json()
   }
+
+  /**
+   * Try to acquire the "currently calling" lock for a record before starting a call.
+   * Returns success:false with lockedBy/startedAt if someone else already holds it.
+   */
+  static async acquireCallLock(listSlug: string, no: string): Promise<ApiResponse & { lockedBy?: string; startedAt?: string }> {
+    const response = await apiFetch(`${API_BASE}/calls/lock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listSlug, no }),
+    })
+    return response.json()
+  }
+
+  /**
+   * Release the "currently calling" lock (called when the call ends)
+   */
+  static async releaseCallLock(listSlug: string, no: string): Promise<ApiResponse> {
+    const response = await apiFetch(`${API_BASE}/calls/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listSlug, no }),
+    })
+    return response.json()
+  }
+
+  /**
+   * Fetch currently-active call locks. Omit listSlug to fetch across all lists
+   * (useful while browsing search results, which can span multiple lists).
+   */
+  static async getCallLocks(listSlug?: string): Promise<ApiResponse & { locks?: Array<{ listSlug: string; no: string; userId: string; userName: string; startedAt: string }> }> {
+    const qs = listSlug ? `?listSlug=${encodeURIComponent(listSlug)}` : ''
+    const response = await apiFetch(`${API_BASE}/calls/locks${qs}`)
+    return response.json()
+  }
 }

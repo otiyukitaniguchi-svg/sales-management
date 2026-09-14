@@ -65,6 +65,10 @@ interface AppState {
   currentCall: FrontendCallHistoryEntry
   setCurrentCall: (call: FrontendCallHistoryEntry) => void
   resetCurrentCall: () => void
+
+  // 他のスタッフが架電中のレコード(key: `${listSlug}__${no}`)。定期的にポーリングして更新する
+  callLocks: Record<string, { userId: string; userName: string }>
+  setCallLocks: (locks: Record<string, { userId: string; userName: string }>) => void
 }
 
 const initialCallState: FrontendCallHistoryEntry = {
@@ -152,4 +156,8 @@ export const useAppStore = create<AppState>((set) => ({
   currentCall: initialCallState,
   setCurrentCall: (call) => set({ currentCall: call }),
   resetCurrentCall: () => set({ currentCall: initialCallState }),
+
+  // 架電中ロック
+  callLocks: {},
+  setCallLocks: (locks) => set({ callLocks: locks }),
 }))

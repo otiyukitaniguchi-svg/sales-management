@@ -83,6 +83,50 @@ export default function CustomerDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record?.no, actualListId, isSearchMode])
 
+  // 架電中ロックを定期的に取得する(検索モード中は複数リストにまたがるため全リスト分)
+  const callLocks = useAppStore((state) => state.callLocks)
+  const setCallLocks = useAppStore((state) => state.setCallLocks)
+  useEffect(() => {
+    let cancelled = false
+    const refreshLocks = async () => {
+      const result = await ApiClient.getCallLocks(isSearchModeGlobal ? undefined : currentList)
+      if (cancelled || !result.success || !result.locks) return
+      const map: Record<string, { userId: string; userName: string }> = {}
+      for (const lock of result.locks) {
+        map[`${lock.listSlug}__${lock.no}`] = { userId: lock.userId, userName: lock.userName }
+      }
+      setCallLocks(map)
+    }
+    refreshLocks()
+    const interval = setInterval(refreshLocks, 15000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearchModeGlobal, currentList])
+
+  // 表示しているレコードが他の人の架電中ロックにかかっていたら、自動で次へ読み飛ばす
+  useEffect(() => {
+    if (!record || !actualListId) return
+    const lock = callLocks[`${actualListId}__${record.no}`]
+    if (!lock || lock.userId === user?.id) return
+
+    setSaveMessage(`✓ ⏭ ${lock.userName}さんが架電中のためNo.${record.no}をスキップしました`)
+    setTimeout(() => setSaveMessage(''), 3000)
+
+    if (isSearchModeGlobal) {
+      if (searchResultIndex < searchResults.length - 1) {
+        useAppStore.getState().setSearchResultIndex(searchResultIndex + 1)
+      }
+    } else {
+      if (currentListIndex < records.length - 1) {
+        setCurrentListIndex(currentListIndex + 1)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record?.no, actualListId, callLocks])
+
   const loadCallHistory = async () => {
     if (!record) return
     try {
@@ -139,8 +183,15 @@ export default function CustomerDetail() {
     }
   }
 
-  const handleCallStart = () => {
-    if (isLocked) return
+  const handleCallStart = async () => {
+    if (isLocked || !record || !actualListId) return
+
+    const lockResult = await ApiClient.acquireCallLock(actualListId, record.no)
+    if (!lockResult.success) {
+      alert(`${lockResult.lockedBy || '他の担当者'}さんが架電中のため開始できません`)
+      return
+    }
+
     setIsCallActive(true)
     const now = new Date()
     // 日本時間の現在時刻を取得
@@ -201,6 +252,10 @@ export default function CustomerDetail() {
       console.error('Failed to save call history:', error)
     } finally {
       setIsLoading(false)
+      // 架電中ロックを解除し、他の人がこのレコードを見られるようにする
+      ApiClient.releaseCallLock(actualListId, record.no).catch((e) =>
+        console.error('Failed to release call lock:', e)
+      )
     }
   }
 

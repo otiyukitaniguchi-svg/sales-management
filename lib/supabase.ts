@@ -32,7 +32,8 @@ export const TABLES = {
   LISTS: 'lists',
   CUSTOMERS: 'customers',
   CALL_HISTORY: '架電履歴_全記録',
-  USERS: 'users'
+  USERS: 'users',
+  CALL_LOCKS: 'call_locks',
 } as const
 
 // リストID(list1/list2/list3や新規作成されたslug)は customers.list_slug /
