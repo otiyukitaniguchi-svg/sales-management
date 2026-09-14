@@ -187,14 +187,44 @@ export default function ListManagement() {
         return
       }
 
-      const result: any = await ApiClient.importData(listId, records, 'append')
-      if (result.success) {
-        const autoNote = result.autoNumberedCount > 0 ? `(うちNo自動採番${result.autoNumberedCount}件)` : ''
-        setImportProgress(`✓ ${result.insertedCount ?? records.length}件をインポートしました${autoNote}`)
-        loadLists()
-      } else {
-        setImportProgress(`✗ ${result.message || 'インポートに失敗しました'}`)
+      // Vercelのサーバーレス関数はリクエストボディが4.5MBを超えると
+      // アプリのコードに届く前にプラットフォーム側で413エラー(非JSON)を返してしまう。
+      // 大きなCSVでも安全に送れるよう、JSON化したサイズを見ながら複数リクエストに分割する。
+      const MAX_BATCH_BYTES = 3_000_000 // 4.5MB上限に対して余裕を持たせる
+      const batches: FrontendCustomerRecord[][] = []
+      let currentBatch: FrontendCustomerRecord[] = []
+      let currentBytes = 0
+      for (const record of records) {
+        const recordBytes = JSON.stringify(record).length
+        if (currentBatch.length > 0 && currentBytes + recordBytes > MAX_BATCH_BYTES) {
+          batches.push(currentBatch)
+          currentBatch = []
+          currentBytes = 0
+        }
+        currentBatch.push(record)
+        currentBytes += recordBytes
       }
+      if (currentBatch.length > 0) batches.push(currentBatch)
+
+      let insertedCount = 0
+      let autoNumberedCount = 0
+      for (let i = 0; i < batches.length; i++) {
+        if (batches.length > 1) {
+          setImportProgress(`インポート中... (${i + 1}/${batches.length}件のバッチ)`)
+        }
+        const result: any = await ApiClient.importData(listId, batches[i], 'append')
+        if (!result.success) {
+          setImportProgress(`✗ ${result.message || 'インポートに失敗しました'}（${insertedCount}件まで登録済み）`)
+          loadLists()
+          return
+        }
+        insertedCount += result.insertedCount ?? batches[i].length
+        autoNumberedCount += result.autoNumberedCount ?? 0
+      }
+
+      const autoNote = autoNumberedCount > 0 ? `(うちNo自動採番${autoNumberedCount}件)` : ''
+      setImportProgress(`✓ ${insertedCount}件をインポートしました${autoNote}`)
+      loadLists()
     } catch (e: any) {
       setImportProgress(`✗ エラー: ${e.message || '不明なエラー'}`)
     }
