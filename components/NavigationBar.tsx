@@ -34,10 +34,32 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   const toggleSidebar = useAppStore((state) => state.toggleSidebar)
   const [jumpNo, setJumpNo] = useState('')
   const [showListView, setShowListView] = useState(false)
+  // スクラブバーをドラッグ中のプレビュー位置。null のときは通常どおり currentIndex を表示する。
+  // ドラッグ中は毎ピクセルごとに架電履歴/ロック確認のAPIを叩かないよう、実際のレコード
+  // 切り替え(setCurrentListIndex等)はドラッグ終了(マウスアップ/タッチ終了/キー確定)時にのみ行う
+  const [scrubIndex, setScrubIndex] = useState<number | null>(null)
 
   const currentData = isSearchMode ? searchResults : listData[currentList]
   const currentIndex = isSearchMode ? searchResultIndex : currentListIndex
   const totalCount = currentData?.length || 0
+  const displayIndex = scrubIndex ?? currentIndex
+  const displayItem = currentData?.[displayIndex]
+  const displayNo = displayItem ? (isSearchMode ? (displayItem as any).record?.no : (displayItem as any).no) : undefined
+
+  const commitIndex = (index: number) => {
+    if (isSearchMode) {
+      setSearchResultIndex(index)
+    } else {
+      setCurrentListIndex(index)
+    }
+  }
+
+  const commitScrub = () => {
+    if (scrubIndex !== null) {
+      commitIndex(scrubIndex)
+      setScrubIndex(null)
+    }
+  }
 
   const handleLogout = async () => {
     if (confirm('ログアウトしますか？')) {
@@ -156,7 +178,8 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
   }
 
   return (
-    <div className="bg-gradient-to-b from-gray-100 to-gray-300 border-b border-gray-600 px-3 py-2 flex items-center gap-2">
+    <div className="bg-gradient-to-b from-gray-100 to-gray-300 border-b border-gray-600 px-3 py-2 flex flex-col gap-1">
+      <div className="flex items-center gap-2">
       <button
         onClick={toggleSidebar}
         title={isSidebarVisible ? 'サイドバーを隠す' : 'サイドバーを表示'}
@@ -233,6 +256,29 @@ export default function NavigationBar({ onImport, onSearch }: NavigationBarProps
           ログアウト
         </button>
       </div>
+    </div>
+
+      {!isReportMode && totalCount > 0 && (
+        <div className="flex items-center gap-2 px-1">
+          <input
+            type="range"
+            min={0}
+            max={totalCount - 1}
+            step={1}
+            value={displayIndex}
+            onChange={(e) => setScrubIndex(Number(e.target.value))}
+            onMouseUp={commitScrub}
+            onTouchEnd={commitScrub}
+            onKeyUp={commitScrub}
+            disabled={isLoading}
+            title={`No. ${displayNo ?? ''}（${displayIndex + 1} / ${totalCount}）`}
+            className="flex-1 accent-blue-600 cursor-pointer disabled:cursor-not-allowed"
+          />
+          <span className="text-xs text-gray-600 w-32 text-right shrink-0">
+            No. {displayNo ?? '-'}（{displayIndex + 1}/{totalCount}）
+          </span>
+        </div>
+      )}
 
       {showListView && <SearchResultsListModal onClose={() => setShowListView(false)} />}
     </div>

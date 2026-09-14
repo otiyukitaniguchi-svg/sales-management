@@ -291,6 +291,19 @@ export class ApiClient {
   }
 
   /**
+   * Persist a new display order for lists (admin only). Pass the full set of
+   * list IDs in the desired order; the index of each ID becomes its sort_order.
+   */
+  static async reorderLists(ids: string[]): Promise<ApiResponse> {
+    const response = await apiFetch(`${API_BASE}/admin/lists/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    })
+    return response.json()
+  }
+
+  /**
    * Search records within a single list by No/company name, for the admin
    * record-deletion UI (admin only)
    */

@@ -141,6 +141,23 @@ export default function ListManagement() {
     }
   }
 
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= lists.length) return
+
+    const reordered = [...lists]
+    ;[reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]]
+
+    const previous = lists
+    setLists(reordered) // 楽観的に即反映し、失敗したら元に戻す
+
+    const result = await ApiClient.reorderLists(reordered.map((l) => l.id))
+    if (!result.success) {
+      setLists(previous)
+      setError(result.message || '並び替えに失敗しました')
+    }
+  }
+
   const handleImportFile = async (listId: string, file: File) => {
     setImportProgress('ファイルを読み込み中...')
     setError('')
@@ -274,13 +291,34 @@ export default function ListManagement() {
         <table className="w-full border-collapse border border-gray-300">
           <thead>
             <tr className="bg-blue-200">
+              <th className="border border-gray-300 px-3 py-2 text-center w-20">並び替え</th>
               <th className="border border-gray-300 px-3 py-2 text-left">リスト名</th>
               <th className="border border-gray-300 px-3 py-2 text-center">操作</th>
             </tr>
           </thead>
           <tbody>
-            {lists.map((list) => (
+            {lists.map((list, index) => (
               <tr key={list.id} className="bg-white">
+                <td className="border border-gray-300 px-3 py-2">
+                  <div className="flex gap-1 justify-center">
+                    <button
+                      onClick={() => handleMove(index, -1)}
+                      disabled={index === 0}
+                      title="上へ移動"
+                      className="px-2 py-1 bg-gray-200 rounded text-sm font-bold hover:bg-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => handleMove(index, 1)}
+                      disabled={index === lists.length - 1}
+                      title="下へ移動"
+                      className="px-2 py-1 bg-gray-200 rounded text-sm font-bold hover:bg-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </td>
                 <td className="border border-gray-300 px-3 py-2">
                   {renamingId === list.id ? (
                     <input
