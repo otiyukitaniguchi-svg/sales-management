@@ -354,6 +354,7 @@ export default function CustomerDetail() {
         setSaveMessage('✗ 削除に失敗しました')
       } finally {
         setIsSaving(false)
+        setIsLoading(false)
       }
     } else {
       if (isLocked) return
