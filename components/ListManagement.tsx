@@ -76,6 +76,10 @@ export default function ListManagement() {
     }
   }
 
+  const handleExport = (list: ListDefinition) => {
+    window.location.href = `/api/lists/${encodeURIComponent(list.slug)}/export`
+  }
+
   const handleDelete = async (list: ListDefinition) => {
     const precheck = await ApiClient.deleteList(list.id, false)
     const count = precheck.customerCount ?? 0
@@ -364,6 +368,12 @@ export default function ListManagement() {
                             className="px-3 py-1 bg-purple-500 text-white rounded text-sm font-bold hover:bg-purple-600"
                           >
                             インポート
+                          </button>
+                          <button
+                            onClick={() => handleExport(list)}
+                            className="px-3 py-1 bg-emerald-600 text-white rounded text-sm font-bold hover:bg-emerald-700"
+                          >
+                            CSV出力
                           </button>
                           <button
                             onClick={() => toggleRecordMgmt(list)}
