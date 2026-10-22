@@ -1,4 +1,6 @@
 export const dynamic = "force-dynamic"
+// 大きなCSVでも途中でタイムアウトして一部(例: 1000件)しか入らない事態を防ぐ
+export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, verifyListExists, getNextGlobalNos, TABLES } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'

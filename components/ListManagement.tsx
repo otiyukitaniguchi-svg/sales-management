@@ -207,13 +207,19 @@ export default function ListManagement() {
       // Vercelのサーバーレス関数はリクエストボディが4.5MBを超えると
       // アプリのコードに届く前にプラットフォーム側で413エラー(非JSON)を返してしまう。
       // 大きなCSVでも安全に送れるよう、JSON化したサイズを見ながら複数リクエストに分割する。
+      // さらに1リクエストあたりの件数も抑え、サーバー関数の実行時間上限内に確実に収める
+      // (件数無制限だと数千件を1リクエストで処理しようとしてタイムアウトし、途中までしか入らなかった)
       const MAX_BATCH_BYTES = 3_000_000 // 4.5MB上限に対して余裕を持たせる
+      const MAX_BATCH_RECORDS = 500
       const batches: FrontendCustomerRecord[][] = []
       let currentBatch: FrontendCustomerRecord[] = []
       let currentBytes = 0
       for (const record of records) {
         const recordBytes = JSON.stringify(record).length
-        if (currentBatch.length > 0 && currentBytes + recordBytes > MAX_BATCH_BYTES) {
+        if (
+          currentBatch.length > 0 &&
+          (currentBytes + recordBytes > MAX_BATCH_BYTES || currentBatch.length >= MAX_BATCH_RECORDS)
+        ) {
           batches.push(currentBatch)
           currentBatch = []
           currentBytes = 0
@@ -227,15 +233,26 @@ export default function ListManagement() {
       let autoNumberedCount = 0
       for (let i = 0; i < batches.length; i++) {
         if (batches.length > 1) {
-          setImportProgress(`インポート中... (${i + 1}/${batches.length}件のバッチ)`)
+          setImportProgress(`インポート中... (${i + 1}/${batches.length}バッチ、${insertedCount}件登録済み)`)
         }
-        const result: any = await ApiClient.importData(listId, batches[i], 'append')
+        let result: any
+        try {
+          result = await ApiClient.importData(listId, batches[i], 'append')
+        } catch {
+          // タイムアウト等でサーバーがJSON以外(HTMLのエラーページ)を返した場合
+          result = { success: false, message: 'サーバーの応答がありませんでした(タイムアウトの可能性)' }
+        }
         if (!result.success) {
           setImportProgress(`✗ ${result.message || 'インポートに失敗しました'}（${insertedCount}件まで登録済み）`)
           loadLists()
           return
         }
         insertedCount += result.insertedCount ?? batches[i].length
+        if (result.errorCount > 0) {
+          setImportProgress(`✗ ${result.errorCount}件の登録に失敗しました（${insertedCount}件まで登録済み）`)
+          loadLists()
+          return
+        }
         autoNumberedCount += result.autoNumberedCount ?? 0
       }
 

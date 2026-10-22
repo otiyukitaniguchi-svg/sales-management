@@ -62,26 +62,34 @@ export async function getNextGlobalNos(
 ): Promise<string[]> {
   if (count <= 0) return []
 
-  let from = 0
+  // 1リクエスト最大1000件のため、件数を先に取得してページを並列取得する
+  // (直列だと顧客数に比例して遅くなり、インポートがタイムアウトする原因になっていた)。
+  // 並列.range()ページが重複/欠落なく分割されるよう一意な(list_slug, no)で並べる
   const pageSize = 1000
+  const { count: total, error: countError } = await supabaseAdmin
+    .from(TABLES.CUSTOMERS)
+    .select('*', { count: 'exact', head: true })
+  if (countError) throw countError
+
+  const pageCount = Math.max(1, Math.ceil((total || 0) / pageSize))
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, (_, i) =>
+      supabaseAdmin
+        .from(TABLES.CUSTOMERS)
+        .select('no')
+        .order('list_slug', { ascending: true })
+        .order('no', { ascending: true })
+        .range(i * pageSize, i * pageSize + pageSize - 1)
+    )
+  )
+
   let maxNo = 0
-
-  while (true) {
-    const { data, error } = await supabaseAdmin
-      .from(TABLES.CUSTOMERS)
-      .select('no')
-      .range(from, from + pageSize - 1)
-
+  for (const { data, error } of pages) {
     if (error) throw error
-    if (!data || data.length === 0) break
-
-    for (const row of data) {
+    for (const row of data || []) {
       const n = parseInt(row.no, 10)
       if (!isNaN(n) && n > maxNo) maxNo = n
     }
-
-    if (data.length < pageSize) break
-    from += pageSize
   }
 
   return Array.from({ length: count }, (_, i) => String(maxNo + 1 + i))
