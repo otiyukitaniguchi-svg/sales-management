@@ -315,6 +315,19 @@ export class ApiClient {
   /**
    * Delete a single customer record (and its call history) from a list (admin only)
    */
+  /**
+   * Count / delete customer records in a list that have nothing but a No (admin only)
+   */
+  static async countBlankRecords(listId: string): Promise<ApiResponse & { blankCount?: number }> {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/blank-records`)
+    return response.json()
+  }
+
+  static async deleteBlankRecords(listId: string): Promise<ApiResponse & { deletedCount?: number }> {
+    const response = await apiFetch(`${API_BASE}/lists/${listId}/blank-records`, { method: 'DELETE' })
+    return response.json()
+  }
+
   static async deleteRecord(listId: string, no: string): Promise<ApiResponse & { deletedHistoryCount?: number }> {
     const response = await apiFetch(`${API_BASE}/lists/${listId}/records/${encodeURIComponent(no)}`, {
       method: 'DELETE',

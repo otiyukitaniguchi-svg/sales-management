@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, verifyListExists, getNextGlobalNos, TABLES } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'
 import { requireAdmin } from '@/lib/auth'
+import { isBlankCustomerRecord } from '@/lib/csvImport'
 
 interface ImportRequestBody {
   data: FrontendCustomerRecord[]
@@ -38,6 +39,11 @@ export async function POST(
 
     const mode = body.mode || 'append'
 
+    // No以外が空のレコードは登録しない(列名が合わないCSVを取り込むと、
+    // 件数分の空レコードだけが作られて画面が真っ白になっていた)
+    const nonBlankData = body.data.filter((record) => !isBlankCustomerRecord(record))
+    const skippedBlankCount = body.data.length - nonBlankData.length
+
     // If replace mode, delete all existing records for this list only
     if (mode === 'replace') {
       const { error: deleteError } = await supabaseAdmin
@@ -51,10 +57,10 @@ export async function POST(
     }
 
     // No未入力の行には、全リストを通した連番を自動採番する(新規レコード作成と同じ基準)
-    const blankNoCount = body.data.filter((record) => !record.no || !String(record.no).trim()).length
+    const blankNoCount = nonBlankData.filter((record) => !record.no || !String(record.no).trim()).length
     const autoNos = blankNoCount > 0 ? await getNextGlobalNos(supabaseAdmin, blankNoCount) : []
     let autoNoIndex = 0
-    const dataWithNos = body.data.map((record) => {
+    const dataWithNos = nonBlankData.map((record) => {
       if (record.no && String(record.no).trim()) return record
       return { ...record, no: autoNos[autoNoIndex++] }
     })
@@ -91,11 +97,13 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: `インポート完了: ${insertedCount}件挿入, ${errorCount}件エラー` +
-        (blankNoCount > 0 ? ` (うちNo未入力${blankNoCount}件は自動採番)` : ''),
+        (blankNoCount > 0 ? ` (うちNo未入力${blankNoCount}件は自動採番)` : '') +
+        (skippedBlankCount > 0 ? ` (空行${skippedBlankCount}件はスキップ)` : ''),
       insertedCount,
       errorCount,
       totalRecords: body.data.length,
       autoNumberedCount: blankNoCount,
+      skippedBlankCount,
     })
   } catch (error: any) {
     console.error('Error in importData:', error)

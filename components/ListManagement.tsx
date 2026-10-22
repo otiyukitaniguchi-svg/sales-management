@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Papa from 'papaparse'
+import { resolveCsvColumns, mapCsvRow, isBlankCustomerRecord, ACCEPTED_HEADER_EXAMPLES } from '@/lib/csvImport'
 import { ApiClient } from '@/lib/api-client'
 import { ListDefinition, FrontendCustomerRecord } from '@/lib/types'
 
@@ -78,6 +79,31 @@ export default function ListManagement() {
 
   const handleExport = (list: ListDefinition) => {
     window.location.href = `/api/lists/${encodeURIComponent(list.slug)}/export`
+  }
+
+  // 列名が合わないCSVの取り込みで作られた、No以外が空のレコードをまとめて削除する
+  const handleDeleteBlankRecords = async (list: ListDefinition) => {
+    setError('')
+    const precheck = await ApiClient.countBlankRecords(list.slug)
+    if (!precheck.success) {
+      setError(precheck.message || '空レコードの確認に失敗しました')
+      return
+    }
+    const count = precheck.blankCount ?? 0
+    if (count === 0) {
+      setMessage(`「${list.name}」に空レコードはありません`)
+      setTimeout(() => setMessage(''), 3000)
+      return
+    }
+    if (!confirm(`「${list.name}」の空レコード(No以外が未入力・架電履歴なし)${count}件を削除します。よろしいですか？`)) return
+    const result = await ApiClient.deleteBlankRecords(list.slug)
+    if (result.success) {
+      setMessage(`✓ 空レコード${result.deletedCount ?? 0}件を削除しました`)
+      setTimeout(() => setMessage(''), 5000)
+      loadLists()
+    } else {
+      setError(result.message || '空レコードの削除に失敗しました')
+    }
   }
 
   const handleDelete = async (list: ListDefinition) => {
@@ -166,42 +192,36 @@ export default function ListManagement() {
     setImportProgress('ファイルを読み込み中...')
     setError('')
     try {
-      const text = await file.text()
+      // Excelで保存したCSVはShift-JISのことが多い。UTF-8として読めなければShift-JISで読み直す
+      // (文字化けすると日本語の列名が一致せず、全項目が空のまま取り込まれてしまう)
+      const buffer = await file.arrayBuffer()
+      let text: string
+      try {
+        text = new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+      } catch {
+        text = new TextDecoder('shift_jis').decode(buffer)
+      }
       const parsed = Papa.parse<Record<string, string>>(text, {
         header: true,
         skipEmptyLines: true,
         delimiter: file.name.endsWith('.tsv') ? '\t' : undefined,
       })
 
+      // 列名は英語名(companyName等)だけでなく「会社名」「電話番号」「住所」などの日本語名も受け付ける。
+      // 列名が1つも合わないまま取り込むと、No以外が空のレコードが件数分だけ登録されてしまうため止める
+      const mapping = resolveCsvColumns(parsed.meta.fields || [])
+      if (!mapping.columns.companyName && !mapping.columns.fixedNo && !mapping.columns.address) {
+        setImportProgress(
+          `✗ 企業名・電話番号・住所の列が見つかりませんでした。1行目の列名を確認してください(対応する列名: ${ACCEPTED_HEADER_EXAMPLES})`
+        )
+        return
+      }
+
       const records: FrontendCustomerRecord[] = (parsed.data || [])
-        // 企業名・住所など何かしら値がある行だけを対象にする(完全な空行を除外)。
+        .map((row) => mapCsvRow(row, mapping))
+        // 取り込み対象の項目に何も値がない行は除外する。
         // Noが空欄の行はサーバー側で全リスト共通の連番を自動採番する
-        .filter((row) => Object.values(row).some((v) => (v || '').trim()))
-        .map((row) => ({
-          no: row.no,
-          companyKana: row.companyKana,
-          companyName: row.companyName,
-          fixedNo: row.fixedNo,
-          otherContact: row.otherContact,
-          zipCode: row.zipCode,
-          addressKana: row.addressKana,
-          address: row.address,
-          repKana: row.repKana,
-          repName: row.repName,
-          staffKana: row.staffKana,
-          staffName: row.staffName,
-          email: row.email,
-          industry: row.industry,
-          memo: row.memo,
-          sales: row.sales,
-          software: row.software,
-          decision: row.decision,
-          subsidy: row.subsidy,
-          accountant: row.accountant,
-          established: row.established,
-          recallDate: row.recallDate,
-          recallTime: row.recallTime,
-        }))
+        .filter((record) => !isBlankCustomerRecord(record))
 
       if (records.length === 0) {
         setImportProgress('✗ インポート可能なデータが見つかりませんでした')
@@ -261,7 +281,11 @@ export default function ListManagement() {
       }
 
       const autoNote = autoNumberedCount > 0 ? `(うちNo自動採番${autoNumberedCount}件)` : ''
-      setImportProgress(`✓ ${insertedCount}件をインポートしました${autoNote}`)
+      const ignoredNote = mapping.ignoredHeaders.length > 0
+        ? `
+取り込まなかった列: ${mapping.ignoredHeaders.join(', ')}`
+        : ''
+      setImportProgress(`✓ ${insertedCount}件をインポートしました${autoNote}${ignoredNote}`)
       loadLists()
     } catch (e: any) {
       setImportProgress(`✗ エラー: ${e.message || '不明なエラー'}`)
@@ -393,6 +417,12 @@ export default function ListManagement() {
                             CSV出力
                           </button>
                           <button
+                            onClick={() => handleDeleteBlankRecords(list)}
+                            className="px-3 py-1 bg-gray-500 text-white rounded text-sm font-bold hover:bg-gray-600"
+                          >
+                            空レコード削除
+                          </button>
+                          <button
                             onClick={() => toggleRecordMgmt(list)}
                             className="px-3 py-1 bg-orange-500 text-white rounded text-sm font-bold hover:bg-orange-600"
                           >
@@ -476,7 +506,7 @@ export default function ListManagement() {
                         <p className="text-xs text-gray-500 mt-1">
                           先頭行にno,companyName,fixedNo,address等の英字列名が必要です(noを空欄にすると自動採番されます)
                         </p>
-                        {importProgress && <p className="text-sm font-bold mt-1">{importProgress}</p>}
+                        {importProgress && <p className="text-sm font-bold mt-1 whitespace-pre-wrap">{importProgress}</p>}
                       </div>
                     )}
                   </div>
