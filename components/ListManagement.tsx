@@ -255,6 +255,7 @@ export default function ListManagement() {
 
       let insertedCount = 0
       let autoNumberedCount = 0
+      const failedRows: { no: string; companyName: string; message: string }[] = []
       for (let i = 0; i < batches.length; i++) {
         if (batches.length > 1) {
           setImportProgress(`インポート中... (${i + 1}/${batches.length}バッチ、${insertedCount}件登録済み)`)
@@ -272,20 +273,21 @@ export default function ListManagement() {
           return
         }
         insertedCount += result.insertedCount ?? batches[i].length
-        if (result.errorCount > 0) {
-          setImportProgress(`✗ ${result.errorCount}件の登録に失敗しました（${insertedCount}件まで登録済み）`)
-          loadLists()
-          return
-        }
+        // 一部の行だけ失敗した場合も残りのバッチは続けて登録し、最後にまとめて知らせる
+        if (Array.isArray(result.failedRows)) failedRows.push(...result.failedRows)
         autoNumberedCount += result.autoNumberedCount ?? 0
       }
 
       const autoNote = autoNumberedCount > 0 ? `(うちNo自動採番${autoNumberedCount}件)` : ''
       const ignoredNote = mapping.ignoredHeaders.length > 0
-        ? `
-取り込まなかった列: ${mapping.ignoredHeaders.join(', ')}`
+        ? `\n取り込まなかった列: ${mapping.ignoredHeaders.join(', ')}`
         : ''
-      setImportProgress(`✓ ${insertedCount}件をインポートしました${autoNote}${ignoredNote}`)
+      const failedNote = failedRows.length > 0
+        ? `\n✗ ${failedRows.length}件は登録できませんでした:\n` +
+          failedRows.slice(0, 10).map((r) => `・${r.companyName || '(企業名なし)'}: ${r.message}`).join('\n') +
+          (failedRows.length > 10 ? `\n…ほか${failedRows.length - 10}件` : '')
+        : ''
+      setImportProgress(`${failedRows.length > 0 ? '△' : '✓'} ${insertedCount}件をインポートしました${autoNote}${ignoredNote}${failedNote}`)
       loadLists()
     } catch (e: any) {
       setImportProgress(`✗ エラー: ${e.message || '不明なエラー'}`)

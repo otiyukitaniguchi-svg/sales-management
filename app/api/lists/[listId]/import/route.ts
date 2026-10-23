@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, verifyListExists, getNextGlobalNos, TABLES } from '@/lib/supabase'
 import { toDbFormat, FrontendCustomerRecord } from '@/lib/types'
 import { requireAdmin } from '@/lib/auth'
-import { isBlankCustomerRecord } from '@/lib/csvImport'
+import { isBlankCustomerRecord, fitToColumnLimits } from '@/lib/csvImport'
 
 interface ImportRequestBody {
   data: FrontendCustomerRecord[]
@@ -66,31 +66,51 @@ export async function POST(
     })
 
     // Convert to database format and tag with the target list
-    const dbRecords = dataWithNos.map((record) => ({ ...toDbFormat(record), list_slug: listId }))
+    const dbRecords = dataWithNos.map((record) => ({ ...toDbFormat(fitToColumnLimits(record)), list_slug: listId }))
 
     // Insert or upsert records in batches (Supabase has a limit of ~1000 rows per request)
     const batchSize = 500
     let insertedCount = 0
     let errorCount = 0
 
+    // 1行でも制約違反があるとバッチ全体が拒否されるため、失敗したバッチは
+    // 1行ずつ登録し直して、問題のある行だけを失敗として理由付きで返す
+    // (No.はこのリクエスト内で確定済みなので、再登録しても重複しない)
+    const failedRows: { no: string; companyName: string; message: string }[] = []
+
+    const upsertRows = async (rows: typeof dbRecords) => {
+      const { data, error } = await supabaseAdmin
+        .from(TABLES.CUSTOMERS)
+        .upsert(rows, { onConflict: 'list_slug,no' })
+        .select('no')
+      if (error) throw error
+      return data?.length || 0
+    }
+
     for (let i = 0; i < dbRecords.length; i += batchSize) {
       const batch = dbRecords.slice(i, i + batchSize)
 
       try {
-        const { data, error } = await supabaseAdmin
-          .from(TABLES.CUSTOMERS)
-          .upsert(batch, { onConflict: 'list_slug,no' })
-          .select()
-
-        if (error) {
-          console.error(`Batch ${i / batchSize + 1} error:`, error)
-          errorCount += batch.length
-        } else {
-          insertedCount += data?.length || 0
+        insertedCount += await upsertRows(batch)
+      } catch (batchError: any) {
+        console.error(`Batch ${i / batchSize + 1} error, retrying row by row:`, batchError)
+        const concurrency = 10
+        for (let j = 0; j < batch.length; j += concurrency) {
+          const results = await Promise.allSettled(batch.slice(j, j + concurrency).map((row) => upsertRows([row])))
+          results.forEach((result, k) => {
+            const row = batch[j + k]
+            if (result.status === 'fulfilled') {
+              insertedCount += result.value
+            } else {
+              errorCount += 1
+              failedRows.push({
+                no: row.no,
+                companyName: row.company_name || '',
+                message: (result.reason as any)?.message || String(result.reason),
+              })
+            }
+          })
         }
-      } catch (batchError) {
-        console.error(`Batch ${i / batchSize + 1} exception:`, batchError)
-        errorCount += batch.length
       }
     }
 
@@ -104,6 +124,7 @@ export async function POST(
       totalRecords: body.data.length,
       autoNumberedCount: blankNoCount,
       skippedBlankCount,
+      failedRows,
     })
   } catch (error: any) {
     console.error('Error in importData:', error)

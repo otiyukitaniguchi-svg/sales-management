@@ -91,5 +91,67 @@ export function isBlankCustomerRecord(record: Partial<FrontendCustomerRecord>): 
     .every((field) => !String(record[field] ?? '').trim())
 }
 
+// customersテーブルの文字数上限(supabase-migrate-unify-lists.sql)。
+// 1件でも超えるとPostgresがその行を含むバッチ全体を拒否するため、登録前に収める
+const COLUMN_LIMITS: Partial<Record<ImportField, number>> = {
+  no: 50,
+  companyKana: 255,
+  companyName: 255,
+  fixedNo: 50,
+  otherContact: 255,
+  zipCode: 20,
+  addressKana: 500,
+  address: 500,
+  repKana: 100,
+  repName: 100,
+  staffKana: 100,
+  staffName: 100,
+  email: 255,
+  industry: 100,
+  sales: 100,
+  software: 255,
+  decision: 50,
+  subsidy: 50,
+  accountant: 50,
+  established: 50,
+  recallDate: 50,
+  recallTime: 50,
+}
+
+// 文字数上限に収める。電話番号は「|」区切りで複数入っていることがあり、
+// 固定番号に入りきらない番号はその他連絡先へ回す(番号を途中で切らない)。
+// それ以外の項目で上限を超えたものは、元の値を備考に残したうえで切り詰める
+export function fitToColumnLimits(record: FrontendCustomerRecord): FrontendCustomerRecord {
+  const fitted: FrontendCustomerRecord = { ...record }
+
+  const fixedLimit = COLUMN_LIMITS.fixedNo!
+  if (fitted.fixedNo && fitted.fixedNo.length > fixedLimit) {
+    const numbers = fitted.fixedNo.split('|').map((n) => n.trim()).filter(Boolean)
+    const kept: string[] = []
+    const moved: string[] = []
+    for (const n of numbers) {
+      const candidate = [...kept, n].join('|')
+      if (moved.length === 0 && candidate.length <= fixedLimit) kept.push(n)
+      else moved.push(n)
+    }
+    fitted.fixedNo = kept.join('|')
+    fitted.otherContact = [fitted.otherContact, ...moved].filter(Boolean).join('|')
+  }
+
+  const overflowNotes: string[] = []
+  for (const [field, limit] of Object.entries(COLUMN_LIMITS) as [ImportField, number][]) {
+    if (field === 'no') continue
+    const value = fitted[field]
+    if (typeof value === 'string' && value.length > limit) {
+      overflowNotes.push(`${field}: ${value}`)
+      ;(fitted as any)[field] = value.slice(0, limit)
+    }
+  }
+  if (overflowNotes.length > 0) {
+    fitted.memo = [fitted.memo, ...overflowNotes].filter(Boolean).join('\n')
+  }
+  return fitted
+}
+
 // 列名が合わなかったときに案内するための、受け付ける主な列名
 export const ACCEPTED_HEADER_EXAMPLES = '企業名(会社名/事業所名), 電話番号(固定番号/連絡先), 住所, 郵便番号, 業種, 備考 など'
