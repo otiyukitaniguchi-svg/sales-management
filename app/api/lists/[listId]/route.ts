@@ -58,45 +58,25 @@ export async function GET(
       if (data) records = records.concat(data)
     }
 
-    // Fetch call history counts for all records (same parallel-pagination
-    // pattern; also match legacy list_type aliases so counts aren't
-    // silently short for the original 3 lists)
+    // Fetch call history counts for all records. Grouped/counted in
+    // Postgres via the get_call_counts RPC (see supabase-migrate-call-count-rpc.sql)
+    // instead of downloading every individual call-history row and counting
+    // in Node — that full-table pull was the main cause of multi-second list
+    // loads/switches as call history grew. Also match legacy list_type
+    // aliases so counts aren't silently short for the original 3 lists.
     const historyListTypes = LEGACY_LIST_TYPE_ALIASES[listId] || [listId]
-    const { count: historyCount, error: historyCountError } = await supabaseAdmin
-      .from(TABLES.CALL_HISTORY)
-      .select('*', { count: 'exact', head: true })
-      .in('list_type', historyListTypes)
+    const { data: historyCounts, error: historyCountError } = await supabaseAdmin
+      .rpc('get_call_counts', { p_list_types: historyListTypes })
 
-    let historyData: { no: string }[] = []
     if (historyCountError) {
       console.error('Call history count error:', historyCountError)
-    } else {
-      const historyPageCount = Math.max(1, Math.ceil((historyCount || 0) / pageSize))
-      const historyPages = await Promise.all(
-        Array.from({ length: historyPageCount }, (_, i) =>
-          supabaseAdmin
-            .from(TABLES.CALL_HISTORY)
-            .select('no')
-            .in('list_type', historyListTypes)
-            // 並列.range()ページが安定して重複/欠落なく分割されるよう明示的な順序を指定する
-            .order('id', { ascending: true })
-            .range(i * pageSize, i * pageSize + pageSize - 1)
-        )
-      )
-      for (const { data, error } of historyPages) {
-        if (error) {
-          console.error('Call history fetch error:', error)
-          continue
-        }
-        if (data) historyData = historyData.concat(data)
-      }
     }
 
     // Create a map of no -> call count
     const historyCountMap: Record<string, number> = {}
-    if (historyData) {
-      historyData.forEach((item) => {
-        historyCountMap[item.no] = (historyCountMap[item.no] || 0) + 1
+    if (historyCounts) {
+      ;(historyCounts as { no: string; cnt: number }[]).forEach((row) => {
+        historyCountMap[row.no] = Number(row.cnt)
       })
     }
 
