@@ -11,6 +11,57 @@ const LEGACY_LIST_TYPE_ALIASES: Record<string, string[]> = {
   list3: ['list3', 'モバイルリスト'],
 }
 
+// レコードを全件取得する。Supabaseは1リクエストあたり最大1000行なので、
+// 1ページ目はcountを同時取得してその結果で必要なページ数を判断し、
+// 残りのページ(あれば)を並列取得する(countだけの往復を減らすため)
+async function fetchAllCustomerRecords(listId: string, pageSize: number): Promise<CustomerRecord[]> {
+  const { data: firstPage, count, error } = await supabaseAdmin
+    .from(TABLES.CUSTOMERS)
+    .select('*', { count: 'exact' })
+    .eq('list_slug', listId)
+    .order('no', { ascending: true })
+    .range(0, pageSize - 1)
+
+  if (error) throw error
+
+  let records: CustomerRecord[] = firstPage || []
+  const pageCount = Math.max(1, Math.ceil((count || 0) / pageSize))
+  if (pageCount > 1) {
+    const remainingPages = await Promise.all(
+      Array.from({ length: pageCount - 1 }, (_, i) => {
+        const page = i + 1
+        return supabaseAdmin
+          .from(TABLES.CUSTOMERS)
+          .select('*')
+          .eq('list_slug', listId)
+          .order('no', { ascending: true })
+          .range(page * pageSize, page * pageSize + pageSize - 1)
+      })
+    )
+    for (const { data, error: pageError } of remainingPages) {
+      if (pageError) throw pageError
+      if (data) records = records.concat(data)
+    }
+  }
+  return records
+}
+
+// 架電件数をPostgres側でGROUP BY集計して取得する(get_call_counts RPC、
+// see supabase-migrate-call-count-rpc.sql)。個々の履歴行を全件取得して
+// Node側で数えるより転送量が圧倒的に少なく、リスト読み込みが速くなる
+async function fetchCallCountMap(listTypes: string[]): Promise<Record<string, number>> {
+  const { data, error } = await supabaseAdmin.rpc('get_call_counts', { p_list_types: listTypes })
+  if (error) {
+    console.error('Call history count error:', error)
+    return {}
+  }
+  const map: Record<string, number> = {}
+  ;(data as { no: string; cnt: number }[] | null)?.forEach((row) => {
+    map[row.no] = Number(row.cnt)
+  })
+  return map
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { listId: string } }
@@ -27,58 +78,14 @@ export async function GET(
 
     const pageSize = 1000
 
-    // Fetch all records from the list. Supabase caps a single request at
-    // ~1000 rows, so first get the total count, then fire the needed
-    // .range() pages in parallel instead of awaiting them one at a time
-    // (sequential pagination was the main cause of multi-second list loads).
-    const { count: recordCount, error: countError } = await supabaseAdmin
-      .from(TABLES.CUSTOMERS)
-      .select('*', { count: 'exact', head: true })
-      .eq('list_slug', listId)
-
-    if (countError) {
-      throw countError
-    }
-
-    const recordPageCount = Math.max(1, Math.ceil((recordCount || 0) / pageSize))
-    const recordPages = await Promise.all(
-      Array.from({ length: recordPageCount }, (_, i) =>
-        supabaseAdmin
-          .from(TABLES.CUSTOMERS)
-          .select('*')
-          .eq('list_slug', listId)
-          .order('no', { ascending: true })
-          .range(i * pageSize, i * pageSize + pageSize - 1)
-      )
-    )
-
-    let records: CustomerRecord[] = []
-    for (const { data, error } of recordPages) {
-      if (error) throw error
-      if (data) records = records.concat(data)
-    }
-
-    // Fetch call history counts for all records. Grouped/counted in
-    // Postgres via the get_call_counts RPC (see supabase-migrate-call-count-rpc.sql)
-    // instead of downloading every individual call-history row and counting
-    // in Node — that full-table pull was the main cause of multi-second list
-    // loads/switches as call history grew. Also match legacy list_type
-    // aliases so counts aren't silently short for the original 3 lists.
+    // Fetch all records from the list, and the per-record call counts for
+    // it, concurrently — these two queries don't depend on each other, so
+    // awaiting them one after another was pure wasted latency.
     const historyListTypes = LEGACY_LIST_TYPE_ALIASES[listId] || [listId]
-    const { data: historyCounts, error: historyCountError } = await supabaseAdmin
-      .rpc('get_call_counts', { p_list_types: historyListTypes })
-
-    if (historyCountError) {
-      console.error('Call history count error:', historyCountError)
-    }
-
-    // Create a map of no -> call count
-    const historyCountMap: Record<string, number> = {}
-    if (historyCounts) {
-      ;(historyCounts as { no: string; cnt: number }[]).forEach((row) => {
-        historyCountMap[row.no] = Number(row.cnt)
-      })
-    }
+    const [records, historyCountMap] = await Promise.all([
+      fetchAllCustomerRecords(listId, pageSize),
+      fetchCallCountMap(historyListTypes),
+    ])
 
     // Convert to frontend format and add call history count
     const frontendRecords = (records || []).map((record: CustomerRecord) => {
