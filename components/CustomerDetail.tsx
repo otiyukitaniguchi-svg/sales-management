@@ -7,6 +7,7 @@ import { FrontendCustomerRecord, FrontendCallHistoryEntry } from '@/lib/types'
 import { PROGRESS_OPTIONS, GENDER_OPTIONS } from '@/lib/labels'
 import CalendarEventModal from './CalendarEventModal'
 import IndustryPickerModal from './IndustryPickerModal'
+import SearchListSelect from './SearchListSelect'
 
 export default function CustomerDetail() {
   const currentList = useAppStore((state) => state.currentList)
@@ -46,6 +47,7 @@ export default function CustomerDetail() {
   const [isSearching, setIsSearching] = useState(false)
   // 履歴検索の範囲（'latest' = 最新履歴のみ / 'all' = 過去履歴すべて）
   const [historyScope, setHistoryScope] = useState<'latest' | 'all'>('latest')
+  const [searchListId, setSearchListId] = useState('')
   // 再コール日時が未設定のレコードだけを検索する(日付/時間を空欄にしただけでは
   // 「条件なし」と区別できないため、明示的なチェックボックスで指定する)
   const [searchRecallUnset, setSearchRecallUnset] = useState(false)
@@ -387,6 +389,7 @@ export default function CustomerDetail() {
   }
 
   const handleClearSearch = async () => {
+    setSearchListId('')
     setIsSearchMode(false)
     setSearchRecord({})
     setSearchHistory({})
@@ -416,6 +419,7 @@ export default function CustomerDetail() {
     setIsSearching(true)
     try {
       const params = new URLSearchParams()
+      if (searchListId) params.set('listId', searchListId)
       if (searchRecord.no) params.append('no', searchRecord.no)
       if (searchRecord.companyName) params.append('companyName', searchRecord.companyName)
       if (searchRecord.address) params.append('address', searchRecord.address)
@@ -450,6 +454,11 @@ export default function CustomerDetail() {
 
       const response = await fetch(`/api/search?${params.toString()}`)
       const data = await response.json()
+
+      if (!data.success) {
+        setSaveMessage('✗ ' + (data.message || '検索に失敗しました'))
+        return
+      }
 
       if (data.success && data.results.length > 0) {
         // 検索結果をグローバルストアの検索結果としてセット
@@ -520,7 +529,7 @@ export default function CustomerDetail() {
     <div className="flex-1 flex flex-col h-full bg-gray-50 overflow-hidden tracking-wider">
       {/* 上部アクションバー */}
       <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button 
             onClick={toggleSearchMode}
             className={`px-4 py-1 rounded text-sm font-medium transition-colors ${
@@ -531,6 +540,9 @@ export default function CustomerDetail() {
           >
             {isSearchMode ? '検索キャンセル' : '検索モード開始'}
           </button>
+          {isSearchMode && (
+            <SearchListSelect value={searchListId} onChange={setSearchListId} disabled={isSearching} />
+          )}
           {isSearchMode && (
             <button
               onClick={handleSearchExecute}

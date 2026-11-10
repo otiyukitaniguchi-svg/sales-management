@@ -48,6 +48,7 @@ function escapeOrValue(v: string): string {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    const requestedListId = searchParams.get('listId')?.trim() || ''
 
     // --- 顧客基本情報の検索条件（部分一致） ---
     const no = searchParams.get('no')
@@ -94,12 +95,25 @@ export async function GET(request: NextRequest) {
       no || companyName || companyKana || address || repName || staffName || memo ||
       fixedNo || otherContact || email || industry
     )
-    if (!hasCustomerCond && !hasHistorySearch && !hasRecallSearch) {
+    if (!requestedListId && !hasCustomerCond && !hasHistorySearch && !hasRecallSearch) {
       return NextResponse.json(
         { success: false, message: '検索条件が指定されていません' },
         { status: 400 }
       )
     }
+
+    const { data: listRows, error: listsError } = await supabaseAdmin
+      .from(TABLES.LISTS)
+      .select('slug')
+    if (listsError) throw listsError
+    const availableListIds = (listRows || []).map((list) => list.slug as string)
+    if (requestedListId && !availableListIds.includes(requestedListId)) {
+      return NextResponse.json({ success: false, message: '検索対象のリストが見つかりません。リストを選び直してください' }, { status: 400 })
+    }
+    const allListIds = requestedListId ? [requestedListId] : availableListIds
+    const historyListTypes = requestedListId
+      ? LEGACY_LIST_TYPE_ALIASES[requestedListId] || [requestedListId]
+      : null
 
     // --- 架電履歴による絞り込み ---
     // 「最新履歴」ではなく「いずれかの履歴」が条件に一致すれば候補とする
@@ -111,21 +125,25 @@ export async function GET(request: NextRequest) {
       // 件数を先に取得し、必要なページを並列取得する(直列だと架電履歴が
       // 多いほど比例して遅くなるため)
       const pageSize = 1000
-      const { count: historyTotal, error: historyCountErr } = await supabaseAdmin
+      let historyCountQuery = supabaseAdmin
         .from(TABLES.CALL_HISTORY)
         .select('*', { count: 'exact', head: true })
+      if (historyListTypes) historyCountQuery = historyCountQuery.in('list_type', historyListTypes)
+      const { count: historyTotal, error: historyCountErr } = await historyCountQuery
       if (historyCountErr) throw historyCountErr
 
       const historyPageCount = Math.max(1, Math.ceil((historyTotal || 0) / pageSize))
       const historyPages = await Promise.all(
-        Array.from({ length: historyPageCount }, (_, i) =>
-          supabaseAdmin
+        Array.from({ length: historyPageCount }, (_, i) => {
+          let historyQuery = supabaseAdmin
             .from(TABLES.CALL_HISTORY)
             .select('list_type, no, operator, date, start_time, end_time, responder, gender, progress, note, created_at')
             // 並列.range()ページが安定して重複/欠落なく分割されるよう明示的な順序を指定する
             .order('id', { ascending: true })
             .range(i * pageSize, i * pageSize + pageSize - 1)
-        )
+          if (historyListTypes) historyQuery = historyQuery.in('list_type', historyListTypes)
+          return historyQuery
+        })
       )
       const allHistory: any[] = []
       for (const { data, error } of historyPages) {
@@ -240,12 +258,6 @@ export async function GET(request: NextRequest) {
     }
 
     // --- 顧客テーブル検索(リストごとに並列実行) ---
-    const { data: listRows, error: listsError } = await supabaseAdmin
-      .from(TABLES.LISTS)
-      .select('slug')
-    if (listsError) throw listsError
-    const allListIds = (listRows || []).map((l) => l.slug as string)
-
     const perListResults = await Promise.all(allListIds.map(async (listId) => {
       if (hasHistorySearch && !matchedByList.has(listId)) return { items: [], truncated: false }
 

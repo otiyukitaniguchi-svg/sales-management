@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { FrontendCustomerRecord } from '@/lib/types'
+import SearchListSelect from './SearchListSelect'
 
 interface SearchModalProps {
   isOpen: boolean
@@ -36,6 +37,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   })
   // 履歴検索の範囲（'latest' = 最新履歴のみ / 'all' = 過去全件）
   const [historyScope, setHistoryScope] = useState<'latest' | 'all'>('latest')
+  const [searchListId, setSearchListId] = useState('')
 
   const handleSearchFieldChange = (field: string, value: string) => {
     setSearchFields((prev) => ({
@@ -47,6 +49,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const handleSearch = async () => {
     try {
       const params = new URLSearchParams()
+      if (searchListId) params.set('listId', searchListId)
       if (searchFields.companyName) params.append('companyName', searchFields.companyName)
       if (searchFields.companyKana) params.append('companyKana', searchFields.companyKana)
       if (searchFields.address) params.append('address', searchFields.address)
@@ -96,6 +99,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   }
 
   const handleClear = () => {
+    setSearchListId('')
     setSearchFields({
       companyName: '',
       companyKana: '',
@@ -126,6 +130,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold">顧客検索</h2>
+          <SearchListSelect value={searchListId} onChange={setSearchListId} />
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-600">履歴検索範囲:</span>
             <div className="flex items-center border border-gray-300 rounded overflow-hidden text-xs" role="group">
