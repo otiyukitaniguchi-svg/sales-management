@@ -5,12 +5,32 @@ import Papa from 'papaparse'
 import { resolveCsvColumns, mapCsvRow, isBlankCustomerRecord, ACCEPTED_HEADER_EXAMPLES } from '@/lib/csvImport'
 import { ApiClient } from '@/lib/api-client'
 import { ListDefinition, FrontendCustomerRecord } from '@/lib/types'
+import { useAppStore } from '@/lib/store'
 
 export default function ListManagement() {
   const [lists, setLists] = useState<ListDefinition[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [groupDrafts, setGroupDrafts] = useState<Record<string, string>>({})
+  const [savingGroup, setSavingGroup] = useState<string | null>(null)
+  const syncLists = useAppStore((state) => state.setLists)
+  const groupNames = Array.from(new Set(lists.map((list) => list.group_name).filter((name): name is string => Boolean(name))))
+
+  const handleGroupSave = async (list: ListDefinition) => {
+    setSavingGroup(list.id)
+    setError('')
+    setMessage('')
+    try {
+      const result = await ApiClient.setListGroup(list.id, groupDrafts[list.id] ?? list.group_name ?? '')
+      if (!result.success) { setError(result.message || 'グループの保存に失敗しました'); return }
+      await loadLists()
+      setGroupDrafts((drafts) => { const next = { ...drafts }; delete next[list.id]; return next })
+      setMessage('グループを保存しました')
+    } catch {
+      setError('グループの保存に失敗しました。通信状態を確認してください')
+    } finally { setSavingGroup(null) }
+  }
 
   const [newListName, setNewListName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
@@ -33,6 +53,7 @@ export default function ListManagement() {
       const result = await ApiClient.listLists()
       if (result.success && result.data) {
         setLists(result.data)
+        syncLists(result.data)
       } else {
         setError(result.message || 'リストの取得に失敗しました')
       }
@@ -309,6 +330,8 @@ export default function ListManagement() {
       </div>
 
       {message && <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">{message}</div>}
+      <p className="text-sm text-gray-600">グループ名を入力して保存すると、架電リストをまとめられます。同じ名前で同じグループになり、空欄で保存すると未分類に戻ります。</p>
+      <datalist id="list-group-names">{groupNames.map((name) => <option key={name} value={name} />)}</datalist>
       {error && <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
 
       {isCreating && (
@@ -340,6 +363,7 @@ export default function ListManagement() {
             <tr className="bg-blue-200">
               <th className="border border-gray-300 px-3 py-2 text-center w-20">並び替え</th>
               <th className="border border-gray-300 px-3 py-2 text-left">リスト名</th>
+              <th className="border border-gray-300 px-3 py-2 text-left">グループ</th>
               <th className="border border-gray-300 px-3 py-2 text-center">操作</th>
             </tr>
           </thead>
@@ -376,6 +400,19 @@ export default function ListManagement() {
                   ) : (
                     list.name
                   )}
+                </td>
+                <td className="border border-gray-300 px-3 py-2">
+                  <div className="flex gap-2">
+                    <input aria-label={`${list.name}のグループ`} list="list-group-names" maxLength={100}
+                      placeholder="未分類" value={groupDrafts[list.id] ?? list.group_name ?? ''}
+                      disabled={savingGroup === list.id}
+                      onChange={(e) => setGroupDrafts((drafts) => ({ ...drafts, [list.id]: e.target.value }))}
+                      className="min-w-0 w-36 border border-gray-300 px-2 py-1 rounded" />
+                    <button onClick={() => handleGroupSave(list)} disabled={savingGroup !== null}
+                      className="px-2 py-1 bg-blue-500 text-white rounded text-sm disabled:opacity-50">
+                      {savingGroup === list.id ? '保存中' : '保存'}
+                    </button>
+                  </div>
                 </td>
                 <td className="border border-gray-300 px-3 py-2">
                   <div className="flex flex-col gap-2 items-center">

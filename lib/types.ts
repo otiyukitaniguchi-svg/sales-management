@@ -47,6 +47,7 @@ export interface CallHistoryRecord {
 
 // List definition record
 export interface ListDefinition {
+  group_name?: string | null
   id: string
   slug: string
   name: string

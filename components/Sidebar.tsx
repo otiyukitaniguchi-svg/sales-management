@@ -17,6 +17,12 @@ export default function Sidebar() {
   const [showCreateRecord, setShowCreateRecord] = useState(false)
   // 架電リストは最初は畳んでおき、クリックすると個別のリストが一覧表示される
   const [isListsExpanded, setIsListsExpanded] = useState(false)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+  const groups = new Map<string, typeof lists>()
+  for (const list of lists) {
+    const key = list.group_name || ''
+    groups.set(key, [...(groups.get(key) || []), list])
+  }
 
   const isAdmin = user?.role === 'admin'
 
@@ -70,7 +76,14 @@ export default function Sidebar() {
           <span className="text-xs">{isListsExpanded ? '▲' : '▼'}</span>
         </div>
         {isListsExpanded &&
-          lists.map((list) => {
+          Array.from(groups, ([groupName, groupLists]) => (
+            <div key={groupName}>
+              <button type="button" aria-expanded={collapsedGroups[groupName] !== true}
+                onClick={() => setCollapsedGroups((previous) => ({ ...previous, [groupName]: previous[groupName] !== true }))}
+                className="w-full px-3 py-2 text-left border-b border-gray-500 bg-[#b8c4d0] hover:bg-[#aab9c8] text-sm font-bold break-words">
+                {collapsedGroups[groupName] === true ? '▸' : '▾'} {groupName || '未分類'}（{groupLists.length}）
+              </button>
+              {collapsedGroups[groupName] !== true && groupLists.map((list) => {
             const isActive = currentList === list.slug
             const count = listData[list.slug]?.length || 0
 
@@ -88,7 +101,9 @@ export default function Sidebar() {
                 <div className="text-xs text-gray-600 mt-1">{count}件</div>
               </div>
             )
-          })}
+              })}
+            </div>
+          ))}
       </div>
       <button
         onClick={() => !isLoading && setShowCreateRecord(true)}

@@ -253,6 +253,16 @@ export class ApiClient {
     return { ...result, data: result.lists }
   }
 
+  static async setListGroup(id: string, groupName: string): Promise<ApiResponse<ListDefinition>> {
+    const response = await apiFetch(`${API_BASE}/admin/lists/${encodeURIComponent(id)}/group`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupName }),
+    })
+    const result = await response.json()
+    return { ...result, data: result.list }
+  }
+
   /**
    * Create a new customer list (admin only)
    */

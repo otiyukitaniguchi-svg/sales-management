@@ -297,3 +297,11 @@ curl https://your-domain.com/api/lists/list1
 # ログの確認（PM2の場合）
 pm2 logs sales-management
 ```
+# 架電リストのグループ機能
+
+本番反映前に Supabase SQL Editor で `supabase-migrate-list-groups.sql` を実行してください。
+既存リストは未分類となり、顧客データや架電履歴は変更されません。
+
+反映後、管理者の「リスト管理」でグループ名を入力・保存します。
+既存のグループ名も候補から選べます。空欄で保存すると未分類に戻ります。
+全ユーザーのサイドバーでグループごとに開閉できます。

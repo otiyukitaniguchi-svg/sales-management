@@ -5,7 +5,7 @@ import { supabaseAdmin, TABLES } from '@/lib/supabase'
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from(TABLES.LISTS)
-    .select('id, slug, name, sort_order, created_at')
+    .select('*')
     .order('sort_order', { ascending: true })
 
   if (error) {
